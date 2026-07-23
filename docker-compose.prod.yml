@@ -69,6 +69,9 @@ services:
       DEBUG: "false"
       REDIS_URL: redis://redis:6379/0
       RATE_LIMIT_ENABLED: "true"
+      # The image flattens the source tree, so the repo-relative ABI path does
+      # not hold here — point at where the Dockerfile actually places it.
+      CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
     expose:
       - "8000"
     networks:
@@ -114,6 +117,7 @@ services:
       APP_ENV: production
       DEBUG: "false"
       REDIS_URL: redis://redis:6379/0
+      CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
     networks:
       - internal
     command: >

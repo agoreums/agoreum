@@ -46,3 +46,28 @@ class TestCorsOriginParsing:
         """In-code construction (tests, overrides) still accepts a real list."""
         s = Settings(_env_file=None, CORS_ALLOWED_ORIGINS=["https://x.xyz"])
         assert s.CORS_ALLOWED_ORIGINS == ["https://x.xyz"]
+
+
+class TestAbiPathResolution:
+    def test_env_override_wins_over_repo_default(self, monkeypatch, tmp_path) -> None:
+        """The container flattens the tree, so the repo-relative default misses.
+
+        CONTRACT_ABI_PATH must take precedence — this was why the indexer
+        crash-looped on first deploy, unable to find the ABI.
+        """
+        from app.chain import escrow
+        from app.core.config import settings
+
+        fake = tmp_path / "AgoreumEscrow.abi.json"
+        fake.write_text("[]", encoding="utf-8")
+        monkeypatch.setattr(settings, "CONTRACT_ABI_PATH", str(fake))
+        assert escrow.abi_path() == fake
+
+    def test_default_is_used_when_unset(self, monkeypatch) -> None:
+        from app.chain import escrow
+        from app.core.config import settings
+
+        monkeypatch.setattr(settings, "CONTRACT_ABI_PATH", None)
+        assert escrow.abi_path() == escrow._DEFAULT_ABI_PATH
+        # the repo checkout really does have the ABI where the default expects it
+        assert escrow.abi_path().exists()

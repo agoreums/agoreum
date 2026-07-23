@@ -30,7 +30,17 @@ logger = get_logger(__name__)
 
 # app/chain/escrow.py -> repository root
 REPO_ROOT = Path(__file__).resolve().parents[4]
-ABI_PATH = REPO_ROOT / "packages" / "contracts" / "AgoreumEscrow.abi.json"
+_DEFAULT_ABI_PATH = REPO_ROOT / "packages" / "contracts" / "AgoreumEscrow.abi.json"
+
+
+def abi_path() -> Path:
+    """Where to read the contract ABI from.
+
+    Configuration wins over the repo-relative default: the container image does
+    not preserve the source tree depth, so the default lands in the wrong place
+    there and the image supplies CONTRACT_ABI_PATH instead.
+    """
+    return Path(settings.CONTRACT_ABI_PATH) if settings.CONTRACT_ABI_PATH else _DEFAULT_ABI_PATH
 
 # USDC uses 6 decimals on every network Agoreum settles on.
 TOKEN_DECIMALS = 6
@@ -60,11 +70,12 @@ class OnChainStatus(IntEnum):
 
 @lru_cache(maxsize=1)
 def load_abi() -> list[dict[str, Any]]:
-    if not ABI_PATH.exists():
+    path = abi_path()
+    if not path.exists():
         raise RuntimeError(
-            f"Contract ABI not found at {ABI_PATH}. Run `forge build` and export it."
+            f"Contract ABI not found at {path}. Run `forge build` and export it."
         )
-    return json.loads(ABI_PATH.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @lru_cache(maxsize=1)

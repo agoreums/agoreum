@@ -102,6 +102,12 @@ class Settings(BaseSettings):
     # L2 with fast blocks; this is depth, not time.
     CHAIN_CONFIRMATIONS: int = 5
 
+    # Absolute path to the contract ABI. Defaults to the repository layout, but
+    # the container image flattens the tree so the repo-relative computation
+    # lands one level off — the image sets this explicitly. Configuration rather
+    # than a fragile parents[] count.
+    CONTRACT_ABI_PATH: str | None = None
+
     # --- Email (Resend) ------------------------------------------------------
     RESEND_API_KEY: SecretStr = SecretStr("")
     EMAIL_FROM: str = "support@agoreum.xyz"

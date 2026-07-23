@@ -73,9 +73,23 @@ def create_app() -> FastAPI:
     )
 
     if settings.is_production:
+        domain = settings.SIWE_DOMAIN
         app.add_middleware(
             TrustedHostMiddleware,
-            allowed_hosts=["agoreum.xyz", "www.agoreum.xyz", "api.agoreum.xyz"],
+            # Public hostnames derive from the configured domain rather than being
+            # hardcoded. The internal names are essential, not optional: the
+            # container healthcheck reaches the app as 127.0.0.1, and server-side
+            # rendering in the web container calls the API as `api` over the
+            # compose network. Without them TrustedHost answers 400 and the
+            # service never reports healthy.
+            allowed_hosts=[
+                domain,
+                f"www.{domain}",
+                f"api.{domain}",
+                "localhost",
+                "127.0.0.1",
+                "api",
+            ],
         )
 
     app.add_middleware(BodySizeLimitMiddleware)
