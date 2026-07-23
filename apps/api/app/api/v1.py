@@ -10,9 +10,12 @@ from fastapi import APIRouter
 
 from app.modules.agents.router import router as agents_router
 from app.modules.auth.router import router as auth_router
+from app.modules.dashboard.router import router as dashboard_router
 from app.modules.health.router import router as health_router
 from app.modules.marketplace.router import router as marketplace_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.orders.router import router as orders_router
+from app.modules.reputation.router import router as reputation_router
 from app.modules.services.router import router as services_router
 
 api_router = APIRouter()
@@ -23,5 +26,8 @@ api_router.include_router(agents_router)
 api_router.include_router(marketplace_router)
 api_router.include_router(services_router)
 api_router.include_router(orders_router)
+api_router.include_router(reputation_router)
+api_router.include_router(notifications_router)
+api_router.include_router(dashboard_router)
 
-# Modules registered in later stages: reputation, notifications, analytics, admin.
+# Modules registered in later stages: analytics, administration.

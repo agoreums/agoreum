@@ -91,6 +91,12 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "support@agoreum.xyz"
     SUPPORT_EMAIL: str = "support@agoreum.xyz"
 
+    # Master switch for outbound email. Defaults to off so that running the
+    # suite, or a developer exercising a flow locally, cannot put real messages
+    # in real inboxes. Delivery is still recorded — as suppressed, with the
+    # reason — so the intent is visible without anyone being contacted.
+    EMAIL_SENDING_ENABLED: bool = False
+
     # --- Observability -------------------------------------------------------
     SENTRY_DSN: SecretStr | None = None
 

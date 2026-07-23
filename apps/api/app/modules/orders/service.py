@@ -224,13 +224,15 @@ async def create_order(
     service.order_count += 1
 
     await db.flush()
-    await db.refresh(order)
 
     logger.info(
         "order_created",
         extra={"order": str(order.id), "reference": order.reference},
     )
-    return order
+    # Reload with relationships eagerly loaded. The caller serialises escrow and
+    # transactions, and a lazy load there would attempt IO outside the async
+    # context and fail.
+    return await get_order(db, order.id)
 
 
 def _resolve_unit_price(service: Service, payload: OrderCreate) -> Decimal:
