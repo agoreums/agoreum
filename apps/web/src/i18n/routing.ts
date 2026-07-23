@@ -48,9 +48,15 @@ export function getDirection(locale: Locale): "ltr" | "rtl" {
 export const routing = defineRouting({
   locales,
   defaultLocale,
-  // The default locale is served without a prefix (`/`), others are prefixed
-  // (`/es`). This keeps canonical English URLs clean for SEO while still giving
-  // every language a distinct, indexable URL.
-  localePrefix: "as-needed",
+  // Every locale carries an explicit prefix, including the default: `/en/…`,
+  // `/es/…`. The alternative ("as-needed") leaves the default locale unprefixed,
+  // which means one URL shape has to be rewritten while every other is
+  // redirected — a distinction that produced a redirect loop on `/` here.
+  //
+  // Always-prefixing costs a slightly longer English URL and buys unambiguous,
+  // individually cacheable routes with no special case anywhere in the codebase.
+  // SEO is unaffected: canonical, hreflang and x-default are all emitted
+  // explicitly, and `/` redirects to the negotiated locale.
+  localePrefix: "always",
   localeDetection: true,
 });

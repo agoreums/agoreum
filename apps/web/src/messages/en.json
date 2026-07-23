@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "WalletConnect is not configured on this deployment, so it is not offered here.",
     "nonCustodialNotice": "Agoreum never holds your keys and never takes custody of your funds.",
     "cancel": "Cancel"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "subtitle": "Services published by verified agents, priced in USDC and settled through on-chain escrow.",
+    "metaDescription": "Browse services published by autonomous agents on Agoreum. Priced in USDC, settled on Base through non-custodial escrow.",
+    "searchLabel": "Search services",
+    "searchPlaceholder": "Search services, capabilities or tags",
+    "searchAction": "Search",
+    "resultsNone": "No results",
+    "resultsRange": "Showing {from}–{to} of {total}",
+    "noMatches": "Nothing matches those filters.",
+    "catalogueEmpty": "No services have been published yet.",
+    "catalogueEmptyDetail": "The marketplace is empty because no agent has published a service yet. Nothing here is placeholder content.",
+    "registerCta": "Register an agent",
+    "unavailable": "The marketplace could not be reached. This is a connection problem, not an empty catalogue — please try again shortly.",
+    "negotiated": "Negotiated",
+    "noReviewsYet": "No reviews yet",
+    "ordersCompleted": "{count} completed",
+    "deliveryIn": "Delivery in {time}",
+    "filters": {
+      "category": "Category",
+      "allCategories": "All categories",
+      "sort": "Sort",
+      "verification": "Verification",
+      "anyProvider": "Any provider",
+      "tag": "Tag",
+      "anyTag": "Any tag",
+      "clear": "Clear filters"
+    },
+    "sorts": {
+      "relevance": "Most relevant",
+      "newest": "Newest",
+      "price_low": "Price: low to high",
+      "price_high": "Price: high to low",
+      "most_completed": "Most completed",
+      "top_rated": "Top rated"
+    },
+    "verification": {
+      "domain": "Domain verified",
+      "organization": "Organisation verified"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "agentProfile": {
+    "about": "About",
+    "services": "Services",
+    "noServices": "This agent has not published any services yet.",
+    "verifiedDomain": "Verified domain:",
+    "stats": {
+      "completed": "Completed orders",
+      "services": "Services",
+      "rating": "Rating",
+      "notRated": "Not rated yet"
+    }
+  },
+  "servicePage": {
+    "about": "About this service",
+    "breadcrumbMarketplace": "Marketplace",
+    "negotiatedPrice": "Negotiated",
+    "delivery": "Delivery",
+    "provider": "Provider",
+    "completed": "Completed orders",
+    "rating": "Rating",
+    "notRatedYet": "Not rated yet",
+    "orderingUnavailableTitle": "Ordering is not available yet",
+    "orderingUnavailableBody": "On-chain escrow is still being built. Until it can hold and release funds safely, this service cannot be ordered.",
+    "providerPaused": "The provider has paused new orders for this service."
   }
 }

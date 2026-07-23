@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "WalletConnect ist in dieser Umgebung nicht konfiguriert und wird daher nicht angeboten.",
     "nonCustodialNotice": "Agoreum hält niemals Ihre Schlüssel und nimmt Ihre Mittel nie in Verwahrung.",
     "cancel": "Abbrechen"
+  },
+  "marketplace": {
+    "title": "Marktplatz",
+    "subtitle": "Dienste verifizierter Agenten, in USDC bepreist und über On-Chain-Treuhand abgewickelt.",
+    "metaDescription": "Entdecken Sie Dienste autonomer Agenten auf Agoreum. In USDC bepreist, auf Base über nicht-verwahrende Treuhand abgewickelt.",
+    "searchLabel": "Dienste suchen",
+    "searchPlaceholder": "Nach Diensten, Fähigkeiten oder Tags suchen",
+    "searchAction": "Suchen",
+    "resultsNone": "Keine Ergebnisse",
+    "resultsRange": "{from}–{to} von {total}",
+    "noMatches": "Zu diesen Filtern gibt es nichts.",
+    "catalogueEmpty": "Es wurden noch keine Dienste veröffentlicht.",
+    "catalogueEmptyDetail": "Der Marktplatz ist leer, weil noch kein Agent einen Dienst veröffentlicht hat. Nichts hier ist Platzhalterinhalt.",
+    "registerCta": "Agent registrieren",
+    "unavailable": "Der Marktplatz war nicht erreichbar. Das ist ein Verbindungsproblem, kein leerer Katalog — bitte versuchen Sie es gleich erneut.",
+    "negotiated": "Verhandelbar",
+    "noReviewsYet": "Noch keine Bewertungen",
+    "ordersCompleted": "{count} abgeschlossen",
+    "deliveryIn": "Lieferung in {time}",
+    "filters": {
+      "category": "Kategorie",
+      "allCategories": "Alle Kategorien",
+      "sort": "Sortieren",
+      "verification": "Verifizierung",
+      "anyProvider": "Beliebiger Anbieter",
+      "tag": "Tag",
+      "anyTag": "Beliebiger Tag",
+      "clear": "Filter zurücksetzen"
+    },
+    "sorts": {
+      "relevance": "Relevanteste",
+      "newest": "Neueste",
+      "price_low": "Preis: aufsteigend",
+      "price_high": "Preis: absteigend",
+      "most_completed": "Meiste Aufträge",
+      "top_rated": "Bestbewertet"
+    },
+    "verification": {
+      "domain": "Domain verifiziert",
+      "organization": "Organisation verifiziert"
+    },
+    "pagination": {
+      "previous": "Zurück",
+      "next": "Weiter"
+    }
+  },
+  "agentProfile": {
+    "about": "Über",
+    "services": "Dienste",
+    "noServices": "Dieser Agent hat noch keine Dienste veröffentlicht.",
+    "verifiedDomain": "Verifizierte Domain:",
+    "stats": {
+      "completed": "Abgeschlossene Aufträge",
+      "services": "Dienste",
+      "rating": "Bewertung",
+      "notRated": "Noch nicht bewertet"
+    }
+  },
+  "servicePage": {
+    "about": "Über diesen Dienst",
+    "breadcrumbMarketplace": "Marktplatz",
+    "negotiatedPrice": "Verhandelbar",
+    "delivery": "Lieferung",
+    "provider": "Anbieter",
+    "completed": "Abgeschlossene Aufträge",
+    "rating": "Bewertung",
+    "notRatedYet": "Noch nicht bewertet",
+    "orderingUnavailableTitle": "Bestellungen sind noch nicht möglich",
+    "orderingUnavailableBody": "Die On-Chain-Treuhand wird noch gebaut. Solange sie Mittel nicht sicher halten und freigeben kann, ist dieser Dienst nicht bestellbar.",
+    "providerPaused": "Der Anbieter nimmt derzeit keine neuen Bestellungen für diesen Dienst an."
   }
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { defaultLocale, localeHreflang, locales } from "@/i18n/routing";
+import { localeHreflang, locales } from "@/i18n/routing";
 import { absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-static";
@@ -17,9 +17,9 @@ const staticRoutes: { path: string; priority: number; changeFrequency: MetadataR
 ];
 
 function localizedUrl(locale: string, path: string): string {
-  const prefix = locale === defaultLocale ? "" : `/${locale}`;
+  // Every locale is prefixed, including the default, so there is no special case.
   const suffix = path === "/" ? "" : path;
-  return absoluteUrl(`${prefix}${suffix}` || "/");
+  return absoluteUrl(`/${locale}${suffix}`);
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {

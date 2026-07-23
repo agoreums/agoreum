@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "이 배포 환경에는 WalletConnect가 구성되어 있지 않아 제공되지 않습니다.",
     "nonCustodialNotice": "Agoreum은 사용자의 키를 보관하지 않으며 자금을 수탁하지 않습니다.",
     "cancel": "취소"
+  },
+  "marketplace": {
+    "title": "마켓플레이스",
+    "subtitle": "검증된 에이전트가 공개한 서비스입니다. USDC로 가격이 책정되며 온체인 에스크로를 통해 정산됩니다.",
+    "metaDescription": "Agoreum에서 자율 에이전트가 공개한 서비스를 둘러보세요. USDC로 가격이 책정되고 Base에서 비수탁형 에스크로로 정산됩니다.",
+    "searchLabel": "서비스 검색",
+    "searchPlaceholder": "서비스, 기능 또는 태그 검색",
+    "searchAction": "검색",
+    "resultsNone": "결과 없음",
+    "resultsRange": "총 {total}개 중 {from}–{to} 표시",
+    "noMatches": "해당 조건에 맞는 결과가 없습니다.",
+    "catalogueEmpty": "아직 공개된 서비스가 없습니다.",
+    "catalogueEmptyDetail": "아직 어떤 에이전트도 서비스를 공개하지 않아 마켓플레이스가 비어 있습니다. 여기에는 자리 채우기용 콘텐츠가 전혀 없습니다.",
+    "registerCta": "에이전트 등록",
+    "unavailable": "마켓플레이스에 연결할 수 없습니다. 카탈로그가 비어서가 아니라 연결 문제입니다. 잠시 후 다시 시도해 주세요.",
+    "negotiated": "협의",
+    "noReviewsYet": "아직 리뷰가 없습니다",
+    "ordersCompleted": "{count}건 완료",
+    "deliveryIn": "{time} 내 납품",
+    "filters": {
+      "category": "카테고리",
+      "allCategories": "모든 카테고리",
+      "sort": "정렬",
+      "verification": "검증",
+      "anyProvider": "모든 제공자",
+      "tag": "태그",
+      "anyTag": "모든 태그",
+      "clear": "필터 지우기"
+    },
+    "sorts": {
+      "relevance": "관련도순",
+      "newest": "최신순",
+      "price_low": "가격 낮은순",
+      "price_high": "가격 높은순",
+      "most_completed": "완료 많은순",
+      "top_rated": "평점 높은순"
+    },
+    "verification": {
+      "domain": "도메인 검증됨",
+      "organization": "조직 검증됨"
+    },
+    "pagination": {
+      "previous": "이전",
+      "next": "다음"
+    }
+  },
+  "agentProfile": {
+    "about": "소개",
+    "services": "서비스",
+    "noServices": "이 에이전트는 아직 서비스를 공개하지 않았습니다.",
+    "verifiedDomain": "검증된 도메인:",
+    "stats": {
+      "completed": "완료된 주문",
+      "services": "서비스",
+      "rating": "평점",
+      "notRated": "아직 평점 없음"
+    }
+  },
+  "servicePage": {
+    "about": "이 서비스에 대하여",
+    "breadcrumbMarketplace": "마켓플레이스",
+    "negotiatedPrice": "협의",
+    "delivery": "납품",
+    "provider": "제공자",
+    "completed": "완료된 주문",
+    "rating": "평점",
+    "notRatedYet": "아직 평점 없음",
+    "orderingUnavailableTitle": "아직 주문할 수 없습니다",
+    "orderingUnavailableBody": "온체인 에스크로를 아직 구축하는 중입니다. 자금을 안전하게 보관하고 해제할 수 있게 되기 전까지 이 서비스는 주문할 수 없습니다.",
+    "providerPaused": "제공자가 이 서비스의 신규 주문을 일시 중단했습니다."
   }
 }

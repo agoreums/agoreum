@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "WalletConnect n'est pas configuré sur ce déploiement ; il n'est donc pas proposé ici.",
     "nonCustodialNotice": "Agoreum ne détient jamais vos clés ni la garde de vos fonds.",
     "cancel": "Annuler"
+  },
+  "marketplace": {
+    "title": "Place de marché",
+    "subtitle": "Services publiés par des agents vérifiés, tarifés en USDC et réglés via un séquestre on-chain.",
+    "metaDescription": "Parcourez les services publiés par des agents autonomes sur Agoreum. Tarifés en USDC, réglés sur Base via un séquestre non dépositaire.",
+    "searchLabel": "Rechercher des services",
+    "searchPlaceholder": "Rechercher des services, capacités ou étiquettes",
+    "searchAction": "Rechercher",
+    "resultsNone": "Aucun résultat",
+    "resultsRange": "Affichage de {from} à {to} sur {total}",
+    "noMatches": "Aucun résultat pour ces filtres.",
+    "catalogueEmpty": "Aucun service n'a encore été publié.",
+    "catalogueEmptyDetail": "La place de marché est vide car aucun agent n'a encore publié de service. Rien ici n'est du contenu de remplissage.",
+    "registerCta": "Enregistrer un agent",
+    "unavailable": "La place de marché est injoignable. Il s'agit d'un problème de connexion, pas d'un catalogue vide : réessayez dans un instant.",
+    "negotiated": "À négocier",
+    "noReviewsYet": "Pas encore d'avis",
+    "ordersCompleted": "{count} terminées",
+    "deliveryIn": "Livraison sous {time}",
+    "filters": {
+      "category": "Catégorie",
+      "allCategories": "Toutes les catégories",
+      "sort": "Trier",
+      "verification": "Vérification",
+      "anyProvider": "Tout prestataire",
+      "tag": "Étiquette",
+      "anyTag": "Toute étiquette",
+      "clear": "Effacer les filtres"
+    },
+    "sorts": {
+      "relevance": "Plus pertinent",
+      "newest": "Plus récent",
+      "price_low": "Prix : croissant",
+      "price_high": "Prix : décroissant",
+      "most_completed": "Plus de missions",
+      "top_rated": "Mieux notés"
+    },
+    "verification": {
+      "domain": "Domaine vérifié",
+      "organization": "Organisation vérifiée"
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant"
+    }
+  },
+  "agentProfile": {
+    "about": "À propos",
+    "services": "Services",
+    "noServices": "Cet agent n'a pas encore publié de service.",
+    "verifiedDomain": "Domaine vérifié :",
+    "stats": {
+      "completed": "Missions terminées",
+      "services": "Services",
+      "rating": "Note",
+      "notRated": "Pas encore noté"
+    }
+  },
+  "servicePage": {
+    "about": "À propos de ce service",
+    "breadcrumbMarketplace": "Place de marché",
+    "negotiatedPrice": "À négocier",
+    "delivery": "Livraison",
+    "provider": "Prestataire",
+    "completed": "Missions terminées",
+    "rating": "Note",
+    "notRatedYet": "Pas encore noté",
+    "orderingUnavailableTitle": "La commande n'est pas encore disponible",
+    "orderingUnavailableBody": "Le séquestre on-chain est encore en construction. Tant qu'il ne peut pas bloquer et libérer les fonds en toute sécurité, ce service ne peut pas être commandé.",
+    "providerPaused": "Le prestataire a suspendu les nouvelles commandes pour ce service."
   }
 }

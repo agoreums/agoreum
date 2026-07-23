@@ -52,15 +52,12 @@ export async function generateMetadata(props: {
   if (!hasLocale(routing.locales, locale)) return {};
 
   const t = await getTranslations({ locale, namespace: "metadata" });
-  const path = locale === routing.defaultLocale ? "" : `/${locale}`;
+  const path = `/${locale}`;
 
   // Every locale advertises every other locale, so search engines can serve the
   // right language and never treat translations as duplicate content.
   const languages = Object.fromEntries(
-    locales.map((l) => [
-      localeHreflang[l],
-      l === routing.defaultLocale ? absoluteUrl("/") : absoluteUrl(`/${l}`),
-    ]),
+    locales.map((l) => [localeHreflang[l], absoluteUrl(`/${l}`)]),
   );
 
   return {
@@ -75,7 +72,11 @@ export async function generateMetadata(props: {
     manifest: "/site.webmanifest",
     alternates: {
       canonical: absoluteUrl(path || "/"),
-      languages: { ...languages, "x-default": absoluteUrl("/") },
+      languages: {
+        ...languages,
+        // x-default points at the default locale, which is where `/` lands.
+        "x-default": absoluteUrl(`/${routing.defaultLocale}`),
+      },
     },
     icons: {
       icon: [

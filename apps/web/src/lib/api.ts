@@ -152,3 +152,153 @@ export const authApi = {
   me: (accessToken: string) =>
     apiFetch<UserProfile>("/api/v1/auth/me", { accessToken }),
 };
+
+// --- Marketplace ------------------------------------------------------------
+
+export type AgentSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  avatar_url: string | null;
+  verification_tier: "unverified" | "domain_verified" | "organization_verified";
+  completed_orders: number;
+  average_rating: number | null;
+};
+
+export type ServiceListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  pricing_model: "fixed" | "per_unit" | "hourly" | "negotiated";
+  price: string | null;
+  price_currency: string;
+  price_unit: string | null;
+  delivery_time_hours: number | null;
+  tags: string[];
+  completed_order_count: number;
+  review_count: number;
+  average_rating: number | null;
+  agent: AgentSummary;
+};
+
+export type CategoryFacet = { slug: string; name: string; count: number };
+
+export type ServiceSearchResults = {
+  items: ServiceListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  query: string | null;
+  sort: string;
+  facets: CategoryFacet[] | null;
+};
+
+export type AgentSearchItem = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  avatar_url: string | null;
+  verification_tier: AgentSummary["verification_tier"];
+  verified_domain: string | null;
+  completed_orders: number;
+  review_count: number;
+  average_rating: number | null;
+  published_service_count: number;
+};
+
+export type AgentSearchResults = {
+  items: AgentSearchItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  query: string | null;
+  sort: string;
+};
+
+export type Category = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  parent_id: string | null;
+  children?: Omit<Category, "children">[];
+};
+
+export type AgentProfile = AgentSearchItem & {
+  description: string | null;
+  website_url: string | null;
+  capabilities: Record<string, unknown>;
+  api_endpoint: string | null;
+  payout_address: string | null;
+  status: string;
+  cancelled_orders: number;
+  disputed_orders: number;
+  published_at: string | null;
+  last_active_at: string | null;
+  created_at: string;
+};
+
+export type ServiceDetail = ServiceListItem & {
+  description: string | null;
+  status: string;
+  min_quantity: number;
+  max_quantity: number | null;
+  auto_release_hours: number;
+  input_schema: Record<string, unknown> | null;
+  output_schema: Record<string, unknown> | null;
+  order_count: number;
+  published_at: string | null;
+  created_at: string;
+  category: { id: string; slug: string; name: string } | null;
+};
+
+export type FilterMetadata = {
+  price: { min: string | null; max: string | null; currency: string };
+  tags: { tag: string; count: number }[];
+  sorts: string[];
+  pricing_models: string[];
+  verification_tiers: string[];
+};
+
+/** Drops empty values so they never reach the API as blank filters. */
+function toQuery(params: Record<string, string | number | string[] | undefined>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "" || value === null) continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => v && search.append(key, v));
+    } else {
+      search.set(key, String(value));
+    }
+  }
+  return search.toString();
+}
+
+export const marketplaceApi = {
+  searchServices: (params: Record<string, string | number | string[] | undefined>) =>
+    apiFetch<ServiceSearchResults>(
+      `/api/v1/marketplace/services?${toQuery(params)}`,
+    ),
+
+  searchAgents: (params: Record<string, string | number | undefined>) =>
+    apiFetch<AgentSearchResults>(`/api/v1/marketplace/agents?${toQuery(params)}`),
+
+  filters: () => apiFetch<FilterMetadata>("/api/v1/marketplace/filters"),
+
+  categories: () => apiFetch<Category[]>("/api/v1/categories"),
+
+  agent: (slug: string) =>
+    apiFetch<AgentProfile>(`/api/v1/agents/${encodeURIComponent(slug)}`),
+
+  agentServices: (slug: string) =>
+    apiFetch<ServiceDetail[]>(
+      `/api/v1/agents/${encodeURIComponent(slug)}/services`,
+    ),
+
+  service: (agentSlug: string, serviceSlug: string) =>
+    apiFetch<ServiceDetail>(
+      `/api/v1/agents/${encodeURIComponent(agentSlug)}/services/${encodeURIComponent(serviceSlug)}`,
+    ),
+};

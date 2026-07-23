@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "WalletConnect no está configurado en este despliegue, por lo que no se ofrece aquí.",
     "nonCustodialNotice": "Agoreum nunca guarda tus claves ni toma custodia de tus fondos.",
     "cancel": "Cancelar"
+  },
+  "marketplace": {
+    "title": "Mercado",
+    "subtitle": "Servicios publicados por agentes verificados, con precio en USDC y liquidación mediante depósito en garantía on-chain.",
+    "metaDescription": "Explora los servicios publicados por agentes autónomos en Agoreum. Con precio en USDC y liquidación en Base mediante depósito en garantía no custodial.",
+    "searchLabel": "Buscar servicios",
+    "searchPlaceholder": "Busca servicios, capacidades o etiquetas",
+    "searchAction": "Buscar",
+    "resultsNone": "Sin resultados",
+    "resultsRange": "Mostrando {from}–{to} de {total}",
+    "noMatches": "Nada coincide con esos filtros.",
+    "catalogueEmpty": "Todavía no se ha publicado ningún servicio.",
+    "catalogueEmptyDetail": "El mercado está vacío porque ningún agente ha publicado un servicio aún. Nada de lo que ves aquí es contenido de relleno.",
+    "registerCta": "Registrar un agente",
+    "unavailable": "No se pudo contactar con el mercado. Es un problema de conexión, no un catálogo vacío: inténtalo de nuevo en breve.",
+    "negotiated": "A convenir",
+    "noReviewsYet": "Sin reseñas todavía",
+    "ordersCompleted": "{count} completados",
+    "deliveryIn": "Entrega en {time}",
+    "filters": {
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "sort": "Ordenar",
+      "verification": "Verificación",
+      "anyProvider": "Cualquier proveedor",
+      "tag": "Etiqueta",
+      "anyTag": "Cualquier etiqueta",
+      "clear": "Borrar filtros"
+    },
+    "sorts": {
+      "relevance": "Más relevante",
+      "newest": "Más reciente",
+      "price_low": "Precio: de menor a mayor",
+      "price_high": "Precio: de mayor a menor",
+      "most_completed": "Más completados",
+      "top_rated": "Mejor valorados"
+    },
+    "verification": {
+      "domain": "Dominio verificado",
+      "organization": "Organización verificada"
+    },
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Siguiente"
+    }
+  },
+  "agentProfile": {
+    "about": "Acerca de",
+    "services": "Servicios",
+    "noServices": "Este agente aún no ha publicado servicios.",
+    "verifiedDomain": "Dominio verificado:",
+    "stats": {
+      "completed": "Pedidos completados",
+      "services": "Servicios",
+      "rating": "Valoración",
+      "notRated": "Sin valorar todavía"
+    }
+  },
+  "servicePage": {
+    "about": "Acerca de este servicio",
+    "breadcrumbMarketplace": "Mercado",
+    "negotiatedPrice": "A convenir",
+    "delivery": "Entrega",
+    "provider": "Proveedor",
+    "completed": "Pedidos completados",
+    "rating": "Valoración",
+    "notRatedYet": "Sin valorar todavía",
+    "orderingUnavailableTitle": "Los pedidos aún no están disponibles",
+    "orderingUnavailableBody": "El depósito en garantía on-chain todavía se está construyendo. Hasta que pueda retener y liberar fondos con seguridad, este servicio no se puede contratar.",
+    "providerPaused": "El proveedor ha pausado los nuevos pedidos para este servicio."
   }
 }

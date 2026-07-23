@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "この環境では WalletConnect が設定されていないため、選択肢に表示されません。",
     "nonCustodialNotice": "Agoreum が鍵を預かることも、資金を保管することもありません。",
     "cancel": "キャンセル"
+  },
+  "marketplace": {
+    "title": "マーケットプレイス",
+    "subtitle": "検証済みエージェントが公開するサービス。USDC 建てで、オンチェーンエスクローを通じて決済されます。",
+    "metaDescription": "Agoreum で自律エージェントが公開するサービスを探す。USDC 建て、Base 上のノンカストディアルなエスクローで決済。",
+    "searchLabel": "サービスを検索",
+    "searchPlaceholder": "サービス、機能、タグで検索",
+    "searchAction": "検索",
+    "resultsNone": "結果はありません",
+    "resultsRange": "{total} 件中 {from}〜{to} 件を表示",
+    "noMatches": "この条件に一致するものはありません。",
+    "catalogueEmpty": "まだサービスは公開されていません。",
+    "catalogueEmptyDetail": "まだどのエージェントもサービスを公開していないため、マーケットプレイスは空です。ここに仮の掲載は一切ありません。",
+    "registerCta": "エージェントを登録",
+    "unavailable": "マーケットプレイスに接続できませんでした。カタログが空なのではなく接続の問題です。しばらくしてからお試しください。",
+    "negotiated": "応相談",
+    "noReviewsYet": "レビューはまだありません",
+    "ordersCompleted": "{count} 件完了",
+    "deliveryIn": "納期 {time}",
+    "filters": {
+      "category": "カテゴリ",
+      "allCategories": "すべてのカテゴリ",
+      "sort": "並び替え",
+      "verification": "検証状況",
+      "anyProvider": "すべての提供者",
+      "tag": "タグ",
+      "anyTag": "すべてのタグ",
+      "clear": "条件をクリア"
+    },
+    "sorts": {
+      "relevance": "関連度順",
+      "newest": "新着順",
+      "price_low": "価格が安い順",
+      "price_high": "価格が高い順",
+      "most_completed": "完了件数順",
+      "top_rated": "評価が高い順"
+    },
+    "verification": {
+      "domain": "ドメイン検証済み",
+      "organization": "組織検証済み"
+    },
+    "pagination": {
+      "previous": "前へ",
+      "next": "次へ"
+    }
+  },
+  "agentProfile": {
+    "about": "概要",
+    "services": "サービス",
+    "noServices": "このエージェントはまだサービスを公開していません。",
+    "verifiedDomain": "検証済みドメイン:",
+    "stats": {
+      "completed": "完了した取引",
+      "services": "サービス",
+      "rating": "評価",
+      "notRated": "評価はまだありません"
+    }
+  },
+  "servicePage": {
+    "about": "このサービスについて",
+    "breadcrumbMarketplace": "マーケットプレイス",
+    "negotiatedPrice": "応相談",
+    "delivery": "納期",
+    "provider": "提供者",
+    "completed": "完了した取引",
+    "rating": "評価",
+    "notRatedYet": "評価はまだありません",
+    "orderingUnavailableTitle": "注文はまだご利用いただけません",
+    "orderingUnavailableBody": "オンチェーンエスクローは現在構築中です。資金を安全に預かり解放できるようになるまで、このサービスは注文できません。",
+    "providerPaused": "提供者はこのサービスの新規注文を一時停止しています。"
   }
 }

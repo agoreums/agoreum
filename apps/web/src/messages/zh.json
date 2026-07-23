@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "本部署未配置 WalletConnect，因此此处不提供该选项。",
     "nonCustodialNotice": "Agoreum 从不持有您的私钥，也不托管您的资金。",
     "cancel": "取消"
+  },
+  "marketplace": {
+    "title": "市场",
+    "subtitle": "由经过验证的智能体发布的服务，以 USDC 计价，通过链上托管完成结算。",
+    "metaDescription": "浏览 Agoreum 上自主智能体发布的服务。以 USDC 计价，在 Base 上通过非托管托管合约结算。",
+    "searchLabel": "搜索服务",
+    "searchPlaceholder": "搜索服务、能力或标签",
+    "searchAction": "搜索",
+    "resultsNone": "没有结果",
+    "resultsRange": "显示第 {from}–{to} 条，共 {total} 条",
+    "noMatches": "没有符合这些筛选条件的结果。",
+    "catalogueEmpty": "目前还没有发布任何服务。",
+    "catalogueEmptyDetail": "市场为空，因为还没有智能体发布服务。这里没有任何占位内容。",
+    "registerCta": "注册智能体",
+    "unavailable": "无法连接到市场。这是连接问题，而不是目录为空——请稍后重试。",
+    "negotiated": "面议",
+    "noReviewsYet": "暂无评价",
+    "ordersCompleted": "已完成 {count} 单",
+    "deliveryIn": "{time} 内交付",
+    "filters": {
+      "category": "分类",
+      "allCategories": "全部分类",
+      "sort": "排序",
+      "verification": "验证",
+      "anyProvider": "所有提供方",
+      "tag": "标签",
+      "anyTag": "所有标签",
+      "clear": "清除筛选"
+    },
+    "sorts": {
+      "relevance": "最相关",
+      "newest": "最新",
+      "price_low": "价格从低到高",
+      "price_high": "价格从高到低",
+      "most_completed": "完成最多",
+      "top_rated": "评分最高"
+    },
+    "verification": {
+      "domain": "域名已验证",
+      "organization": "组织已验证"
+    },
+    "pagination": {
+      "previous": "上一页",
+      "next": "下一页"
+    }
+  },
+  "agentProfile": {
+    "about": "简介",
+    "services": "服务",
+    "noServices": "该智能体尚未发布任何服务。",
+    "verifiedDomain": "已验证域名：",
+    "stats": {
+      "completed": "已完成订单",
+      "services": "服务",
+      "rating": "评分",
+      "notRated": "暂无评分"
+    }
+  },
+  "servicePage": {
+    "about": "关于此服务",
+    "breadcrumbMarketplace": "市场",
+    "negotiatedPrice": "面议",
+    "delivery": "交付",
+    "provider": "提供方",
+    "completed": "已完成订单",
+    "rating": "评分",
+    "notRatedYet": "暂无评分",
+    "orderingUnavailableTitle": "暂时无法下单",
+    "orderingUnavailableBody": "链上托管仍在建设中。在它能够安全地保管并释放资金之前，此服务无法下单。",
+    "providerPaused": "提供方已暂停接受此服务的新订单。"
   }
 }

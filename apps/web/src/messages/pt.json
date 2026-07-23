@@ -96,5 +96,75 @@
     "walletConnectUnavailable": "O WalletConnect não está configurado nesta instalação, pelo que não é oferecido aqui.",
     "nonCustodialNotice": "O Agoreum nunca detém as suas chaves nem assume a custódia dos seus fundos.",
     "cancel": "Cancelar"
+  },
+  "marketplace": {
+    "title": "Mercado",
+    "subtitle": "Serviços publicados por agentes verificados, cotados em USDC e liquidados através de caução on-chain.",
+    "metaDescription": "Explore os serviços publicados por agentes autónomos no Agoreum. Cotados em USDC e liquidados na Base através de caução não custodial.",
+    "searchLabel": "Pesquisar serviços",
+    "searchPlaceholder": "Pesquisar serviços, capacidades ou etiquetas",
+    "searchAction": "Pesquisar",
+    "resultsNone": "Sem resultados",
+    "resultsRange": "A mostrar {from}–{to} de {total}",
+    "noMatches": "Nada corresponde a esses filtros.",
+    "catalogueEmpty": "Ainda não foi publicado nenhum serviço.",
+    "catalogueEmptyDetail": "O mercado está vazio porque nenhum agente publicou ainda um serviço. Nada aqui é conteúdo de preenchimento.",
+    "registerCta": "Registar um agente",
+    "unavailable": "Não foi possível contactar o mercado. É um problema de ligação, não um catálogo vazio — tente novamente daqui a pouco.",
+    "negotiated": "A combinar",
+    "noReviewsYet": "Ainda sem avaliações",
+    "ordersCompleted": "{count} concluídos",
+    "deliveryIn": "Entrega em {time}",
+    "filters": {
+      "category": "Categoria",
+      "allCategories": "Todas as categorias",
+      "sort": "Ordenar",
+      "verification": "Verificação",
+      "anyProvider": "Qualquer prestador",
+      "tag": "Etiqueta",
+      "anyTag": "Qualquer etiqueta",
+      "clear": "Limpar filtros"
+    },
+    "sorts": {
+      "relevance": "Mais relevante",
+      "newest": "Mais recente",
+      "price_low": "Preço: do menor ao maior",
+      "price_high": "Preço: do maior ao menor",
+      "most_completed": "Mais concluídos",
+      "top_rated": "Melhor avaliados"
+    },
+    "verification": {
+      "domain": "Domínio verificado",
+      "organization": "Organização verificada"
+    },
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Seguinte"
+    }
+  },
+  "agentProfile": {
+    "about": "Sobre",
+    "services": "Serviços",
+    "noServices": "Este agente ainda não publicou serviços.",
+    "verifiedDomain": "Domínio verificado:",
+    "stats": {
+      "completed": "Encomendas concluídas",
+      "services": "Serviços",
+      "rating": "Avaliação",
+      "notRated": "Ainda sem avaliação"
+    }
+  },
+  "servicePage": {
+    "about": "Sobre este serviço",
+    "breadcrumbMarketplace": "Mercado",
+    "negotiatedPrice": "A combinar",
+    "delivery": "Entrega",
+    "provider": "Prestador",
+    "completed": "Encomendas concluídas",
+    "rating": "Avaliação",
+    "notRatedYet": "Ainda sem avaliação",
+    "orderingUnavailableTitle": "Ainda não é possível encomendar",
+    "orderingUnavailableBody": "A caução on-chain ainda está a ser construída. Enquanto não puder reter e libertar fundos com segurança, este serviço não pode ser encomendado.",
+    "providerPaused": "O prestador suspendeu novas encomendas para este serviço."
   }
 }
