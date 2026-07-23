@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Agoreum Design System
+   -----------------------------------------------------------------------------
+   Tokens are derived from the official brand mark: an indigo trinity-loop on a
+   near-black field. The system is deliberately restrained — one chromatic family
+   (indigo), a neutral ramp tuned slightly blue to sit with it, and a single warm
+   accent reserved for value/settlement moments. Nothing here is decorative for its
+   own sake; every token has a job.
+   ========================================================================== */
+
+@theme {
+  /* --- Brand: indigo, sampled from the mark ------------------------------- */
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #e0e3ff;
+  --color-brand-200: #c7ccfe;
+  --color-brand-300: #a5abfc;
+  --color-brand-400: #868cf8;
+  --color-brand-500: #5b63f1; /* peak of the mark */
+  --color-brand-600: #4b48e0; /* mark body */
+  --color-brand-700: #3f37c4;
+  --color-brand-800: #342f9e;
+  --color-brand-900: #2e2c7d;
+  --color-brand-950: #1c1a49;
+
+  /* --- Neutrals: cooled toward the brand so greys never look muddy -------- */
+  --color-ink-50: #f6f7fb;
+  --color-ink-100: #eceef6;
+  --color-ink-200: #d5d9e8;
+  --color-ink-300: #b0b7d0;
+  --color-ink-400: #848db3;
+  --color-ink-500: #656d97;
+  --color-ink-600: #50567c;
+  --color-ink-700: #414564;
+  --color-ink-800: #2b2e45;
+  --color-ink-900: #1a1c2e;
+  --color-ink-950: #0a0a12; /* canonical dark field, matches the icon set */
+
+  /* --- Settlement accent: reserved for value, payouts, escrow release ----- */
+  --color-accent-400: #f0b866;
+  --color-accent-500: #e0a04a;
+  --color-accent-600: #c48334;
+
+  /* --- Semantic status ---------------------------------------------------- */
+  --color-success-500: #34b981;
+  --color-success-600: #279268;
+  --color-warning-500: #e0a04a;
+  --color-danger-500: #ef5a6f;
+  --color-danger-600: #d13c52;
+
+  /* --- Typography --------------------------------------------------------- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo,
+    Consolas, monospace;
+
+  /* Fluid type scale — clamps so the layout holds from 320px to ultrawide. */
+  --text-display: clamp(2.75rem, 1.6rem + 5.2vw, 5.5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.035em;
+  --text-h1: clamp(2rem, 1.35rem + 2.8vw, 3.5rem);
+  --text-h1--line-height: 1.08;
+  --text-h1--letter-spacing: -0.028em;
+  --text-h2: clamp(1.5rem, 1.15rem + 1.5vw, 2.25rem);
+  --text-h2--line-height: 1.16;
+  --text-h2--letter-spacing: -0.022em;
+  --text-h3: clamp(1.2rem, 1.05rem + 0.65vw, 1.5rem);
+  --text-h3--line-height: 1.28;
+  --text-h3--letter-spacing: -0.014em;
+
+  /* --- Radii: generous but not pill-shaped -------------------------------- */
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
+
+  /* --- Elevation: dark-UI shadows need brand tint, not pure black --------- */
+  --shadow-panel: 0 1px 2px rgb(10 10 18 / 0.24),
+    0 8px 24px -8px rgb(10 10 18 / 0.32);
+  --shadow-lifted: 0 2px 4px rgb(10 10 18 / 0.2),
+    0 16px 48px -12px rgb(28 26 73 / 0.45);
+
+  /* --- Motion: one easing curve used everywhere --------------------------- */
+  --ease-out-brand: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* =============================================================================
+   Base layer
+   ========================================================================== */
+
+@layer base {
+  :root {
+    --surface-base: var(--color-ink-950);
+    --surface-raised: var(--color-ink-900);
+    --surface-overlay: var(--color-ink-800);
+    --text-primary: var(--color-ink-50);
+    --text-secondary: var(--color-ink-300);
+    --text-muted: var(--color-ink-400);
+    --border-subtle: color-mix(in oklab, var(--color-ink-100) 10%, transparent);
+    --border-strong: color-mix(in oklab, var(--color-ink-100) 18%, transparent);
+    color-scheme: dark;
+  }
+
+  /* Light theme is opt-in via [data-theme="light"]; the brand reads dark-first. */
+  :root[data-theme="light"] {
+    --surface-base: #ffffff;
+    --surface-raised: var(--color-ink-50);
+    --surface-overlay: var(--color-ink-100);
+    --text-primary: var(--color-ink-950);
+    --text-secondary: var(--color-ink-600);
+    --text-muted: var(--color-ink-500);
+    --border-subtle: color-mix(in oklab, var(--color-ink-950) 10%, transparent);
+    --border-strong: color-mix(in oklab, var(--color-ink-950) 16%, transparent);
+    color-scheme: light;
+  }
+
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Respect users who ask for less motion — no exceptions. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* A single, consistently visible focus treatment across the whole product. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-brand-500) 32%, transparent);
+    color: var(--text-primary);
+  }
+}
+
+/* =============================================================================
+   Utilities
+   ========================================================================== */
+
+@layer utilities {
+  /* Skip link: visually hidden until focused. */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+  }
+  .skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--surface-overlay);
+    color: var(--text-primary);
+    border-radius: 0.5rem;
+  }
+
+  /* The brand's signature ambient glow, used sparingly behind hero content. */
+  .brand-glow {
+    background-image: radial-gradient(
+      60% 60% at 50% 40%,
+      color-mix(in oklab, var(--color-brand-500) 26%, transparent) 0%,
+      transparent 70%
+    );
+  }
+
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-ink-50) 0%,
+      var(--color-brand-300) 55%,
+      var(--color-brand-500) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
