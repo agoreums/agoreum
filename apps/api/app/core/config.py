@@ -64,11 +64,27 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # --- Blockchain (Base) ---------------------------------------------------
-    CHAIN_ID: int = 8453
+    # Base mainnet (8453) or Base Sepolia (84532). Everything chain-specific is
+    # selected from this one value rather than being configured twice.
+    CHAIN_ID: int = 84532
+
     ALCHEMY_API_KEY: SecretStr = SecretStr("")
-    ALCHEMY_BASE_URL: SecretStr = SecretStr("")
-    USDC_CONTRACT_ADDRESS_BASE: str = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    # Full RPC endpoints, one per network. These are complete URLs including the
+    # API key, which is how Alchemy issues them.
+    ALCHEMY_BASE_URL_MAINNET: SecretStr = SecretStr("")
+    ALCHEMY_BASE_URL_SEPOLIA: SecretStr = SecretStr("")
+
+    # USDC is deployed at a different address on each network. Sending funds to
+    # the mainnet address on testnet (or the reverse) would be unrecoverable, so
+    # the pairing is resolved from CHAIN_ID rather than configured by hand.
+    USDC_ADDRESS_BASE_MAINNET: str = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    USDC_ADDRESS_BASE_SEPOLIA: str = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+
     ESCROW_CONTRACT_ADDRESS: str | None = None
+
+    # Confirmations before an on-chain event is treated as settled. Base is an
+    # L2 with fast blocks; this is depth, not time.
+    CHAIN_CONFIRMATIONS: int = 5
 
     # --- Email (Resend) ------------------------------------------------------
     RESEND_API_KEY: SecretStr = SecretStr("")
@@ -85,6 +101,47 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [o.strip() for o in v.split(",") if o.strip()]
         return v
+
+    # --- Chain resolution ----------------------------------------------------
+
+    BASE_MAINNET_CHAIN_ID: int = 8453
+    BASE_SEPOLIA_CHAIN_ID: int = 84532
+
+    @property
+    def is_mainnet(self) -> bool:
+        return self.CHAIN_ID == self.BASE_MAINNET_CHAIN_ID
+
+    @property
+    def rpc_url(self) -> str:
+        """The RPC endpoint for the configured chain.
+
+        Returns an empty string when unconfigured rather than falling back to a
+        public endpoint: silently using a different provider would make the
+        source of chain data ambiguous at exactly the moment it matters.
+        """
+        secret = (
+            self.ALCHEMY_BASE_URL_MAINNET
+            if self.is_mainnet
+            else self.ALCHEMY_BASE_URL_SEPOLIA
+        )
+        return secret.get_secret_value()
+
+    @property
+    def usdc_address(self) -> str:
+        """USDC for the configured chain."""
+        return (
+            self.USDC_ADDRESS_BASE_MAINNET
+            if self.is_mainnet
+            else self.USDC_ADDRESS_BASE_SEPOLIA
+        )
+
+    @property
+    def chain_name(self) -> str:
+        return "Base" if self.is_mainnet else "Base Sepolia"
+
+    @property
+    def explorer_url(self) -> str:
+        return "https://basescan.org" if self.is_mainnet else "https://sepolia.basescan.org"
 
     @property
     def is_production(self) -> bool:

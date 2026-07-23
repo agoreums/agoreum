@@ -164,8 +164,8 @@ def _rpc_provider():
     Returning None degrades to ECDSA-only verification. That is stated plainly
     rather than silently accepting contract-wallet signatures we cannot check.
     """
-    rpc_url = settings.ALCHEMY_BASE_URL.get_secret_value()
-    api_key = settings.ALCHEMY_API_KEY.get_secret_value()
+    # A complete endpoint including the key, resolved for the configured chain.
+    rpc_url = settings.rpc_url
     if not rpc_url:
         return None
 
@@ -174,8 +174,7 @@ def _rpc_provider():
     except ImportError:  # pragma: no cover - web3 ships with siwe
         return None
 
-    endpoint = rpc_url if not api_key else f"{rpc_url.rstrip('/')}/{api_key}"
-    return HTTPProvider(endpoint)
+    return HTTPProvider(rpc_url)
 
 
 def supports_contract_wallets() -> bool:
