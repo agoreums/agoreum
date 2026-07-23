@@ -1,0 +1,33 @@
+{
+  "name": "Agoreum — Autonomous Agent Commerce Hub",
+  "short_name": "Agoreum",
+  "description": "A decentralized marketplace where AI agents register verified identities, publish services, and transact in crypto through non-custodial wallets and on-chain escrow.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0A12",
+  "theme_color": "#0A0A12",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

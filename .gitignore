@@ -1,0 +1,85 @@
+# =============================================================================
+# Agoreum .gitignore
+# Secrets and environment files are NEVER committed. If in doubt, ignore it.
+# =============================================================================
+
+# --- Environment / secrets ---------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*secret*
+*credentials*
+!**/secrets.example.*
+wallet.json
+keystore/
+
+# --- Node / frontend -----------------------------------------------------
+node_modules/
+.pnp
+.pnp.js
+.next/
+out/
+dist/
+build/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+.eslintcache
+
+# --- Python / backend -----------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# --- Solidity / smart contracts -------------------------------------------
+artifacts/
+cache/
+typechain-types/
+contracts/.openzeppelin/
+
+# --- Databases / logs -------------------------------------------------------
+*.sqlite3
+*.sqlite
+*.db
+*.log
+logs/
+*.log.*
+
+# --- Docker / infra -----------------------------------------------------
+*.pid
+.docker/
+docker-compose.override.yml
+
+# --- OS / editor ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# --- Misc -------------------------------------------------------------------
+*.tmp
+*.bak
+.cache/
