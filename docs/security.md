@@ -2,7 +2,8 @@
 
 What Agoreum defends against, how, and what is still open.
 
-> **No independent audit has been performed, and nothing has been deployed.**
+> **No independent audit has been performed. Only the escrow is deployed, and
+> only to Base Sepolia testnet — nothing is on mainnet.**
 > This document describes implemented controls, not a clean bill of health.
 
 ## Reporting a vulnerability
@@ -203,7 +204,7 @@ Stated plainly rather than omitted.
 | Gap | Impact | Status |
 | --- | --- | --- |
 | No contract audit | Unknown contract risk | Required before mainnet |
-| Not deployed anywhere | Untested against a real network | Testnet pending |
+| Not on mainnet | Testnet-proven only; mainnet unexercised | Deploy blocked pending audit + separate roles |
 | Tokens in `sessionStorage` | XSS could exfiltrate a session | Mitigated by CSP; httpOnly cookies planned once API and site share a domain |
 | No 2FA | Wallet compromise is total account compromise | Inherent to wallet-based identity |
 | Single arbiter key | Compromise allows unfair dispute settlement | Multisig planned |

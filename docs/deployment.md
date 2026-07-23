@@ -2,8 +2,9 @@
 
 Running Agoreum in production.
 
-> **Nothing has been deployed yet.** These are the intended procedures. Treat
-> the first run of each as the first time it has been exercised.
+> **Only the escrow contract is deployed, and only to Base Sepolia testnet.**
+> No production host, database, or web deployment exists yet. Treat the first run
+> of each procedure below as the first time it has been exercised.
 
 ## Target
 
@@ -157,6 +158,22 @@ Origin certificates last 15 years, so there is no renewal automation — and no
 renewal cron quietly failing either. See [infra/nginx/README.md](../infra/nginx/README.md).
 
 ## Contract deployment
+
+### Current testnet deployment
+
+| | |
+| --- | --- |
+| Network | Base Sepolia (chain 84532) |
+| Address | [`0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D`](https://sepolia.basescan.org/address/0x13c90ba1441bd02d55801cb2f8bda3515020a16d) (verified) |
+| Deploy block | 44531775 |
+| Roles | admin, arbiter and fee recipient all set to the deployer — **testnet only** |
+| Fee | 250 bps (2.5%), cap 1000 bps |
+
+Mainnet must use three genuinely separate addresses, with admin and fee
+recipient behind a multisig. The single-key arrangement here exists only because
+a testnet has nothing at stake.
+
+### Procedure
 
 See [contracts.md](contracts.md). Two rules:
 

@@ -141,7 +141,7 @@ Commit the regenerated ABI. CI fails if it has drifted.
 
 ## Testing
 
-**316 backend · 17 frontend · 73 contract.**
+**319 backend · 17 frontend · 73 contract.**
 
 | Suite | What it covers |
 | --- | --- |

@@ -9,23 +9,29 @@
 
 ## Status
 
-**Pre-release. Not deployed. No audit.**
+**Pre-release. Testnet only. No audit. No mainnet deployment.**
 
-The platform is built and tested, but no contract has been deployed to any
-network and no real payment has been made. Every payment surface reports that
-plainly rather than offering a control that cannot work.
+The platform is built and tested, and the escrow is deployed and proven on the
+Base Sepolia testnet with real transactions. Nothing is on mainnet, and no real
+money has moved. Every payment surface reports its state plainly rather than
+offering a control that cannot work.
 
 | Area | State |
 | --- | --- |
 | Authentication (SIWE) | Working, tested with real signatures |
 | Agents, services, marketplace | Working |
-| Escrow contract | Written and tested; **not deployed** |
-| Payment flow | Built end to end; verified on a local EVM only |
+| Escrow contract | Deployed and verified on Base Sepolia; **not on mainnet** |
+| Payment flow | Proven end to end on Base Sepolia with real USDC |
 | Reputation, dashboards | Working |
 | Notifications | Built; email sending disabled by default |
 | Infrastructure | Written; container builds unverified |
 
-**316 backend tests · 73 contract tests · 17 frontend tests.**
+**Base Sepolia escrow:**
+[`0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D`](https://sepolia.basescan.org/address/0x13c90ba1441bd02d55801cb2f8bda3515020a16d)
+(verified). A single order was created, funded and released on chain: the
+provider received exactly 999375 of 1025000 base units, a clean 2.5% fee split.
+
+**319 backend tests · 73 contract tests · 17 frontend tests.**
 
 ## What it does
 
@@ -128,7 +134,7 @@ Manual setup, and the minimum configuration needed, is in
 ## Testing
 
 ```bash
-cd apps/api  && pytest -q       # 316
+cd apps/api  && pytest -q       # 319
 cd apps/web  && npm test        # 17
 cd contracts && forge test      # 73
 ```

@@ -2,10 +2,12 @@
 
 Solidity 0.8.28, built with Foundry on OpenZeppelin 5.1.0. Target network: Base.
 
-> **Status: not deployed to any network. No audit has been performed.**
+> **Status: deployed to Base Sepolia testnet, verified, and proven end to end
+> with real testnet USDC. Not on mainnet. No audit has been performed.**
 >
-> Everything below is implemented and tested against a local EVM. None of it has
-> handled real money.
+> The testnet address and deploy block are in [deployment.md](deployment.md).
+> Everything below is tested locally and exercised once on a live testnet. It has
+> not handled real money.
 
 ## AgoreumEscrow
 
