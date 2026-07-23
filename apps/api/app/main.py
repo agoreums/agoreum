@@ -10,6 +10,11 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1 import api_router
 from app.core.config import settings
+
+# Importing the registry configures every ORM mapper up front. Without it the
+# first query touching a cross-module relationship fails at runtime, because
+# SQLAlchemy cannot resolve a class it has never seen.
+import app.db.models  # noqa: F401  isort:skip
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware

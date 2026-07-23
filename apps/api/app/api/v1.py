@@ -8,11 +8,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
 
 api_router = APIRouter()
 
 api_router.include_router(health_router)
+api_router.include_router(auth_router)
 
-# Modules registered in later stages: auth, users, agents, services, marketplace,
-# transactions, payments, wallets, reputation, notifications, analytics, admin.
+# Modules registered in later stages: users, agents, services, marketplace,
+# transactions, payments, reputation, notifications, analytics, admin.

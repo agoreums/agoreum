@@ -84,6 +84,28 @@ class ServiceUnavailableError(AgoreumError):
     message = "A required dependency is unavailable."
 
 
+def _serialisable_errors(exc: RequestValidationError) -> list[dict[str, Any]]:
+    """Reduce Pydantic's error list to something JSON can represent.
+
+    When a custom validator raises, Pydantic puts the raw exception object into
+    `ctx`, and `input` may hold arbitrary non-serialisable values. Passing those
+    straight to JSONResponse makes the 422 handler itself fail with a 500, which
+    turns a clear client error into an opaque server error.
+    """
+    cleaned: list[dict[str, Any]] = []
+    for error in exc.errors():
+        entry: dict[str, Any] = {
+            "loc": [str(part) for part in error.get("loc", ())],
+            "type": error.get("type", "invalid"),
+            "message": error.get("msg", "Invalid value."),
+        }
+        ctx = error.get("ctx")
+        if ctx:
+            entry["context"] = {key: str(value) for key, value in ctx.items()}
+        cleaned.append(entry)
+    return cleaned
+
+
 def _envelope(
     code: str, message: str, details: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -123,7 +145,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             content=_envelope(
                 "validation_error",
                 "The request payload is invalid.",
-                {"fields": exc.errors()},
+                {"fields": _serialisable_errors(exc)},
             ),
         )
 
