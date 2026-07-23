@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # apps/api/app/core/config.py -> repository root
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -58,7 +58,12 @@ class Settings(BaseSettings):
     SIWE_STATEMENT: str = "Sign in to Agoreum. This request will not trigger a blockchain transaction or cost any gas."
     SIWE_NONCE_TTL_SECONDS: int = 600
 
-    CORS_ALLOWED_ORIGINS: list[str] = Field(
+    # NoDecode stops pydantic-settings from JSON-decoding the env value before the
+    # validator runs. Without it, a comma-separated string (the documented format)
+    # is rejected at the source layer with a parse error, since a list field is
+    # otherwise assumed to be JSON. Only surfaces when set via the environment —
+    # local development uses the default and never exercises the path.
+    CORS_ALLOWED_ORIGINS: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000"]
     )
     # Defaults to on, so a deployment that forgets to configure it is still
