@@ -108,7 +108,12 @@ would hand over the contract.
 
 ## Testing
 
-**73 tests.**
+**73 tests. `AgoreumEscrow.sol`: 97.56% of lines, 96.89% of statements,
+88.00% of branches, 100% of functions.**
+
+The uncovered branches are defensive checks that the other invariants make
+unreachable — they are kept because "unreachable" is a property of today's
+code, not a guarantee about tomorrow's.
 
 ```bash
 cd contracts

@@ -90,6 +90,40 @@ services:
           memory: 1G
     logging: *logging
 
+  # The indexer is the only thing that may mark an order funded or completed.
+  # It runs as its own service rather than inside the API for two reasons: it
+  # must keep running while the API is being redeployed, and the API runs two
+  # workers, which would otherwise both scan the same range.
+  #
+  # It reuses the API image — same code, different entrypoint — so there is no
+  # second build and no chance of the two drifting apart.
+  #
+  # If this container is not running, buyers can fund escrows and nothing will
+  # ever credit their orders. Alert on its absence, not just on its errors.
+  indexer:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+    networks:
+      - internal
+    command: >
+      python -m app.cli index-chain --follow --interval 15
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    logging: *logging
+
   web:
     build:
       context: .

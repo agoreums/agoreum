@@ -247,10 +247,15 @@ Redis holds only cache and rate-limit counters. Losing it costs a cold cache.
 
 ## Sizing
 
-4 GB across: API 1 GB, web 768 MB, Redis 640 MB, Nginx 256 MB, ~1.3 GB for the
-host. Limits are explicit because on a small box an unbounded container pushes
-the others into the OOM killer, and the process that dies is whichever allocated
-last rather than the one at fault.
+4 GB across: API 1 GB, web 768 MB, Redis 640 MB, indexer 384 MB, Nginx 256 MB —
+3 GB committed, leaving about 1 GB for the host. Limits are explicit because on
+a small box an unbounded container pushes the others into the OOM killer, and
+the process that dies is whichever allocated last rather than the one at fault.
+
+That headroom is now thinner than it was before the indexer became its own
+service. It is still adequate — the indexer holds one HTTP connection and a
+block range at a time — but this is the first thing to re-measure under real
+traffic rather than to assume.
 
 Two uvicorn workers for two vCPUs. More would contend for the same cores while
 multiplying the database connection pool.
