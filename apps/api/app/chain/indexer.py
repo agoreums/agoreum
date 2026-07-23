@@ -26,6 +26,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.chain import escrow as contract
 from app.chain.client import ChainClient
@@ -237,8 +238,17 @@ async def _apply_event(db: AsyncSession, event: contract.DecodedEvent) -> str:
         )
         return "skipped"
 
+    # Eager-load the relationships the apply path reads. The indexer loads each
+    # order fresh in its own session, so `order.escrow` and `order.buyer` would
+    # otherwise trigger a lazy load — synchronous IO that raises MissingGreenlet
+    # under async SQLAlchemy. This is the real event-application path in
+    # production; nothing is already in the session identity map.
     order = (
-        await db.execute(select(Order).where(Order.id == order_id))
+        await db.execute(
+            select(Order)
+            .where(Order.id == order_id)
+            .options(selectinload(Order.escrow), selectinload(Order.buyer))
+        )
     ).scalar_one_or_none()
 
     if order is None:
