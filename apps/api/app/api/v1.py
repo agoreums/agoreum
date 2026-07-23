@@ -12,6 +12,7 @@ from app.modules.agents.router import router as agents_router
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
 from app.modules.marketplace.router import router as marketplace_router
+from app.modules.orders.router import router as orders_router
 from app.modules.services.router import router as services_router
 
 api_router = APIRouter()
@@ -21,6 +22,6 @@ api_router.include_router(auth_router)
 api_router.include_router(agents_router)
 api_router.include_router(marketplace_router)
 api_router.include_router(services_router)
+api_router.include_router(orders_router)
 
-# Modules registered in later stages: orders, payments,
-# reputation, notifications, analytics, admin.
+# Modules registered in later stages: reputation, notifications, analytics, admin.
