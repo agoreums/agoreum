@@ -428,3 +428,113 @@ export const ordersApi = {
       body: JSON.stringify({ delivery_note: note }),
     }),
 };
+
+// --- Dashboards, reviews and notifications ----------------------------------
+
+export type BuyerDashboard = {
+  active_orders: number;
+  completed_orders: number;
+  disputed_orders: number;
+  total_spent: string;
+  currency: string;
+  pending_payment: number;
+  awaiting_review: number;
+  recent_orders: {
+    id: string;
+    reference: string;
+    status: OrderStatus;
+    total_amount: string;
+    currency: string;
+    created_at: string;
+  }[];
+};
+
+export type ProviderDashboard = {
+  agents: number;
+  published_agents: number;
+  published_services: number;
+  active_orders: number;
+  completed_orders: number;
+  /** Null until something has actually settled — not a measured zero. */
+  total_earned: string | null;
+  currency: string;
+  average_rating: number | null;
+  review_count: number;
+  awaiting_action: number;
+  recent_orders: BuyerDashboard["recent_orders"];
+};
+
+export type ReputationReport = {
+  agent_id: string;
+  agent_slug: string;
+  /** Null when there is too little settled history for a score to mean anything. */
+  score: string | null;
+  algorithm_version: string;
+  computed_at: string | null;
+  completed_orders: number;
+  cancelled_orders: number;
+  disputed_orders: number;
+  disputes_lost: number;
+  review_count: number;
+  average_rating: number | null;
+  total_volume: string;
+  volume_currency: string;
+  median_delivery_hours: string | null;
+  on_time_delivery_rate: string | null;
+  note: string | null;
+};
+
+export type NotificationItem = {
+  id: string;
+  category: string;
+  event_type: string;
+  title: string;
+  body: string | null;
+  action_url: string | null;
+  read_at: string | null;
+  created_at: string;
+  deliveries: { channel: string; status: string; last_error: string | null }[];
+};
+
+export type NotificationList = {
+  items: NotificationItem[];
+  total: number;
+  unread: number;
+  limit: number;
+  offset: number;
+};
+
+export const dashboardApi = {
+  buyer: (accessToken: string) =>
+    apiFetch<BuyerDashboard>("/api/v1/dashboard/buyer", { accessToken }),
+
+  provider: (accessToken: string) =>
+    apiFetch<ProviderDashboard>("/api/v1/dashboard/provider", { accessToken }),
+};
+
+export const reputationApi = {
+  forAgent: (slug: string) =>
+    apiFetch<ReputationReport>(
+      `/api/v1/agents/${encodeURIComponent(slug)}/reputation`,
+    ),
+};
+
+export const notificationsApi = {
+  list: (accessToken: string, unreadOnly = false) =>
+    apiFetch<NotificationList>(
+      `/api/v1/notifications?unread_only=${unreadOnly}`,
+      { accessToken },
+    ),
+
+  markRead: (accessToken: string, id: string) =>
+    apiFetch<NotificationItem>(`/api/v1/notifications/${id}/read`, {
+      method: "POST",
+      accessToken,
+    }),
+
+  markAllRead: (accessToken: string) =>
+    apiFetch<{ marked: number }>("/api/v1/notifications/read-all", {
+      method: "POST",
+      accessToken,
+    }),
+};

@@ -201,5 +201,51 @@
       "paymentFailed": "The payment could not be completed.",
       "reverted": "The transaction was rejected on-chain and no funds moved. Please try again."
     }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Your activity on Agoreum. Every figure is counted from real orders — nothing here is estimated or sampled.",
+    "loading": "Loading…",
+    "loadFailed": "Your dashboard could not be loaded.",
+    "signInRequired": "Sign in with your wallet to see your activity.",
+    "recentOrders": "Recent orders",
+    "nothingYet": "Nothing yet",
+    "notRatedYet": "Not rated yet",
+    "tabs": {
+      "buyer": "Buying",
+      "provider": "Providing"
+    },
+    "buyer": {
+      "activeOrders": "Active orders",
+      "completed": "Completed",
+      "totalSpent": "Total spent",
+      "settledOnly": "Counts only escrow that actually settled.",
+      "awaitingReview": "Awaiting your review",
+      "noOrders": "You have not placed any orders yet."
+    },
+    "provider": {
+      "awaitingAction": "Needs your action",
+      "completed": "Completed",
+      "earned": "Total earned",
+      "releasedOnly": "Counts only what escrow actually released.",
+      "rating": "Rating",
+      "agents": "Agents",
+      "published": "Published",
+      "services": "Live services",
+      "noAgents": "You have not registered an agent yet.",
+      "registerCta": "Register an agent",
+      "noOrders": "No orders yet."
+    },
+    "status": {
+      "pending_payment": "Awaiting payment",
+      "funded": "Funded",
+      "in_progress": "In progress",
+      "delivered": "Delivered",
+      "completed": "Completed",
+      "disputed": "Disputed",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded",
+      "expired": "Expired"
+    }
   }
 }

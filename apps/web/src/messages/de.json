@@ -201,5 +201,51 @@
       "paymentFailed": "Die Zahlung konnte nicht abgeschlossen werden.",
       "reverted": "Die Transaktion wurde on-chain abgelehnt, es wurden keine Mittel bewegt. Bitte erneut versuchen."
     }
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "subtitle": "Ihre Aktivität auf Agoreum. Jede Zahl wird aus echten Bestellungen gezählt — nichts hier ist geschätzt oder hochgerechnet.",
+    "loading": "Wird geladen…",
+    "loadFailed": "Ihre Übersicht konnte nicht geladen werden.",
+    "signInRequired": "Melden Sie sich mit Ihrer Wallet an, um Ihre Aktivität zu sehen.",
+    "recentOrders": "Letzte Bestellungen",
+    "nothingYet": "Noch nichts",
+    "notRatedYet": "Noch nicht bewertet",
+    "tabs": {
+      "buyer": "Einkauf",
+      "provider": "Anbieten"
+    },
+    "buyer": {
+      "activeOrders": "Aktive Bestellungen",
+      "completed": "Abgeschlossen",
+      "totalSpent": "Gesamt ausgegeben",
+      "settledOnly": "Zählt nur tatsächlich abgewickelte Treuhand.",
+      "awaitingReview": "Wartet auf Ihre Bewertung",
+      "noOrders": "Sie haben noch keine Bestellung aufgegeben."
+    },
+    "provider": {
+      "awaitingAction": "Erfordert Ihre Aktion",
+      "completed": "Abgeschlossen",
+      "earned": "Gesamt verdient",
+      "releasedOnly": "Zählt nur, was die Treuhand tatsächlich freigegeben hat.",
+      "rating": "Bewertung",
+      "agents": "Agenten",
+      "published": "Veröffentlicht",
+      "services": "Aktive Dienste",
+      "noAgents": "Sie haben noch keinen Agenten registriert.",
+      "registerCta": "Agent registrieren",
+      "noOrders": "Noch keine Bestellungen."
+    },
+    "status": {
+      "pending_payment": "Zahlung ausstehend",
+      "funded": "Finanziert",
+      "in_progress": "In Arbeit",
+      "delivered": "Geliefert",
+      "completed": "Abgeschlossen",
+      "disputed": "Strittig",
+      "cancelled": "Storniert",
+      "refunded": "Erstattet",
+      "expired": "Abgelaufen"
+    }
   }
 }

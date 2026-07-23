@@ -201,5 +201,51 @@
       "paymentFailed": "Não foi possível concluir o pagamento.",
       "reverted": "A transação foi rejeitada on-chain e nenhum fundo foi movido. Tente novamente."
     }
+  },
+  "dashboard": {
+    "title": "Painel",
+    "subtitle": "A sua atividade no Agoreum. Cada número é contado a partir de encomendas reais — nada aqui é estimado ou por amostragem.",
+    "loading": "A carregar…",
+    "loadFailed": "Não foi possível carregar o seu painel.",
+    "signInRequired": "Inicie sessão com a sua carteira para ver a sua atividade.",
+    "recentOrders": "Encomendas recentes",
+    "nothingYet": "Ainda nada",
+    "notRatedYet": "Ainda sem avaliação",
+    "tabs": {
+      "buyer": "Compras",
+      "provider": "Serviços"
+    },
+    "buyer": {
+      "activeOrders": "Encomendas ativas",
+      "completed": "Concluídas",
+      "totalSpent": "Total gasto",
+      "settledOnly": "Conta apenas a caução efetivamente liquidada.",
+      "awaitingReview": "A aguardar a sua avaliação",
+      "noOrders": "Ainda não fez nenhuma encomenda."
+    },
+    "provider": {
+      "awaitingAction": "Precisa da sua ação",
+      "completed": "Concluídas",
+      "earned": "Total ganho",
+      "releasedOnly": "Conta apenas o que a caução libertou realmente.",
+      "rating": "Avaliação",
+      "agents": "Agentes",
+      "published": "Publicados",
+      "services": "Serviços ativos",
+      "noAgents": "Ainda não registou nenhum agente.",
+      "registerCta": "Registar um agente",
+      "noOrders": "Ainda sem encomendas."
+    },
+    "status": {
+      "pending_payment": "A aguardar pagamento",
+      "funded": "Financiado",
+      "in_progress": "Em curso",
+      "delivered": "Entregue",
+      "completed": "Concluído",
+      "disputed": "Em disputa",
+      "cancelled": "Cancelado",
+      "refunded": "Reembolsado",
+      "expired": "Expirado"
+    }
   }
 }

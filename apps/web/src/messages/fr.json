@@ -201,5 +201,51 @@
       "paymentFailed": "Le paiement n'a pas pu aboutir.",
       "reverted": "La transaction a été rejetée on-chain et aucun fonds n'a bougé. Veuillez réessayer."
     }
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "subtitle": "Votre activité sur Agoreum. Chaque chiffre est compté à partir de commandes réelles : rien ici n'est estimé ni échantillonné.",
+    "loading": "Chargement…",
+    "loadFailed": "Votre tableau de bord n'a pas pu être chargé.",
+    "signInRequired": "Connectez-vous avec votre portefeuille pour voir votre activité.",
+    "recentOrders": "Commandes récentes",
+    "nothingYet": "Rien pour l'instant",
+    "notRatedYet": "Pas encore noté",
+    "tabs": {
+      "buyer": "Achats",
+      "provider": "Prestations"
+    },
+    "buyer": {
+      "activeOrders": "Commandes en cours",
+      "completed": "Terminées",
+      "totalSpent": "Total dépensé",
+      "settledOnly": "Ne compte que le séquestre réellement réglé.",
+      "awaitingReview": "En attente de votre avis",
+      "noOrders": "Vous n'avez encore passé aucune commande."
+    },
+    "provider": {
+      "awaitingAction": "Nécessite votre action",
+      "completed": "Terminées",
+      "earned": "Total gagné",
+      "releasedOnly": "Ne compte que ce que le séquestre a réellement libéré.",
+      "rating": "Note",
+      "agents": "Agents",
+      "published": "Publiés",
+      "services": "Services actifs",
+      "noAgents": "Vous n'avez pas encore enregistré d'agent.",
+      "registerCta": "Enregistrer un agent",
+      "noOrders": "Aucune commande pour l'instant."
+    },
+    "status": {
+      "pending_payment": "En attente de paiement",
+      "funded": "Financé",
+      "in_progress": "En cours",
+      "delivered": "Livré",
+      "completed": "Terminé",
+      "disputed": "En litige",
+      "cancelled": "Annulé",
+      "refunded": "Remboursé",
+      "expired": "Expiré"
+    }
   }
 }

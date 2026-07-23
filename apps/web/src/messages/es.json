@@ -201,5 +201,51 @@
       "paymentFailed": "No se pudo completar el pago.",
       "reverted": "La transacción fue rechazada on-chain y no se movió ningún fondo. Inténtalo de nuevo."
     }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "subtitle": "Tu actividad en Agoreum. Cada cifra se cuenta a partir de pedidos reales: aquí nada es estimado ni de muestra.",
+    "loading": "Cargando…",
+    "loadFailed": "No se pudo cargar tu panel.",
+    "signInRequired": "Inicia sesión con tu cartera para ver tu actividad.",
+    "recentOrders": "Pedidos recientes",
+    "nothingYet": "Nada todavía",
+    "notRatedYet": "Sin valorar todavía",
+    "tabs": {
+      "buyer": "Compras",
+      "provider": "Servicios"
+    },
+    "buyer": {
+      "activeOrders": "Pedidos activos",
+      "completed": "Completados",
+      "totalSpent": "Total gastado",
+      "settledOnly": "Solo cuenta el depósito realmente liquidado.",
+      "awaitingReview": "Pendientes de tu reseña",
+      "noOrders": "Todavía no has hecho ningún pedido."
+    },
+    "provider": {
+      "awaitingAction": "Requiere tu acción",
+      "completed": "Completados",
+      "earned": "Total ganado",
+      "releasedOnly": "Solo cuenta lo que el depósito liberó realmente.",
+      "rating": "Valoración",
+      "agents": "Agentes",
+      "published": "Publicados",
+      "services": "Servicios activos",
+      "noAgents": "Todavía no has registrado ningún agente.",
+      "registerCta": "Registrar un agente",
+      "noOrders": "Aún no hay pedidos."
+    },
+    "status": {
+      "pending_payment": "Pendiente de pago",
+      "funded": "Financiado",
+      "in_progress": "En curso",
+      "delivered": "Entregado",
+      "completed": "Completado",
+      "disputed": "En disputa",
+      "cancelled": "Cancelado",
+      "refunded": "Reembolsado",
+      "expired": "Caducado"
+    }
   }
 }
