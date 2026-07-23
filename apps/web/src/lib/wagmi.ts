@@ -62,7 +62,17 @@ export const config = createConfig({
   ssr: true,
 });
 
-export const defaultChain = base;
+/**
+ * The chain the app expects a wallet to be on. Driven by configuration rather
+ * than hardcoded, so a testnet deployment nudges users to Base Sepolia and a
+ * mainnet one to Base — the backend's CHAIN_ID and this must agree. Defaults to
+ * Base mainnet when unset.
+ */
+const configuredChainId = Number(
+  process.env.NEXT_PUBLIC_CHAIN_ID ?? String(base.id),
+);
+export const defaultChain =
+  configuredChainId === baseSepolia.id ? baseSepolia : base;
 
 declare module "wagmi" {
   interface Register {
