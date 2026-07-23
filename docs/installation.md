@@ -140,9 +140,9 @@ if no RPC endpoint is configured — which is correct, and is why `chain` is
 excluded from the readiness verdict.
 
 ```bash
-cd apps/api && pytest -q      # 306 tests
+cd apps/api && pytest -q      # 316 tests
 cd apps/web  && npm test      # 17 tests
-cd contracts && forge test    # 67 tests
+cd contracts && forge test    # 73 tests
 ```
 
 Chain tests skip unless the Anvil fixture is running. That is expected.

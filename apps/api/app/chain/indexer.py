@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.chain import escrow as contract
 from app.chain.client import ChainClient
+from app.chain.models import IndexerCursor
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.enums import (
@@ -143,6 +144,86 @@ async def scan(
             "reorgs": reorgs,
         },
     )
+    return result
+
+
+class IndexerStartBlockUnknown(RuntimeError):
+    """No cursor exists and no deployment block is configured.
+
+    Raised rather than defaulting to genesis. Silently scanning from block 0
+    would appear to work while taking hours and hammering the RPC provider, and
+    an operator who sees an error fixes the configuration in seconds.
+    """
+
+
+async def _cursor_for(db: AsyncSession, *, chain_id: int, address: str) -> IndexerCursor | None:
+    return (
+        await db.execute(
+            select(IndexerCursor).where(
+                IndexerCursor.chain_id == chain_id,
+                IndexerCursor.contract_address == address.lower(),
+            )
+        )
+    ).scalar_one_or_none()
+
+
+async def resume_point(db: AsyncSession, *, chain_id: int, address: str) -> int:
+    """The block a scan should resume from for this contract.
+
+    A stored cursor is rewound by `REORG_DEPTH` before being trusted. The blocks
+    it already covered may have been reorganised since, and re-applying an event
+    is free while missing one is not.
+    """
+    cursor = await _cursor_for(db, chain_id=chain_id, address=address)
+    if cursor is not None:
+        return max(0, cursor.last_scanned_block - REORG_DEPTH)
+
+    if settings.ESCROW_DEPLOY_BLOCK is None:
+        raise IndexerStartBlockUnknown(
+            "No indexer cursor exists for this contract and ESCROW_DEPLOY_BLOCK "
+            "is not set. Set it to the block the escrow contract was deployed in."
+        )
+    return settings.ESCROW_DEPLOY_BLOCK
+
+
+async def _save_cursor(db: AsyncSession, *, chain_id: int, address: str, block: int) -> None:
+    cursor = await _cursor_for(db, chain_id=chain_id, address=address)
+    if cursor is None:
+        db.add(
+            IndexerCursor(
+                chain_id=chain_id,
+                contract_address=address.lower(),
+                last_scanned_block=block,
+            )
+        )
+    elif block > cursor.last_scanned_block:
+        # Only ever move forward. A scan explicitly given an older range must
+        # not rewind the recorded position for everything that follows it.
+        cursor.last_scanned_block = block
+
+
+async def run_once(db: AsyncSession, client: ChainClient) -> ScanResult:
+    """Scan from the stored position to the confirmation frontier, then save it.
+
+    This is the entry point an operator or scheduler calls. `scan()` itself is
+    deliberately position-agnostic so it stays testable over an explicit range.
+    """
+    if not contract.is_configured():
+        raise contract.EscrowNotConfiguredError()
+
+    address = contract.contract_address()
+    chain_id = settings.CHAIN_ID
+
+    # Refuse to index against an endpoint serving a different chain than the one
+    # configured — otherwise settlement gets recorded from a chain nobody is
+    # watching, against addresses that mean something else there.
+    await client.verify_network()
+
+    from_block = await resume_point(db, chain_id=chain_id, address=address)
+    result = await scan(db, client, from_block=from_block)
+
+    await _save_cursor(db, chain_id=chain_id, address=address, block=result.to_block)
+    await db.commit()
     return result
 
 

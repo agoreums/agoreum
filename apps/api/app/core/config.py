@@ -86,6 +86,13 @@ class Settings(BaseSettings):
 
     ESCROW_CONTRACT_ADDRESS: str | None = None
 
+    # The block the escrow contract was deployed in. The indexer starts here on
+    # its first run for a given contract; there is nothing to find before it.
+    # Without this the only safe default is genesis, and scanning 44 million
+    # empty blocks of Base to rediscover nothing is not a viable start-up path.
+    # Set it from the deployment receipt.
+    ESCROW_DEPLOY_BLOCK: int | None = None
+
     # Confirmations before an on-chain event is treated as settled. Base is an
     # L2 with fast blocks; this is depth, not time.
     CHAIN_CONFIRMATIONS: int = 5

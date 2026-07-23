@@ -181,6 +181,17 @@ Steps 5 and 8 are how the platform learns anything happened. The indexer only
 applies events past the confirmation frontier, keys them by transaction hash so
 re-scanning is idempotent, and detects a changed block hash as a reorg.
 
+It runs as a **separate process** (`python -m app.cli index-chain --follow`),
+not inside the API. Indexing must survive an API redeploy, and two API replicas
+would otherwise both scan the same range. Its position lives in
+`indexer_cursors`, keyed by chain id and contract address so that redeploying
+the contract starts a fresh scan instead of inheriting a height at which the new
+contract's funding events would be skipped.
+
+Because those two steps are the only way an order becomes funded or completed,
+**an unattended indexer means buyers pay and nothing moves.** It is the process
+to alert on first.
+
 An on-chain escrow with no matching order is logged and skipped — never
 invented. The funds are real and a person needs to look at it.
 

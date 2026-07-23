@@ -108,7 +108,7 @@ would hand over the contract.
 
 ## Testing
 
-**67 tests. 97.5% of lines, 100% of functions, 88% of branches.**
+**73 tests.**
 
 ```bash
 cd contracts

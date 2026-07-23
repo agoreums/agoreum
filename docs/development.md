@@ -141,7 +141,7 @@ Commit the regenerated ABI. CI fails if it has drifted.
 
 ## Testing
 
-**306 backend · 17 frontend · 67 contract.**
+**316 backend · 17 frontend · 73 contract.**
 
 | Suite | What it covers |
 | --- | --- |
@@ -186,6 +186,8 @@ Both switches default to the safe value in code — rate limiting **on**, email
 ## Debugging
 
 ```bash
+python -m app.cli index-chain                       # one indexing pass
+python -m app.cli index-chain --follow               # keep polling
 python -m app.cli check-db                          # connectivity and revision
 curl localhost:8000/api/v1/health/ready | jq        # dependency status
 curl localhost:8000/api/v1/chain/status | jq        # what chain work is possible

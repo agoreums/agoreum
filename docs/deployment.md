@@ -165,8 +165,44 @@ See [contracts.md](contracts.md). Two rules:
 2. **The deploy script refuses mainnet** as a compile-time guard. Removing it is
    a reviewable code change, not a flag.
 
-After deploying, set `ESCROW_CONTRACT_ADDRESS` and restart the API. That is the
-only wiring step — the address is configuration everywhere.
+After deploying, set two values from the deployment receipt and restart:
+
+```bash
+ESCROW_CONTRACT_ADDRESS=<deployed address>
+ESCROW_DEPLOY_BLOCK=<block the deployment landed in>
+```
+
+The address is configuration everywhere, so nothing else needs changing. The
+deploy block is what the indexer starts from the first time it runs against
+this contract — there is nothing to find before it, and without it the only
+safe default is genesis, which is not a viable scan on a live chain.
+
+## Running the indexer
+
+**Nothing is marked funded or completed until the indexer runs.** It is a
+separate process, not part of the API:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -d api \
+  python -m app.cli index-chain --follow --interval 15
+```
+
+Two reasons it is separate rather than a background task inside the API:
+indexing must not stop while the API is being redeployed, and two API replicas
+would otherwise both index the same range concurrently.
+
+Concurrency is nonetheless safe — events are keyed by `(tx_hash, log_index)`,
+so a duplicate scan applies nothing twice — but doing it by accident wastes an
+RPC allowance.
+
+Position is stored in `indexer_cursors`, keyed by chain id **and** contract
+address. Redeploying the contract therefore starts a fresh scan from
+`ESCROW_DEPLOY_BLOCK` rather than inheriting the old contract's height and
+silently skipping the new one's first events, funding included.
+
+Each run resumes `REORG_DEPTH` (64) blocks behind the stored position. Blocks
+already covered may have been reorganised since; re-applying an event costs
+nothing, missing one is permanent.
 
 ## Observability
 
@@ -191,9 +227,15 @@ Worth alerting on:
 | `orphan_escrow_event` | On-chain escrow with no matching order — funds need a human |
 | `order_chain_divergence` | Database disagrees with the chain |
 | `email_send_failed` | Notifications are not arriving |
+| `chain_scan_complete` **absent** | The indexer has stopped; paid orders are not being credited |
 
 `orphan_escrow_event` and `order_chain_divergence` are the two that involve
 someone's money. Treat them as pages, not tickets.
+
+The indexer is the one to alert on by **absence** rather than by an error line.
+It emits `chain_scan_complete` on every pass; if that stops appearing, buyers
+are funding escrows and nothing is marking their orders paid. A silent indexer
+looks exactly like a quiet marketplace.
 
 ## Backups
 

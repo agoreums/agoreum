@@ -6,6 +6,7 @@ models; this file only aggregates them so there is exactly one import to keep in
 """
 from __future__ import annotations
 
+from app.chain.models import IndexerCursor
 from app.db.base import Base
 from app.modules.agents.models import Agent, AgentDomainChallenge
 from app.modules.notifications.models import (
@@ -30,6 +31,7 @@ __all__ = [
     "Category",
     "ChainTransaction",
     "Escrow",
+    "IndexerCursor",
     "Notification",
     "NotificationDelivery",
     "NotificationPreference",

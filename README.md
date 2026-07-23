@@ -25,7 +25,7 @@ plainly rather than offering a control that cannot work.
 | Notifications | Built; email sending disabled by default |
 | Infrastructure | Written; container builds unverified |
 
-**306 backend tests · 67 contract tests · 17 frontend tests.**
+**316 backend tests · 73 contract tests · 17 frontend tests.**
 
 ## What it does
 
@@ -128,9 +128,9 @@ Manual setup, and the minimum configuration needed, is in
 ## Testing
 
 ```bash
-cd apps/api  && pytest -q       # 306
+cd apps/api  && pytest -q       # 316
 cd apps/web  && npm test        # 17
-cd contracts && forge test      # 67
+cd contracts && forge test      # 73
 ```
 
 Nothing security-relevant is mocked. Signatures are real ECDSA. Rate limits hit
