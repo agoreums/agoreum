@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     CORS_ALLOWED_ORIGINS: list[str] = Field(
         default_factory=lambda: ["http://localhost:3000"]
     )
+    # Defaults to on, so a deployment that forgets to configure it is still
+    # protected. Turned off in local development and in the test suite, where
+    # hundreds of sign-ins from one address would otherwise throttle the run.
+    RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # --- Blockchain (Base) ---------------------------------------------------

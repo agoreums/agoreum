@@ -137,11 +137,7 @@ contract SilentlyFailingToken is ERC20 {
         return super.transfer(to, value);
     }
 
-    function transferFrom(address from, address to, uint256 value)
-        public
-        override
-        returns (bool)
-    {
+    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
         if (failTransfers) return false;
         return super.transferFrom(from, to, value);
     }

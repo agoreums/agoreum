@@ -38,9 +38,8 @@ contract AgoreumEscrowFuzzTest is Test {
 
     function _validParties(address buyer, address provider) internal view returns (bool) {
         return buyer != address(0) && provider != address(0) && buyer != provider
-            && buyer != address(escrow) && provider != address(escrow)
-            && buyer != feeRecipient && provider != feeRecipient && buyer.code.length == 0
-            && provider.code.length == 0;
+            && buyer != address(escrow) && provider != address(escrow) && buyer != feeRecipient
+            && provider != feeRecipient && buyer.code.length == 0 && provider.code.length == 0;
     }
 
     // ------------------------------------------------------------ Properties
@@ -165,9 +164,7 @@ contract AgoreumEscrowFuzzTest is Test {
 
     /// @notice Escrow state is never reachable where payouts exceed the deposit,
     ///         whichever terminal path is taken.
-    function testFuzz_anyTerminalPathKeepsAccountingSound(uint256 rawAmount, uint8 path)
-        public
-    {
+    function testFuzz_anyTerminalPathKeepsAccountingSound(uint256 rawAmount, uint8 path) public {
         uint256 amount = _bounded(rawAmount);
         uint8 chosen = uint8(bound(path, 0, 2));
 
@@ -239,9 +236,7 @@ contract AgoreumEscrowFuzzTest is Test {
     }
 
     /// @notice Arbitrary callers can never move funds they are not entitled to.
-    function testFuzz_unauthorisedCallersCannotMoveFunds(uint256 rawAmount, address caller)
-        public
-    {
+    function testFuzz_unauthorisedCallersCannotMoveFunds(uint256 rawAmount, address caller) public {
         uint256 amount = _bounded(rawAmount);
         address buyer = makeAddr("fuzzBuyer7");
         address provider = makeAddr("fuzzProvider7");

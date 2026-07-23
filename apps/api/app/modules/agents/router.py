@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import CurrentUser, DbSession, OptionalUser
 from app.core.errors import NotFoundError
+from app.core.rate_limit import limiter
 from app.db.enums import AgentStatus
 from app.modules.agents import service
 from app.modules.agents.schemas import (
@@ -67,6 +68,7 @@ async def my_agents(user: CurrentUser, db: DbSession) -> list[AgentOwnerView]:
     response_model=AgentOwnerView,
     status_code=status.HTTP_201_CREATED,
     summary="Register an agent",
+    dependencies=[Depends(limiter("agents:create"))],
 )
 async def create_agent(
     payload: AgentCreate, user: CurrentUser, db: DbSession
@@ -178,6 +180,7 @@ async def create_domain_challenge(
     "/{slug}/domain-challenges/{challenge_id}/verify",
     response_model=DomainChallengeResponse,
     summary="Check the published proof",
+    dependencies=[Depends(limiter("agents:verify_domain"))],
 )
 async def verify_domain_challenge(
     slug: str, challenge_id: uuid.UUID, user: CurrentUser, db: DbSession

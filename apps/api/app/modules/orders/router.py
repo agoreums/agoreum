@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.chain import escrow as contract
@@ -17,6 +17,7 @@ from app.chain.client import ChainClient
 from app.chain.indexer import reconcile_order
 from app.core.config import settings
 from app.core.errors import NotFoundError, PermissionDeniedError
+from app.core.rate_limit import limiter
 from app.modules.agents.models import Agent
 from app.modules.orders import service
 from app.modules.orders.schemas import (
@@ -112,6 +113,7 @@ async def chain_status() -> ChainStatus:
     response_model=OrderDetail,
     status_code=status.HTTP_201_CREATED,
     summary="Place an order",
+    dependencies=[Depends(limiter("orders:create"))],
 )
 async def create_order(
     payload: OrderCreate, user: CurrentUser, db: DbSession

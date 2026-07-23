@@ -60,22 +60,43 @@ async def test_readiness_reports_component_status(client: AsyncClient) -> None:
     response = await client.get("/api/v1/health/ready")
     body = response.json()
 
-    assert set(body["components"]) == {"database", "redis"}
+    assert set(body["components"]) == {"database", "redis", "chain"}
     assert body["status"] in {"ok", "degraded", "down"}
 
-    if body["status"] == "down":
+    # Only the dependencies the service genuinely cannot run without decide
+    # readiness. The chain is reported but does not take the site out of
+    # rotation, and which components count is stated in the response.
+    assert set(body["required_components"]) == {"database", "redis"}
+
+    required_down = [
+        name
+        for name in body["required_components"]
+        if body["components"][name]["status"] == "down"
+    ]
+
+    if required_down:
         assert response.status_code == 503
-        failed = [
-            name for name, comp in body["components"].items()
-            if comp["status"] == "down"
-        ]
-        assert failed, "status is down but no component was reported down"
-        for name in failed:
+        assert body["status"] == "down"
+        for name in required_down:
             assert body["components"][name]["error"], (
                 f"component {name} is down but reported no error"
             )
     else:
         assert response.status_code == 200
+
+
+async def test_chain_health_is_reported_but_not_required(
+    client: AsyncClient,
+) -> None:
+    """An RPC provider outage must not take the whole platform out of rotation.
+
+    Funding a new escrow already fails loudly on its own; degrading is a better
+    outcome than going dark over a third party.
+    """
+    body = (await client.get("/api/v1/health/ready")).json()
+
+    assert "chain" in body["components"]
+    assert "chain" not in body["required_components"]
 
 
 async def test_unknown_route_returns_error_envelope(client: AsyncClient) -> None:

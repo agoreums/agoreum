@@ -98,6 +98,64 @@ async def check_redis() -> ComponentHealth:
     )
 
 
+async def check_chain() -> ComponentHealth:
+    """Verify the configured chain is reachable and is the chain we expect.
+
+    Reported as informational rather than as a hard dependency: the platform
+    still serves the marketplace, profiles and existing order history when an
+    RPC provider is having a bad day. Only funding a new escrow needs the chain,
+    and that already fails loudly on its own. Marking the whole service unready
+    would take the site down over a third party's outage.
+    """
+    from app.chain.client import health_check as chain_health
+
+    start = time.perf_counter()
+    try:
+        result = await chain_health()
+    except Exception as exc:
+        logger.warning("health_chain_failed", extra={"error_type": type(exc).__name__})
+        return ComponentHealth(name="chain", status="down", error=type(exc).__name__)
+
+    latency_ms = (time.perf_counter() - start) * 1000
+    reported = result.get("status")
+
+    if reported == "not_configured":
+        return ComponentHealth(
+            name="chain",
+            status="degraded",
+            latency_ms=latency_ms,
+            error="no RPC endpoint configured for this network",
+        )
+    if reported == "wrong_network":
+        # Worse than unreachable: the endpoint answers, but for another chain.
+        return ComponentHealth(
+            name="chain",
+            status="down",
+            latency_ms=latency_ms,
+            error=(
+                f"endpoint serves chain {result.get('chain_id')}, "
+                f"expected {result.get('expected_chain_id')}"
+            ),
+        )
+    if reported != "ok":
+        return ComponentHealth(
+            name="chain",
+            status="down",
+            latency_ms=latency_ms,
+            error=str(result.get("error", "unreachable")),
+        )
+
+    return ComponentHealth(
+        name="chain",
+        status=_classify(latency_ms),
+        latency_ms=latency_ms,
+        detail={
+            "network": str(result.get("network", "")),
+            "head_block": str(result.get("head_block", "")),
+        },
+    )
+
+
 def overall_status(components: list[ComponentHealth]) -> Status:
     if any(c.status == "down" for c in components):
         return "down"

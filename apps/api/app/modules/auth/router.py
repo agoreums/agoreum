@@ -10,10 +10,11 @@ The sign-in flow is:
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Depends, Request, status
 
 from app.api.deps import CurrentUser, DbSession, client_ip, user_agent
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.modules.auth import service, siwe_verifier
 from app.modules.auth.schemas import (
     AuthCapabilities,
@@ -51,6 +52,7 @@ async def capabilities() -> AuthCapabilities:
     response_model=NonceResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Request a sign-in nonce",
+    dependencies=[Depends(limiter("auth:nonce"))],
 )
 async def request_nonce(payload: NonceRequest, db: DbSession) -> NonceResponse:
     """Issue a single-use nonce, and the exact message to sign when possible.
@@ -77,6 +79,7 @@ async def request_nonce(payload: NonceRequest, db: DbSession) -> NonceResponse:
     "/signin",
     response_model=SignInResponse,
     summary="Verify a signature and start a session",
+    dependencies=[Depends(limiter("auth:signin"))],
 )
 async def sign_in(
     payload: SignInRequest, request: Request, db: DbSession
@@ -102,7 +105,10 @@ async def sign_in(
 
 
 @router.post(
-    "/refresh", response_model=TokenResponse, summary="Rotate the refresh token"
+    "/refresh",
+    response_model=TokenResponse,
+    summary="Rotate the refresh token",
+    dependencies=[Depends(limiter("auth:refresh"))],
 )
 async def refresh(
     payload: RefreshRequest, request: Request, db: DbSession

@@ -4,11 +4,12 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import NotFoundError
+from app.core.rate_limit import limiter
 from app.modules.agents import service as agent_service
 from app.modules.orders import service as order_service
 from app.modules.reputation import service
@@ -115,6 +116,7 @@ async def pending_reviews(
     response_model=ReviewPublic,
     status_code=status.HTTP_201_CREATED,
     summary="Review a completed order",
+    dependencies=[Depends(limiter("reviews:create"))],
 )
 async def create_review(
     payload: ReviewCreate, user: CurrentUser, db: DbSession

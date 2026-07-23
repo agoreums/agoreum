@@ -17,7 +17,12 @@ from app.core.config import settings
 import app.db.models  # noqa: F401  isort:skip
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
-from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
+from app.core.middleware import (
+    BodySizeLimitMiddleware,
+    RateLimitHeadersMiddleware,
+    RequestContextMiddleware,
+    SecurityHeadersMiddleware,
+)
 from app.db.session import dispose_engine
 
 logger = get_logger(__name__)
@@ -51,8 +56,11 @@ def create_app() -> FastAPI:
         openapi_url=None if settings.is_production else "/openapi.json",
     )
 
-    # Order matters: the outermost middleware is added last.
+    # Order matters: the outermost middleware is added last, so this list runs
+    # bottom-to-top. Request context is outermost so every log line — including
+    # those from a rejected oversized body — carries a request id.
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitHeadersMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
@@ -70,6 +78,7 @@ def create_app() -> FastAPI:
             allowed_hosts=["agoreum.xyz", "www.agoreum.xyz", "api.agoreum.xyz"],
         )
 
+    app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(RequestContextMiddleware)
 
     register_exception_handlers(app)

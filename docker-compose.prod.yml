@@ -1,0 +1,161 @@
+# Production stack for the DigitalOcean droplet.
+#
+# Target: Ubuntu 24.04, 4 GB RAM, 2 vCPU, 120 GB disk.
+#
+# Two decisions follow from that sizing:
+#
+# * PostgreSQL is **not** in this file. Production uses DigitalOcean's managed
+#   database, so a droplet rebuild cannot take the data with it, and backups and
+#   failover are somebody else's full-time job rather than an afterthought.
+# * Memory limits are set explicitly. On a 4 GB box an unbounded container can
+#   push the others into the OOM killer, and the process that dies is whichever
+#   happened to allocate last rather than the one at fault.
+#
+# TLS terminates at Cloudflare and again at Nginx; certificates are mounted in
+# rather than baked into any image.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+name: agoreum
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # Rate-limit counters and cache entries only — nothing here needs to survive
+    # a restart, and persistence would only add disk churn.
+    command: >
+      redis-server
+      --save ""
+      --appendonly no
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    # Never published to the host: only the API talks to it, over the internal
+    # network. Exposing Redis on a public interface is how boxes get mined.
+    expose:
+      - "6379"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      # Every secret comes from this file at runtime. Nothing is baked into an
+      # image, so an image leak is not a credential leak.
+      - .env
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+      RATE_LIMIT_ENABLED: "true"
+    expose:
+      - "8000"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Two workers for two vCPUs. More would contend for the same cores while
+    # multiplying the database connection pool.
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+      --workers 2 --proxy-headers --forwarded-allow-ips "*" --no-server-header
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging: *logging
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://agoreum.xyz}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://agoreum.xyz}
+        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:-}
+        NEXT_PUBLIC_BASE_RPC_URL: ${NEXT_PUBLIC_BASE_RPC_URL:-}
+        NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: ${NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL:-}
+    restart: always
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      # Server-rendered pages reach the API over the internal network, so that
+      # traffic never leaves the host or passes through Cloudflare.
+      NEXT_PUBLIC_API_URL: http://api:8000
+    expose:
+      - "3000"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging: *logging
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/agoreum.conf:/etc/nginx/conf.d/default.conf:ro
+      # Cloudflare Origin certificates, provisioned on the host.
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging: *logging
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  nginx_cache:

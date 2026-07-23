@@ -73,9 +73,7 @@ contract EscrowHandler is Test {
         return _actor(seed);
     }
 
-    function createEscrow(uint256 buyerSeed, uint256 providerSeed, uint256 amountSeed)
-        external
-    {
+    function createEscrow(uint256 buyerSeed, uint256 providerSeed, uint256 amountSeed) external {
         address buyer = _actor(buyerSeed);
         address provider = _actor(providerSeed);
         if (buyer == provider) return;
@@ -185,9 +183,7 @@ contract AgoreumEscrowInvariantTest is StdInvariant, Test {
         for (uint256 i = 0; i < count; i++) {
             bytes32 id = handler.escrowIds(i);
             AgoreumEscrow.Escrow memory e = escrow.getEscrow(id);
-            assertLe(
-                e.released + e.refunded, e.amount, "released + refunded exceeded the deposit"
-            );
+            assertLe(e.released + e.refunded, e.amount, "released + refunded exceeded the deposit");
         }
     }
 
@@ -203,11 +199,7 @@ contract AgoreumEscrowInvariantTest is StdInvariant, Test {
             outstanding += e.amount - e.released - e.refunded;
         }
 
-        assertGe(
-            usdc.balanceOf(address(escrow)),
-            outstanding,
-            "contract holds less than it owes"
-        );
+        assertGe(usdc.balanceOf(address(escrow)), outstanding, "contract holds less than it owes");
     }
 
     /// @notice Deposits in equals payouts out plus what is still held.
@@ -234,9 +226,7 @@ contract AgoreumEscrowInvariantTest is StdInvariant, Test {
                     || e.status == AgoreumEscrow.Status.Refunded
                     || e.status == AgoreumEscrow.Status.Settled
             ) {
-                assertEq(
-                    e.released + e.refunded, e.amount, "terminal escrow left funds stranded"
-                );
+                assertEq(e.released + e.refunded, e.amount, "terminal escrow left funds stranded");
             }
         }
     }
@@ -249,8 +239,7 @@ contract AgoreumEscrowInvariantTest is StdInvariant, Test {
             AgoreumEscrow.Escrow memory e = escrow.getEscrow(id);
 
             if (
-                e.status == AgoreumEscrow.Status.Funded
-                    || e.status == AgoreumEscrow.Status.Disputed
+                e.status == AgoreumEscrow.Status.Funded || e.status == AgoreumEscrow.Status.Disputed
             ) {
                 assertEq(e.released, 0, "active escrow already released funds");
                 assertEq(e.refunded, 0, "active escrow already refunded funds");

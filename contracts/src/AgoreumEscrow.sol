@@ -182,7 +182,9 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
         uint64 deliveryWindow,
         uint64 autoReleaseWindow
     ) external nonReentrant whenNotPaused {
-        if (_escrows[escrowId].status != Status.None) revert EscrowAlreadyExists(escrowId);
+        if (_escrows[escrowId].status != Status.None) {
+            revert EscrowAlreadyExists(escrowId);
+        }
         if (provider == address(0) || token == address(0)) revert InvalidAddress();
         if (provider == msg.sender) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
@@ -220,14 +222,7 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
         });
 
         emit EscrowCreated(
-            escrowId,
-            msg.sender,
-            provider,
-            token,
-            amount,
-            feeBps,
-            deliveryDeadline,
-            autoReleaseAt
+            escrowId, msg.sender, provider, token, amount, feeBps, deliveryDeadline, autoReleaseAt
         );
     }
 
@@ -372,7 +367,9 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
         external
         onlyRole(GOVERNOR_ROLE)
     {
-        if (newFeeBps > MAX_FEE_BPS) revert FeeTooHigh(newFeeBps, MAX_FEE_BPS);
+        if (newFeeBps > MAX_FEE_BPS) {
+            revert FeeTooHigh(newFeeBps, MAX_FEE_BPS);
+        }
         if (newRecipient == address(0)) revert InvalidAddress();
 
         feeBps = newFeeBps;

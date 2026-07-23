@@ -1,0 +1,107 @@
+# Local development stack.
+#
+# Brings up Postgres and Redis with the API and web app running against them.
+# Source is bind-mounted and both apps reload, so this is for development —
+# `docker-compose.prod.yml` is what the droplet runs.
+#
+# Ports are published on 127.0.0.1 only. Binding 0.0.0.0 on a laptop exposes a
+# development database to every network it joins.
+
+name: agoreum-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agoreum}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agoreum_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-agoreum}
+      # Deterministic collation, so index behaviour matches production rather
+      # than following the host's locale.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Scoped to the real user and database: the default check passes while the
+      # database this app needs is still initialising.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agoreum} -d ${POSTGRES_DB:-agoreum}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Development data is disposable; disabling persistence keeps restarts fast
+    # and avoids stale rate-limit counters surviving a reset.
+    command: redis-server --save "" --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      DEBUG: "true"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agoreum}:${POSTGRES_PASSWORD:-agoreum_local_dev}@postgres:5432/${POSTGRES_DB:-agoreum}
+      DATABASE_URL_SYNC: postgresql+psycopg://${POSTGRES_USER:-agoreum}:${POSTGRES_PASSWORD:-agoreum_local_dev}@postgres:5432/${POSTGRES_DB:-agoreum}
+      REDIS_URL: redis://redis:6379/0
+      APP_URL: http://localhost:3000
+      SIWE_DOMAIN: localhost:3000
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      # Off in development: hundreds of local sign-ins would throttle the
+      # developer, and email must never leave a workstation.
+      RATE_LIMIT_ENABLED: "false"
+      EMAIL_SENDING_ENABLED: "false"
+    env_file:
+      # Real credentials (Alchemy, Resend) come from the repository-root .env,
+      # which is gitignored and never baked into an image.
+      - path: .env
+        required: false
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Bind-mounted for reload. Production copies the source into the image.
+      - ./apps/api/app:/srv/app/app:ro
+      - ./packages/contracts:/srv/packages/contracts:ro
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      --reload-dir /srv/app/app
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: http://localhost:3000
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      # Server-side calls go container-to-container; the browser bundle was
+      # built with the localhost URL above.
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  postgres_data:

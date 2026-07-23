@@ -32,12 +32,18 @@ async def live() -> dict[str, object]:
 async def ready(
     response: Response, db: AsyncSession = Depends(get_db)
 ) -> dict[str, object]:
-    database, redis = await asyncio.gather(
+    database, redis, chain = await asyncio.gather(
         service.check_database(db),
         service.check_redis(),
+        service.check_chain(),
     )
-    components = [database, redis]
-    overall = service.overall_status(components)
+
+    # Readiness is decided by the dependencies this service cannot serve without.
+    # The chain is reported but excluded: an RPC provider outage stops new escrow
+    # funding, which already fails loudly on its own, and taking the whole site
+    # out of rotation over a third party would be a worse outcome than degrading.
+    required = [database, redis]
+    overall = service.overall_status(required)
 
     if overall == "down":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -45,5 +51,10 @@ async def ready(
     return {
         "status": overall,
         "environment": settings.APP_ENV,
-        "components": {c.name: c.as_dict() for c in components},
+        "components": {
+            c.name: c.as_dict() for c in [*required, chain]
+        },
+        # Stated explicitly so an operator reading this knows which components
+        # were actually allowed to fail the check.
+        "required_components": [c.name for c in required],
     }

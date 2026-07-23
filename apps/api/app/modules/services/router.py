@@ -1,10 +1,11 @@
 """Service catalogue endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
 from app.api.deps import CurrentUser, DbSession, OptionalUser
 from app.core.errors import NotFoundError
+from app.core.rate_limit import limiter
 from app.modules.agents import service as agent_service
 from app.modules.services import service as catalogue
 from app.modules.services.schemas import (
@@ -64,6 +65,7 @@ async def list_agent_services(
     response_model=ServiceOwnerView,
     status_code=status.HTTP_201_CREATED,
     summary="Publish a new service",
+    dependencies=[Depends(limiter("services:create"))],
 )
 async def create_service(
     agent_slug: str, payload: ServiceCreate, user: CurrentUser, db: DbSession

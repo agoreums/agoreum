@@ -4,9 +4,10 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import DbSession
+from app.core.rate_limit import limiter
 from app.db.enums import AgentVerificationTier, PricingModel
 from app.modules.marketplace import service
 from app.modules.marketplace.schemas import (
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/marketplace", tags=["marketplace"])
     "/services",
     response_model=ServiceSearchResults,
     summary="Search the service marketplace",
+    dependencies=[Depends(limiter("marketplace:search"))],
 )
 async def search_services(
     db: DbSession,

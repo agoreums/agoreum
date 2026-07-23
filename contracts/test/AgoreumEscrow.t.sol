@@ -93,17 +93,13 @@ contract EscrowCreationTest is EscrowTestBase {
     function test_zeroAmountIsRejected() public {
         vm.prank(buyer);
         vm.expectRevert(AgoreumEscrow.InvalidAmount.selector);
-        escrow.createEscrow(
-            ID, provider, address(usdc), 0, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW
-        );
+        escrow.createEscrow(ID, provider, address(usdc), 0, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW);
     }
 
     function test_buyerCannotBeTheProvider() public {
         vm.prank(buyer);
         vm.expectRevert(AgoreumEscrow.InvalidAddress.selector);
-        escrow.createEscrow(
-            ID, buyer, address(usdc), AMOUNT, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW
-        );
+        escrow.createEscrow(ID, buyer, address(usdc), AMOUNT, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW);
     }
 
     function test_windowsOutsideBoundsAreRejected() public {
@@ -251,9 +247,7 @@ contract EscrowReleaseTest is EscrowTestBase {
     function test_releaseOnUnknownEscrowReverts() public {
         bytes32 unknown = keccak256("nope");
         vm.prank(buyer);
-        vm.expectRevert(
-            abi.encodeWithSelector(AgoreumEscrow.EscrowNotFound.selector, unknown)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AgoreumEscrow.EscrowNotFound.selector, unknown));
         escrow.release(unknown);
     }
 
@@ -438,9 +432,7 @@ contract EscrowDisputeTest is EscrowTestBase {
 
         vm.prank(arbiter);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AgoreumEscrow.SplitExceedsAmount.selector, AMOUNT, 1, AMOUNT
-            )
+            abi.encodeWithSelector(AgoreumEscrow.SplitExceedsAmount.selector, AMOUNT, 1, AMOUNT)
         );
         escrow.settleDispute(ID, AMOUNT, 1);
 
@@ -636,9 +628,7 @@ contract EscrowTokenSafetyTest is EscrowTestBase {
 contract EscrowGovernanceTest is EscrowTestBase {
     function test_feeCannotExceedTheHardCeiling() public {
         vm.prank(admin);
-        vm.expectRevert(
-            abi.encodeWithSelector(AgoreumEscrow.FeeTooHigh.selector, 1_001, 1_000)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AgoreumEscrow.FeeTooHigh.selector, 1_001, 1_000));
         escrow.setFeeConfig(1_001, feeRecipient);
     }
 
@@ -669,9 +659,7 @@ contract EscrowGovernanceTest is EscrowTestBase {
     }
 
     function test_constructorRejectsExcessiveFee() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(AgoreumEscrow.FeeTooHigh.selector, 5_000, 1_000)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AgoreumEscrow.FeeTooHigh.selector, 5_000, 1_000));
         new AgoreumEscrow(admin, arbiter, feeRecipient, 5_000);
     }
 
@@ -720,9 +708,7 @@ contract EscrowArithmeticTest is EscrowTestBase {
         bytes32 id = keccak256("whale");
         vm.startPrank(whale);
         usdc.approve(address(escrow), huge);
-        escrow.createEscrow(
-            id, provider, address(usdc), huge, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW
-        );
+        escrow.createEscrow(id, provider, address(usdc), huge, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW);
         escrow.release(id);
         vm.stopPrank();
 
