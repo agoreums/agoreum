@@ -170,7 +170,8 @@ includes a frank list of known gaps.
 
 ## License
 
-**No license has been chosen yet.** Until one is added, default copyright applies
-and all rights are reserved — despite the open development, this is not yet
-open source in any usable sense. Choosing a licence is a decision for the
-project owner, not something to assume.
+[MIT](LICENSE). Copyright (c) 2026 Agoreum.
+
+The MIT licence carries no patent grant. If that becomes relevant closer to
+launch, Apache-2.0 is the usual step up — but relicensing needs the agreement
+of every contributor by then, so it is easier decided early than late.
