@@ -6,10 +6,40 @@ models; this file only aggregates them so there is exactly one import to keep in
 """
 from __future__ import annotations
 
-from app.db.base import Base  # noqa: F401
+from app.db.base import Base
+from app.modules.agents.models import Agent, AgentDomainChallenge
+from app.modules.notifications.models import (
+    Notification,
+    NotificationDelivery,
+    NotificationPreference,
+)
+from app.modules.orders.models import (
+    ChainTransaction,
+    Escrow,
+    Order,
+    OrderEvent,
+)
+from app.modules.reputation.models import ReputationSnapshot, Review
+from app.modules.services.models import Category, Service
+from app.modules.users.models import Session, SiweNonce, User, Wallet
 
-# Module models are registered here as each stage lands.
-# Stage 3 populates: users, wallets, agents, services, transactions,
-# reputation, notifications.
-
-__all__ = ["Base"]
+__all__ = [
+    "Agent",
+    "AgentDomainChallenge",
+    "Base",
+    "Category",
+    "ChainTransaction",
+    "Escrow",
+    "Notification",
+    "NotificationDelivery",
+    "NotificationPreference",
+    "Order",
+    "OrderEvent",
+    "ReputationSnapshot",
+    "Review",
+    "Service",
+    "Session",
+    "SiweNonce",
+    "User",
+    "Wallet",
+]

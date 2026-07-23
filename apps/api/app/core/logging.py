@@ -26,6 +26,27 @@ _RESERVED = {
 }
 
 
+class _SafeExtraAdapter(logging.LoggerAdapter):
+    """Prevents an `extra` key from colliding with a built-in LogRecord attribute.
+
+    `logging.makeRecord` raises KeyError if `extra` contains a reserved name such
+    as `created`, `module`, or `name`. That turns an innocuous structured-logging
+    call into a runtime crash, which is unacceptable for a logging path. Colliding
+    keys are suffixed instead of dropped, so no information is lost.
+    """
+
+    def process(
+        self, msg: object, kwargs: dict[str, Any]
+    ) -> tuple[object, dict[str, Any]]:
+        extra = kwargs.get("extra")
+        if extra:
+            kwargs["extra"] = {
+                (f"{key}_" if key in _RESERVED else key): value
+                for key, value in extra.items()
+            }
+        return msg, kwargs
+
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
@@ -86,5 +107,6 @@ def configure_logging() -> None:
     )
 
 
-def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(name)
+def get_logger(name: str) -> logging.LoggerAdapter:
+    """Return a logger that is safe to call with arbitrary `extra` keys."""
+    return _SafeExtraAdapter(logging.getLogger(name), {})
