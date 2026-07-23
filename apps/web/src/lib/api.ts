@@ -302,3 +302,129 @@ export const marketplaceApi = {
       `/api/v1/agents/${encodeURIComponent(agentSlug)}/services/${encodeURIComponent(serviceSlug)}`,
     ),
 };
+
+// --- Orders and payments ----------------------------------------------------
+
+export type ChainStatus = {
+  chain_id: number;
+  network_name: string;
+  escrow_configured: boolean;
+  escrow_contract: string | null;
+  token_address: string;
+  token_symbol: string;
+  confirmations_required: number;
+  explorer_url: string;
+  rpc_reachable: boolean;
+  head_block: number | null;
+  note: string | null;
+};
+
+export type OrderStatus =
+  | "pending_payment" | "funded" | "in_progress" | "delivered"
+  | "completed" | "disputed" | "cancelled" | "refunded" | "expired";
+
+export type OrderSummary = {
+  id: string;
+  reference: string;
+  status: OrderStatus;
+  quantity: number;
+  unit_price: string;
+  subtotal: string;
+  platform_fee: string;
+  total_amount: string;
+  currency: string;
+  platform_fee_bps: number;
+  created_at: string;
+  funding_deadline: string | null;
+  funded_at: string | null;
+  delivered_at: string | null;
+  auto_release_at: string | null;
+  completed_at: string | null;
+};
+
+export type EscrowSummary = {
+  status: string;
+  chain_id: number;
+  contract_address: string | null;
+  onchain_escrow_id: string | null;
+  token_symbol: string;
+  amount: string;
+  released_amount: string;
+  refunded_amount: string;
+  fee_amount: string;
+  funded_at: string | null;
+  released_at: string | null;
+};
+
+export type OrderDetail = OrderSummary & {
+  requirements: string | null;
+  delivery_note: string | null;
+  buyer_id: string;
+  provider_agent_id: string;
+  service_id: string;
+  escrow: EscrowSummary | null;
+  transactions: {
+    tx_hash: string;
+    tx_type: string;
+    status: string;
+    amount: string | null;
+    block_number: number | null;
+    confirmations: number;
+    explorer_url: string | null;
+  }[];
+};
+
+export type PaymentInstructions = {
+  order_id: string;
+  order_reference: string;
+  chain_id: number;
+  network_name: string;
+  escrow_contract: string;
+  token_address: string;
+  token_symbol: string;
+  token_decimals: number;
+  escrow_id: string;
+  provider_address: string;
+  amount: string;
+  amount_base_units: string;
+  delivery_window_seconds: number;
+  auto_release_window_seconds: number;
+  funding_deadline: string | null;
+  explorer_url: string;
+};
+
+export const ordersApi = {
+  chainStatus: () => apiFetch<ChainStatus>("/api/v1/chain/status"),
+
+  create: (
+    accessToken: string,
+    body: { service_id: string; quantity?: number; requirements?: string },
+  ) =>
+    apiFetch<OrderDetail>("/api/v1/orders", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  mine: (accessToken: string) =>
+    apiFetch<OrderSummary[]>("/api/v1/orders", { accessToken }),
+
+  received: (accessToken: string) =>
+    apiFetch<OrderSummary[]>("/api/v1/orders/received", { accessToken }),
+
+  get: (accessToken: string, orderId: string) =>
+    apiFetch<OrderDetail>(`/api/v1/orders/${orderId}`, { accessToken }),
+
+  paymentInstructions: (accessToken: string, orderId: string) =>
+    apiFetch<PaymentInstructions>(
+      `/api/v1/orders/${orderId}/payment-instructions`,
+      { accessToken },
+    ),
+
+  deliver: (accessToken: string, orderId: string, note?: string) =>
+    apiFetch<OrderDetail>(`/api/v1/orders/${orderId}/deliver`, {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify({ delivery_note: note }),
+    }),
+};

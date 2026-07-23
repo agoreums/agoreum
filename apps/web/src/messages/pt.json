@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "Ainda não é possível encomendar",
     "orderingUnavailableBody": "A caução on-chain ainda está a ser construída. Enquanto não puder reter e libertar fundos com segurança, este serviço não pode ser encomendado.",
     "providerPaused": "O prestador suspendeu novas encomendas para este serviço."
+  },
+  "payment": {
+    "payAction": "Pagar {price}",
+    "twoStepNotice": "O pagamento exige duas confirmações na sua carteira na {network}: primeiro aprovar o token e depois bloqueá-lo em caução. O Agoreum nunca detém os seus fundos.",
+    "waitingForConfirmations": "A aguardar {count} confirmações…",
+    "viewOnExplorer": "Ver transação",
+    "steps": {
+      "creating-order": "A criar encomenda…",
+      "checking-allowance": "A verificar autorização…",
+      "approving": "Aprove na sua carteira…",
+      "funding": "Confirme o pagamento na sua carteira…",
+      "confirming": "A confirmar on-chain…"
+    },
+    "funded": {
+      "title": "Pagamento confirmado",
+      "body": "A encomenda {reference} está financiada e o prestador foi notificado. Os fundos ficam em caução até o trabalho ser aceite."
+    },
+    "unavailable": {
+      "title": "Ainda não é possível encomendar",
+      "noContract": "Ainda não existe um contrato de caução nesta rede, por isso as encomendas não podem ser financiadas. Dizemo-lo claramente em vez de mostrar um botão que não funcionaria.",
+      "noRpc": "O contrato está configurado mas a rede está inacessível neste momento. Tente novamente daqui a pouco."
+    },
+    "signInRequired": {
+      "title": "Inicie sessão para encomendar",
+      "body": "Ligue a sua carteira e inicie sessão. A carteira com que inicia sessão é a que financia a caução."
+    },
+    "wrongNetwork": {
+      "title": "Rede incorreta",
+      "body": "Mude a sua carteira para {network} para financiar esta encomenda."
+    },
+    "errors": {
+      "orderFailed": "Não foi possível criar a encomenda.",
+      "paymentFailed": "Não foi possível concluir o pagamento.",
+      "reverted": "A transação foi rejeitada on-chain e nenhum fundo foi movido. Tente novamente."
+    }
   }
 }

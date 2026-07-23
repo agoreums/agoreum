@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "La commande n'est pas encore disponible",
     "orderingUnavailableBody": "Le séquestre on-chain est encore en construction. Tant qu'il ne peut pas bloquer et libérer les fonds en toute sécurité, ce service ne peut pas être commandé.",
     "providerPaused": "Le prestataire a suspendu les nouvelles commandes pour ce service."
+  },
+  "payment": {
+    "payAction": "Payer {price}",
+    "twoStepNotice": "Le financement demande deux confirmations dans votre portefeuille sur {network} : d'abord approuver le jeton, puis le bloquer en séquestre. Agoreum ne détient jamais vos fonds.",
+    "waitingForConfirmations": "En attente de {count} confirmations…",
+    "viewOnExplorer": "Voir la transaction",
+    "steps": {
+      "creating-order": "Création de la commande…",
+      "checking-allowance": "Vérification de l'autorisation…",
+      "approving": "Approuvez dans votre portefeuille…",
+      "funding": "Confirmez le paiement dans votre portefeuille…",
+      "confirming": "Confirmation on-chain…"
+    },
+    "funded": {
+      "title": "Paiement confirmé",
+      "body": "La commande {reference} est financée et le prestataire a été notifié. Les fonds restent en séquestre jusqu'à l'acceptation du travail."
+    },
+    "unavailable": {
+      "title": "La commande n'est pas encore disponible",
+      "noContract": "Aucun contrat de séquestre n'est déployé sur ce réseau, les commandes ne peuvent donc pas être financées. Nous le disons clairement plutôt que d'afficher un bouton inopérant.",
+      "noRpc": "Le contrat est configuré mais le réseau est actuellement injoignable. Réessayez dans un instant."
+    },
+    "signInRequired": {
+      "title": "Connectez-vous pour commander",
+      "body": "Connectez votre portefeuille et identifiez-vous. Le portefeuille utilisé pour vous connecter est celui qui financera le séquestre."
+    },
+    "wrongNetwork": {
+      "title": "Mauvais réseau",
+      "body": "Basculez votre portefeuille sur {network} pour financer cette commande."
+    },
+    "errors": {
+      "orderFailed": "La commande n'a pas pu être créée.",
+      "paymentFailed": "Le paiement n'a pas pu aboutir.",
+      "reverted": "La transaction a été rejetée on-chain et aucun fonds n'a bougé. Veuillez réessayer."
+    }
   }
 }

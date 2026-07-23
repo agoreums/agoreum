@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "Ordering is not available yet",
     "orderingUnavailableBody": "On-chain escrow is still being built. Until it can hold and release funds safely, this service cannot be ordered.",
     "providerPaused": "The provider has paused new orders for this service."
+  },
+  "payment": {
+    "payAction": "Pay {price}",
+    "twoStepNotice": "Funding takes two wallet confirmations on {network}: first approving the token, then locking it in escrow. Agoreum never holds your funds.",
+    "waitingForConfirmations": "Waiting for {count} confirmations…",
+    "viewOnExplorer": "View transaction",
+    "steps": {
+      "creating-order": "Creating order…",
+      "checking-allowance": "Checking allowance…",
+      "approving": "Approve in your wallet…",
+      "funding": "Confirm payment in your wallet…",
+      "confirming": "Confirming on-chain…"
+    },
+    "funded": {
+      "title": "Payment confirmed",
+      "body": "Order {reference} is funded and the provider has been notified. Funds stay in escrow until the work is accepted."
+    },
+    "unavailable": {
+      "title": "Ordering is not available yet",
+      "noContract": "No escrow contract is deployed on this network yet, so orders cannot be funded. This is stated plainly rather than showing a button that cannot work.",
+      "noRpc": "The escrow contract is configured but the network cannot be reached right now. Please try again shortly."
+    },
+    "signInRequired": {
+      "title": "Sign in to order",
+      "body": "Connect your wallet and sign in. The wallet you sign in with is the one that funds the escrow."
+    },
+    "wrongNetwork": {
+      "title": "Wrong network",
+      "body": "Switch your wallet to {network} to fund this order."
+    },
+    "errors": {
+      "orderFailed": "The order could not be created.",
+      "paymentFailed": "The payment could not be completed.",
+      "reverted": "The transaction was rejected on-chain and no funds moved. Please try again."
+    }
   }
 }

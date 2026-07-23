@@ -8,7 +8,14 @@ import {
 } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
 import { Link } from "@/i18n/navigation";
-import { ApiError, marketplaceApi, type ServiceDetail } from "@/lib/api";
+import { OrderPaymentPanel } from "@/components/orders/order-payment-panel";
+import {
+  ApiError,
+  marketplaceApi,
+  ordersApi,
+  type ChainStatus,
+  type ServiceDetail,
+} from "@/lib/api";
 import { absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +58,16 @@ export default async function ServiceDetailPage(props: {
   const t = await getTranslations("servicePage");
   const service = await loadService(slug, serviceSlug);
   if (!service) notFound();
+
+  // Whether payment is possible at all is a fact about this environment, not an
+  // assumption. If it is unavailable the panel says so rather than offering a
+  // button that cannot complete.
+  let chainStatus: ChainStatus | null = null;
+  try {
+    chainStatus = await ordersApi.chainStatus();
+  } catch {
+    chainStatus = null;
+  }
 
   const price = formatPrice(service, locale);
   const delivery = formatDelivery(service.delivery_time_hours);
@@ -191,16 +208,25 @@ export default async function ServiceDetailPage(props: {
               />
             </dl>
 
-            {/* Ordering arrives with the payments layer. Until escrow can
-                actually hold and release funds, this states plainly that it is
-                not available rather than presenting a button that does nothing. */}
-            <div className="mt-6 rounded-xl border border-dashed border-[var(--border-subtle)] p-4">
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                {t("orderingUnavailableTitle")}
-              </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-muted)]">
-                {t("orderingUnavailableBody")}
-              </p>
+            <div className="mt-6">
+              {chainStatus && isAvailable ? (
+                <OrderPaymentPanel
+                  serviceId={service.id}
+                  chainStatus={chainStatus}
+                  priceLabel={price ?? t("negotiatedPrice")}
+                />
+              ) : (
+                // The API is unreachable, or the provider has paused intake.
+                // Either way, say so rather than showing a dead button.
+                <div className="rounded-xl border border-dashed border-[var(--border-subtle)] p-4">
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    {t("orderingUnavailableTitle")}
+                  </p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-muted)]">
+                    {t("orderingUnavailableBody")}
+                  </p>
+                </div>
+              )}
             </div>
 
             {!isAvailable ? (

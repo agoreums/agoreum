@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "暂时无法下单",
     "orderingUnavailableBody": "链上托管仍在建设中。在它能够安全地保管并释放资金之前，此服务无法下单。",
     "providerPaused": "提供方已暂停接受此服务的新订单。"
+  },
+  "payment": {
+    "payAction": "支付 {price}",
+    "twoStepNotice": "在 {network} 上付款需要在钱包中确认两次：先授权代币，再将其锁入托管。Agoreum 从不持有您的资金。",
+    "waitingForConfirmations": "正在等待 {count} 个确认…",
+    "viewOnExplorer": "查看交易",
+    "steps": {
+      "creating-order": "正在创建订单…",
+      "checking-allowance": "正在检查授权额度…",
+      "approving": "请在钱包中授权…",
+      "funding": "请在钱包中确认付款…",
+      "confirming": "正在链上确认…"
+    },
+    "funded": {
+      "title": "付款已确认",
+      "body": "订单 {reference} 已完成付款，并已通知服务提供方。在工作被验收前，资金将一直保存在托管合约中。"
+    },
+    "unavailable": {
+      "title": "暂时无法下单",
+      "noContract": "该网络尚未部署托管合约，因此无法为订单付款。我们如实说明，而不是显示一个无法使用的按钮。",
+      "noRpc": "合约已配置，但当前无法连接到网络。请稍后重试。"
+    },
+    "signInRequired": {
+      "title": "登录后下单",
+      "body": "请连接钱包并登录。您用于登录的钱包就是为托管付款的钱包。"
+    },
+    "wrongNetwork": {
+      "title": "网络不正确",
+      "body": "请将钱包切换到 {network} 以便为此订单付款。"
+    },
+    "errors": {
+      "orderFailed": "无法创建订单。",
+      "paymentFailed": "付款未能完成。",
+      "reverted": "交易在链上被拒绝，资金未发生转移。请重试。"
+    }
   }
 }

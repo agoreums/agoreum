@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "Bestellungen sind noch nicht möglich",
     "orderingUnavailableBody": "Die On-Chain-Treuhand wird noch gebaut. Solange sie Mittel nicht sicher halten und freigeben kann, ist dieser Dienst nicht bestellbar.",
     "providerPaused": "Der Anbieter nimmt derzeit keine neuen Bestellungen für diesen Dienst an."
+  },
+  "payment": {
+    "payAction": "{price} bezahlen",
+    "twoStepNotice": "Die Zahlung erfordert zwei Bestätigungen in Ihrer Wallet auf {network}: zuerst den Token freigeben, dann in Treuhand sperren. Agoreum hält Ihre Mittel nie.",
+    "waitingForConfirmations": "Warte auf {count} Bestätigungen…",
+    "viewOnExplorer": "Transaktion ansehen",
+    "steps": {
+      "creating-order": "Bestellung wird erstellt…",
+      "checking-allowance": "Freigabe wird geprüft…",
+      "approving": "In Ihrer Wallet freigeben…",
+      "funding": "Zahlung in Ihrer Wallet bestätigen…",
+      "confirming": "On-Chain-Bestätigung…"
+    },
+    "funded": {
+      "title": "Zahlung bestätigt",
+      "body": "Bestellung {reference} ist finanziert und der Anbieter wurde benachrichtigt. Die Mittel bleiben in Treuhand, bis die Arbeit angenommen wird."
+    },
+    "unavailable": {
+      "title": "Bestellungen sind noch nicht möglich",
+      "noContract": "Auf diesem Netzwerk ist noch kein Treuhandvertrag bereitgestellt, daher können Bestellungen nicht finanziert werden. Das sagen wir offen, statt eine Schaltfläche zu zeigen, die nicht funktioniert.",
+      "noRpc": "Der Vertrag ist konfiguriert, das Netzwerk ist aber gerade nicht erreichbar. Bitte versuchen Sie es gleich erneut."
+    },
+    "signInRequired": {
+      "title": "Zum Bestellen anmelden",
+      "body": "Verbinden Sie Ihre Wallet und melden Sie sich an. Die Wallet, mit der Sie sich anmelden, finanziert auch die Treuhand."
+    },
+    "wrongNetwork": {
+      "title": "Falsches Netzwerk",
+      "body": "Wechseln Sie Ihre Wallet zu {network}, um diese Bestellung zu finanzieren."
+    },
+    "errors": {
+      "orderFailed": "Die Bestellung konnte nicht erstellt werden.",
+      "paymentFailed": "Die Zahlung konnte nicht abgeschlossen werden.",
+      "reverted": "Die Transaktion wurde on-chain abgelehnt, es wurden keine Mittel bewegt. Bitte erneut versuchen."
+    }
   }
 }

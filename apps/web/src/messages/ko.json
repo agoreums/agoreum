@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "아직 주문할 수 없습니다",
     "orderingUnavailableBody": "온체인 에스크로를 아직 구축하는 중입니다. 자금을 안전하게 보관하고 해제할 수 있게 되기 전까지 이 서비스는 주문할 수 없습니다.",
     "providerPaused": "제공자가 이 서비스의 신규 주문을 일시 중단했습니다."
+  },
+  "payment": {
+    "payAction": "{price} 결제",
+    "twoStepNotice": "{network}에서 결제하려면 지갑에서 두 번 승인해야 합니다. 먼저 토큰을 승인하고, 그다음 에스크로에 잠급니다. Agoreum은 자금을 보관하지 않습니다.",
+    "waitingForConfirmations": "{count}회 확인을 기다리는 중…",
+    "viewOnExplorer": "트랜잭션 보기",
+    "steps": {
+      "creating-order": "주문 생성 중…",
+      "checking-allowance": "승인 한도 확인 중…",
+      "approving": "지갑에서 승인하세요…",
+      "funding": "지갑에서 결제를 확인하세요…",
+      "confirming": "온체인 확인 중…"
+    },
+    "funded": {
+      "title": "결제가 확인되었습니다",
+      "body": "주문 {reference}의 입금이 완료되었고 제공자에게 알림이 전송되었습니다. 자금은 작업이 수락될 때까지 에스크로에 보관됩니다."
+    },
+    "unavailable": {
+      "title": "아직 주문할 수 없습니다",
+      "noContract": "이 네트워크에는 아직 에스크로 계약이 배포되지 않아 주문에 입금할 수 없습니다. 동작하지 않는 버튼을 보여주는 대신 이를 명확히 알려드립니다.",
+      "noRpc": "계약은 구성되어 있으나 현재 네트워크에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."
+    },
+    "signInRequired": {
+      "title": "주문하려면 로그인",
+      "body": "지갑을 연결하고 로그인하세요. 로그인에 사용한 지갑이 에스크로에 입금하는 지갑이 됩니다."
+    },
+    "wrongNetwork": {
+      "title": "네트워크가 다릅니다",
+      "body": "이 주문에 입금하려면 지갑을 {network}(으)로 전환하세요."
+    },
+    "errors": {
+      "orderFailed": "주문을 생성하지 못했습니다.",
+      "paymentFailed": "결제를 완료하지 못했습니다.",
+      "reverted": "트랜잭션이 온체인에서 거부되었으며 자금은 이동하지 않았습니다. 다시 시도해 주세요."
+    }
   }
 }

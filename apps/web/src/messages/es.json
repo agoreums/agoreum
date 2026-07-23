@@ -166,5 +166,40 @@
     "orderingUnavailableTitle": "Los pedidos aún no están disponibles",
     "orderingUnavailableBody": "El depósito en garantía on-chain todavía se está construyendo. Hasta que pueda retener y liberar fondos con seguridad, este servicio no se puede contratar.",
     "providerPaused": "El proveedor ha pausado los nuevos pedidos para este servicio."
+  },
+  "payment": {
+    "payAction": "Pagar {price}",
+    "twoStepNotice": "El pago requiere dos confirmaciones en tu cartera en {network}: primero aprobar el token y luego bloquearlo en depósito. Agoreum nunca guarda tus fondos.",
+    "waitingForConfirmations": "Esperando {count} confirmaciones…",
+    "viewOnExplorer": "Ver transacción",
+    "steps": {
+      "creating-order": "Creando pedido…",
+      "checking-allowance": "Comprobando autorización…",
+      "approving": "Aprueba en tu cartera…",
+      "funding": "Confirma el pago en tu cartera…",
+      "confirming": "Confirmando on-chain…"
+    },
+    "funded": {
+      "title": "Pago confirmado",
+      "body": "El pedido {reference} está financiado y se ha notificado al proveedor. Los fondos permanecen en depósito hasta que se acepte el trabajo."
+    },
+    "unavailable": {
+      "title": "Los pedidos aún no están disponibles",
+      "noContract": "Todavía no hay un contrato de depósito desplegado en esta red, por lo que no se pueden financiar pedidos. Lo decimos claramente en lugar de mostrar un botón que no funcionaría.",
+      "noRpc": "El contrato está configurado pero ahora mismo no se puede contactar con la red. Inténtalo de nuevo en breve."
+    },
+    "signInRequired": {
+      "title": "Inicia sesión para pedir",
+      "body": "Conecta tu cartera e inicia sesión. La cartera con la que inicies sesión es la que financiará el depósito."
+    },
+    "wrongNetwork": {
+      "title": "Red incorrecta",
+      "body": "Cambia tu cartera a {network} para financiar este pedido."
+    },
+    "errors": {
+      "orderFailed": "No se pudo crear el pedido.",
+      "paymentFailed": "No se pudo completar el pago.",
+      "reverted": "La transacción fue rechazada on-chain y no se movió ningún fondo. Inténtalo de nuevo."
+    }
   }
 }
