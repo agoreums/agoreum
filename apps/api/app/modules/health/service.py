@@ -12,7 +12,6 @@ from typing import Literal
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -68,7 +67,7 @@ async def check_redis() -> ComponentHealth:
     """Verify Redis responds to PING."""
     start = time.perf_counter()
     try:
-        import redis.asyncio as aioredis
+        from app.core.redis import create_client
     except ImportError:
         return ComponentHealth(
             name="redis", status="down", error="redis client not installed"
@@ -76,11 +75,7 @@ async def check_redis() -> ComponentHealth:
 
     client = None
     try:
-        client = aioredis.from_url(
-            settings.REDIS_URL,
-            socket_connect_timeout=PROBE_TIMEOUT_SECONDS,
-            socket_timeout=PROBE_TIMEOUT_SECONDS,
-        )
+        client = create_client(timeout=PROBE_TIMEOUT_SECONDS)
         await client.ping()
     except Exception as exc:
         logger.warning("health_redis_failed", extra={"error_type": type(exc).__name__})

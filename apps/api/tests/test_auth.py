@@ -569,9 +569,15 @@ class TestStoredCredentials:
     async def test_session_records_the_proven_address(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        await _sign_in(client, wallet)
+        body = await _sign_in(client, wallet)
+
+        # Scoped to this test's own user: the database may hold rows from other
+        # runs, and an unscoped query would assert against an unrelated session.
         address = (
-            await db.execute(sa.text("SELECT address FROM sessions LIMIT 1"))
+            await db.execute(
+                sa.text("SELECT address FROM sessions WHERE user_id = :uid"),
+                {"uid": uuid.UUID(body["user"]["id"])},
+            )
         ).scalar_one()
         assert address == wallet.address
 
@@ -588,3 +594,75 @@ class TestCapabilities:
         assert body["siwe_domain"] == settings.SIWE_DOMAIN
         assert settings.CHAIN_ID in body["accepted_chain_ids"]
         assert isinstance(body["contract_wallets_supported"], bool)
+
+
+class TestSessionBoundAccessTokens:
+    """An access token is only as alive as the session that issued it.
+
+    A JWT is otherwise valid until it expires. Without binding, a token stolen
+    and then detected as stolen would keep working for the rest of its lifetime.
+    """
+
+    async def test_access_token_dies_with_its_session(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        body = await _sign_in(client, wallet)
+        access = body["tokens"]["access_token"]
+
+        assert (
+            await client.get(
+                "/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"}
+            )
+        ).status_code == 200
+
+        await client.post(
+            "/api/v1/auth/logout",
+            json={"all_sessions": True},
+            headers={"Authorization": f"Bearer {access}"},
+        )
+
+        after = await client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"}
+        )
+        assert after.status_code == 401
+        assert after.json()["error"]["code"] == "session_revoked"
+
+    async def test_access_token_dies_when_theft_is_detected(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        """Detected refresh-token theft must immediately cut off access."""
+        body = await _sign_in(client, wallet)
+        access = body["tokens"]["access_token"]
+        spent = body["tokens"]["refresh_token"]
+
+        await client.post("/api/v1/auth/refresh", json={"refresh_token": spent})
+        # The attacker replays the stolen token, which trips reuse detection.
+        await client.post("/api/v1/auth/refresh", json={"refresh_token": spent})
+
+        after = await client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"}
+        )
+        assert after.status_code == 401
+
+    async def test_token_without_a_session_claim_is_rejected(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        import jwt
+
+        body = await _sign_in(client, wallet)
+        no_sid = jwt.encode(
+            {
+                "sub": body["user"]["id"],
+                "typ": "access",
+                "iss": settings.APP_URL,
+                "jti": "x",
+                "iat": int(datetime.now(UTC).timestamp()),
+                "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
+            },
+            settings.JWT_SECRET.get_secret_value(),
+            algorithm="HS256",
+        )
+        response = await client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {no_sid}"}
+        )
+        assert response.status_code == 401

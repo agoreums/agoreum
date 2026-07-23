@@ -85,5 +85,16 @@
       "body": "예기치 않은 오류가 발생했습니다. 이 문제는 기록되었으며 확인 중입니다.",
       "action": "다시 시도"
     }
+  },
+  "auth": {
+    "signIn": "로그인",
+    "signOut": "로그아웃",
+    "signing": "지갑을 확인하세요…",
+    "connectTitle": "지갑 연결",
+    "connectBody": "Agoreum은 지갑을 신원으로 사용합니다. 메시지 서명을 요청받게 되며, 가스비가 들지 않고 어떤 거래도 승인되지 않습니다.",
+    "switchNetwork": "{network}(으)로 전환",
+    "walletConnectUnavailable": "이 배포 환경에는 WalletConnect가 구성되어 있지 않아 제공되지 않습니다.",
+    "nonCustodialNotice": "Agoreum은 사용자의 키를 보관하지 않으며 자금을 수탁하지 않습니다.",
+    "cancel": "취소"
   }
 }

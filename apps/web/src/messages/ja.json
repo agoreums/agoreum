@@ -85,5 +85,16 @@
       "body": "予期しないエラーが発生しました。この問題は記録され、現在調査中です。",
       "action": "再試行"
     }
+  },
+  "auth": {
+    "signIn": "サインイン",
+    "signOut": "サインアウト",
+    "signing": "ウォレットをご確認ください…",
+    "connectTitle": "ウォレットを接続",
+    "connectBody": "Agoreum はあなたのウォレットを本人確認に使用します。メッセージへの署名を求められますが、ガス代はかからず、取引が承認されることもありません。",
+    "switchNetwork": "{network} に切り替える",
+    "walletConnectUnavailable": "この環境では WalletConnect が設定されていないため、選択肢に表示されません。",
+    "nonCustodialNotice": "Agoreum が鍵を預かることも、資金を保管することもありません。",
+    "cancel": "キャンセル"
   }
 }

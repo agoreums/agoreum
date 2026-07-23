@@ -85,5 +85,16 @@
       "body": "Ocorreu um erro inesperado. O incidente foi registado e está a ser analisado.",
       "action": "Tentar novamente"
     }
+  },
+  "auth": {
+    "signIn": "Iniciar sessão",
+    "signOut": "Terminar sessão",
+    "signing": "Verifique a sua carteira…",
+    "connectTitle": "Ligar uma carteira",
+    "connectBody": "O Agoreum usa a sua carteira como identidade. Ser-lhe-á pedido que assine uma mensagem — não custa gas nem autoriza qualquer transação.",
+    "switchNetwork": "Mudar para {network}",
+    "walletConnectUnavailable": "O WalletConnect não está configurado nesta instalação, pelo que não é oferecido aqui.",
+    "nonCustodialNotice": "O Agoreum nunca detém as suas chaves nem assume a custódia dos seus fundos.",
+    "cancel": "Cancelar"
   }
 }

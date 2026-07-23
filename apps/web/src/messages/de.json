@@ -85,5 +85,16 @@
       "body": "Ein unerwarteter Fehler ist aufgetreten. Der Vorfall wurde protokolliert und wird geprüft.",
       "action": "Erneut versuchen"
     }
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "signing": "Prüfen Sie Ihre Wallet…",
+    "connectTitle": "Wallet verbinden",
+    "connectBody": "Agoreum nutzt Ihre Wallet als Identität. Sie werden gebeten, eine Nachricht zu signieren — das kostet kein Gas und autorisiert keine Transaktion.",
+    "switchNetwork": "Zu {network} wechseln",
+    "walletConnectUnavailable": "WalletConnect ist in dieser Umgebung nicht konfiguriert und wird daher nicht angeboten.",
+    "nonCustodialNotice": "Agoreum hält niemals Ihre Schlüssel und nimmt Ihre Mittel nie in Verwahrung.",
+    "cancel": "Abbrechen"
   }
 }

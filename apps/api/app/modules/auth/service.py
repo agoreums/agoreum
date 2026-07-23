@@ -309,6 +309,11 @@ async def refresh_session(
             await revoke_all_sessions(
                 db, user_id=session.user_id, reason="reuse_detected"
             )
+            # Commit before raising. The request-scoped session rolls back on any
+            # exception, which would otherwise undo the revocation we just made —
+            # leaving the stolen token's whole session family alive. The security
+            # response has to outlive the failed request that triggered it.
+            await db.commit()
         raise AuthenticationError("Invalid session. Please sign in again.")
 
     if session.expires_at <= datetime.now(UTC):

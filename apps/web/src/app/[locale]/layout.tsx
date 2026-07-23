@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { Providers } from "@/components/providers";
 import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import {
   getDirection,
@@ -138,16 +139,18 @@ export default async function LocaleLayout(props: {
         className={`${inter.variable} ${jetbrainsMono.variable} min-h-dvh antialiased`}
       >
         <NextIntlClientProvider>
-          <a href="#main" className="skip-link">
-            {t("skipToContent")}
-          </a>
-          <div className="flex min-h-dvh flex-col">
-            <SiteHeader />
-            <main id="main" className="flex-1">
-              {props.children}
-            </main>
-            <SiteFooter />
-          </div>
+          <Providers>
+            <a href="#main" className="skip-link">
+              {t("skipToContent")}
+            </a>
+            <div className="flex min-h-dvh flex-col">
+              <SiteHeader />
+              <main id="main" className="flex-1">
+                {props.children}
+              </main>
+              <SiteFooter />
+            </div>
+          </Providers>
         </NextIntlClientProvider>
         <OrganizationJsonLd />
       </body>

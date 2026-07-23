@@ -85,5 +85,16 @@
       "body": "An unexpected error occurred. The issue has been logged and we are looking into it.",
       "action": "Try again"
     }
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signing": "Check your wallet…",
+    "connectTitle": "Connect a wallet",
+    "connectBody": "Agoreum uses your wallet as your identity. You will be asked to sign a message — this costs no gas and authorises no transaction.",
+    "switchNetwork": "Switch to {network}",
+    "walletConnectUnavailable": "WalletConnect is not configured on this deployment, so it is not offered here.",
+    "nonCustodialNotice": "Agoreum never holds your keys and never takes custody of your funds.",
+    "cancel": "Cancel"
   }
 }

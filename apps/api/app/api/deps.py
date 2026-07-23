@@ -7,6 +7,7 @@ that belong with the resource, because only that module knows what ownership mea
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, Request
@@ -18,7 +19,7 @@ from app.core.errors import AuthenticationError, PermissionDeniedError
 from app.core.security import decode_access_token
 from app.db.enums import AccountStatus, UserRole
 from app.db.session import get_db
-from app.modules.users.models import User
+from app.modules.users.models import Session, User
 
 # auto_error=False so a missing header raises our own error envelope rather than
 # FastAPI's, keeping every failure response shaped the same way.
@@ -44,15 +45,36 @@ async def get_current_user(
 
     try:
         user_id = uuid.UUID(claims["sub"])
+        session_id = uuid.UUID(claims["sid"])
     except (KeyError, ValueError) as exc:
         raise AuthenticationError("Invalid authentication token.") from exc
 
-    user = (
-        await db.execute(select(User).where(User.id == user_id))
+    # The access token is joined to its session rather than trusted on its own.
+    # A JWT is valid until it expires, so without this check a token stolen and
+    # then detected as stolen would keep working for the remainder of its life —
+    # up to fifteen minutes of authenticated access after revocation. On a
+    # platform that moves money that window is unacceptable, and the cost is one
+    # indexed lookup that replaces the user query we were already doing.
+    row = (
+        await db.execute(
+            select(User)
+            .join(Session, Session.user_id == User.id)
+            .where(
+                User.id == user_id,
+                Session.id == session_id,
+                Session.revoked_at.is_(None),
+                Session.expires_at > datetime.now(UTC),
+            )
+        )
     ).scalar_one_or_none()
 
-    if user is None:
-        raise AuthenticationError("Invalid authentication token.")
+    if row is None:
+        raise AuthenticationError(
+            "Your session is no longer valid. Please sign in again.",
+            code="session_revoked",
+        )
+
+    user = row
 
     if user.status in {AccountStatus.SUSPENDED_BY_ADMIN, AccountStatus.DEACTIVATED}:
         raise PermissionDeniedError(

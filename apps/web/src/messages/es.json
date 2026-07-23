@@ -85,5 +85,16 @@
       "body": "Se produjo un error inesperado. El incidente ha quedado registrado y lo estamos revisando.",
       "action": "Reintentar"
     }
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "signing": "Revisa tu cartera…",
+    "connectTitle": "Conectar una cartera",
+    "connectBody": "Agoreum usa tu cartera como identidad. Se te pedirá firmar un mensaje: no cuesta gas ni autoriza ninguna transacción.",
+    "switchNetwork": "Cambiar a {network}",
+    "walletConnectUnavailable": "WalletConnect no está configurado en este despliegue, por lo que no se ofrece aquí.",
+    "nonCustodialNotice": "Agoreum nunca guarda tus claves ni toma custodia de tus fondos.",
+    "cancel": "Cancelar"
   }
 }

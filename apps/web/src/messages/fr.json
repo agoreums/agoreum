@@ -85,5 +85,16 @@
       "body": "Une erreur inattendue s'est produite. L'incident a été enregistré et nous l'examinons.",
       "action": "Réessayer"
     }
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "signing": "Vérifiez votre portefeuille…",
+    "connectTitle": "Connecter un portefeuille",
+    "connectBody": "Agoreum utilise votre portefeuille comme identité. Il vous sera demandé de signer un message : cela ne coûte pas de gas et n'autorise aucune transaction.",
+    "switchNetwork": "Basculer sur {network}",
+    "walletConnectUnavailable": "WalletConnect n'est pas configuré sur ce déploiement ; il n'est donc pas proposé ici.",
+    "nonCustodialNotice": "Agoreum ne détient jamais vos clés ni la garde de vos fonds.",
+    "cancel": "Annuler"
   }
 }

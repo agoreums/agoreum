@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { LogoWordmark } from "@/components/brand/logo";
+import { ConnectWalletButton } from "@/components/auth/connect-wallet";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Link } from "@/i18n/navigation";
@@ -50,12 +51,7 @@ export async function SiteHeader() {
           <div className="hidden sm:block">
             <LocaleSwitcher />
           </div>
-          <Link
-            href="/signin"
-            className="hidden rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] sm:inline-flex"
-          >
-            {t("signIn")}
-          </Link>
+          <ConnectWalletButton />
           <MobileNav items={items} menuLabel={t("openMenu")} closeLabel={t("closeMenu")} />
         </div>
       </div>
