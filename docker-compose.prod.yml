@@ -120,6 +120,13 @@ services:
       CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
     networks:
       - internal
+    # The indexer reuses the API image, which carries an HTTP healthcheck. This
+    # process has no HTTP port, so that check would always fail and mark a
+    # perfectly healthy indexer unhealthy. Disable it; liveness is the restart
+    # policy, and progress is the chain_scan_complete log line (alert on its
+    # absence, per deployment.md).
+    healthcheck:
+      disable: true
     command: >
       python -m app.cli index-chain --follow --interval 15
     deploy:
@@ -153,7 +160,13 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      # The slim Node runtime ships neither curl nor wget, so the check uses
+      # Node's built-in fetch — no extra package in the image just to probe it.
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 10s
       retries: 3
@@ -176,6 +189,9 @@ services:
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./infra/nginx/agoreum.conf:/etc/nginx/conf.d/default.conf:ro
+      # agoreum.conf includes this from each proxied location; it must be present
+      # in the container or nginx refuses to start.
+      - ./infra/nginx/proxy_headers.conf:/etc/nginx/conf.d/proxy_headers.conf:ro
       # Cloudflare Origin certificates, provisioned on the host.
       - ./infra/nginx/certs:/etc/nginx/certs:ro
       - nginx_cache:/var/cache/nginx
