@@ -147,7 +147,9 @@ services:
       DATABASE_TYPE: postgresql
       DATABASE_URL: ${UMAMI_DATABASE_URL}
       APP_SECRET: ${UMAMI_APP_SECRET}
-      BASE_PATH: /insights
+      # The prebuilt image bakes its base path at build time, so BASE_PATH has no
+      # effect at runtime; nginx strips /insights instead, and the tracker's
+      # data-host-url keeps collection under that path.
       DISABLE_TELEMETRY: "1"
       # The connection to the managed database is encrypted but its DigitalOcean
       # CA is self-signed in-chain, which Prisma rejects by default (the API's
