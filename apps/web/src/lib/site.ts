@@ -18,7 +18,9 @@ export const siteConfig = {
     reddit: "https://www.reddit.com/r/Agoreum",
     telegram: "https://t.me/agoreum",
     instagram: "https://instagram.com/agoreum",
-    github: "https://github.com/agoreums/agoreum",
+    // The org page, not the repo: the repo is private, so a repo link 404s for
+    // every visitor. The org is public and keeps working if repos are opened later.
+    github: "https://github.com/agoreums",
   },
   chain: {
     name: "Base",

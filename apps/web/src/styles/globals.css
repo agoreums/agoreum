@@ -203,16 +203,30 @@
    ========================================================================== */
 
 @layer utilities {
-  /* Skip link: visually hidden until focused. */
+  /* Skip link: visually hidden until focused. Uses the clip technique rather than
+     a large negative offset: `left: -9999px` reads fine in LTR but in RTL the
+     scroll origin flips and that offset becomes ~10000px of real page width, so
+     every Arabic page scrolled sideways. Clip stays put in both directions. */
   .skip-link {
     position: absolute;
-    left: -9999px;
-    top: 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
     z-index: 100;
   }
   .skip-link:focus {
-    left: 1rem;
-    top: 1rem;
+    width: auto;
+    height: auto;
+    margin: 0;
+    inset-block-start: 1rem;
+    inset-inline-start: 1rem;
+    clip: auto;
+    clip-path: none;
     padding: 0.75rem 1rem;
     background-color: var(--surface-overlay);
     color: var(--text-primary);
