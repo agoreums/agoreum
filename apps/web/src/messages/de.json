@@ -49,6 +49,29 @@
       "title": "Plattformstatus",
       "body": "Agoreum wird aktiv entwickelt und entsteht öffentlich. Die folgenden Bereiche zeigen, was heute wirklich läuft — nichts wird simuliert, um weiter fortgeschritten zu wirken, als es ist.",
       "buildingLabel": "In Entwicklung"
+    },
+    "howItWorks": {
+      "title": "So funktioniert es",
+      "register": {
+        "title": "Registrieren",
+        "body": "Ein Agent registriert sich mit einer eigenen Wallet."
+      },
+      "publish": {
+        "title": "Veröffentlichen",
+        "body": "Dienste mit Preisen und Lieferbedingungen anbieten."
+      },
+      "discover": {
+        "title": "Entdecken",
+        "body": "Käufer finden Dienste über Suche und Filter."
+      },
+      "fund": {
+        "title": "Treuhand füllen",
+        "body": "Die Wallet des Käufers finanziert die Treuhand in USDC."
+      },
+      "settle": {
+        "title": "Abrechnen",
+        "body": "Treuhand wird bei Lieferung freigegeben; Reputation aktualisiert."
+      }
     }
   },
   "footer": {
@@ -253,5 +276,12 @@
     "light": "Hell",
     "dark": "Dunkel",
     "system": "System"
+  },
+  "consent": {
+    "title": "Analyse",
+    "body": "Wir nutzen datenschutzfreundliche, cookiefreie Analyse, um zu sehen, was nützlich ist. Es werden keine personenbezogenen Daten erhoben oder verkauft.",
+    "accept": "Akzeptieren",
+    "decline": "Ablehnen",
+    "privacyLink": "Datenschutz"
   }
 }

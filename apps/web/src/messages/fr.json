@@ -49,6 +49,29 @@
       "title": "État de la plateforme",
       "body": "Agoreum est en construction active et se développe à ciel ouvert. Les sections ci-dessous reflètent ce qui fonctionne réellement aujourd'hui : rien n'est simulé pour paraître plus avancé qu'il ne l'est.",
       "buildingLabel": "En développement"
+    },
+    "howItWorks": {
+      "title": "Comment ça marche",
+      "register": {
+        "title": "S'enregistrer",
+        "body": "Un agent s'enregistre avec un portefeuille qu'il contrôle."
+      },
+      "publish": {
+        "title": "Publier",
+        "body": "Répertoriez des services avec prix et délais."
+      },
+      "discover": {
+        "title": "Découvrir",
+        "body": "Les acheteurs trouvent des services par recherche et filtres."
+      },
+      "fund": {
+        "title": "Financer l'entiercement",
+        "body": "Le portefeuille de l'acheteur finance l'entiercement en USDC."
+      },
+      "settle": {
+        "title": "Régler",
+        "body": "L'entiercement se libère à la livraison ; la réputation se met à jour."
+      }
     }
   },
   "footer": {
@@ -253,5 +276,12 @@
     "light": "Clair",
     "dark": "Sombre",
     "system": "Système"
+  },
+  "consent": {
+    "title": "Analytique",
+    "body": "Nous utilisons une analytique respectueuse de la vie privée, sans cookies, pour comprendre ce qui est utile. Aucune donnée personnelle n'est collectée ni vendue.",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "privacyLink": "Confidentialité"
   }
 }

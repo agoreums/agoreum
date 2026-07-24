@@ -84,7 +84,7 @@ export function MobileNav({
           // Clicking the backdrop (the dialog element itself) dismisses the drawer.
           if (e.target === dialogRef.current) setOpen(false);
         }}
-        className="m-0 ml-auto h-dvh max-h-none w-[min(20rem,85vw)] max-w-none bg-[var(--surface-raised)] p-0 text-[var(--text-primary)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+        className="m-0 ms-auto h-dvh max-h-none w-[min(20rem,85vw)] max-w-none bg-[var(--surface-raised)] p-0 text-[var(--text-primary)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       >
         <div className="flex h-full flex-col p-5">
           <div className="flex justify-end">

@@ -37,6 +37,15 @@
   --color-ink-900: #1a1c2e;
   --color-ink-950: #0a0a12; /* canonical dark field, matches the icon set */
 
+  /* --- Signal: a cyan-teal counterpoint to the indigo, used for network and
+     agent moments. This is the distinctive second note that moves the identity
+     away from a single generic indigo gradient toward an indigo/cyan/amber
+     triad that reads as Agoreum rather than default-SaaS. --------------------- */
+  --color-signal-300: #7ee8e0;
+  --color-signal-400: #3fd6cf;
+  --color-signal-500: #17bcb8;
+  --color-signal-600: #0e968f;
+
   /* --- Settlement accent: reserved for value, payouts, escrow release ----- */
   --color-accent-400: #f0b866;
   --color-accent-500: #e0a04a;
@@ -201,24 +210,121 @@
     border-radius: 0.5rem;
   }
 
-  /* The brand's signature ambient glow, used sparingly behind hero content. */
+  /* Signature ambient light behind the hero. Two off-center pools — indigo and a
+     faint cyan — rather than one centered indigo blob, so the field reads as
+     layered depth instead of the familiar single-gradient hero. A whisper of the
+     settlement amber sits low, tying the brand's value accent into the identity. */
   .brand-glow {
-    background-image: radial-gradient(
-      60% 60% at 50% 40%,
-      color-mix(in oklab, var(--color-brand-500) 26%, transparent) 0%,
-      transparent 70%
-    );
+    background-image:
+      radial-gradient(
+        42% 55% at 24% 26%,
+        color-mix(in oklab, var(--color-brand-500) 30%, transparent) 0%,
+        transparent 72%
+      ),
+      radial-gradient(
+        38% 50% at 82% 18%,
+        color-mix(in oklab, var(--color-signal-500) 20%, transparent) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        50% 60% at 60% 92%,
+        color-mix(in oklab, var(--color-accent-500) 12%, transparent) 0%,
+        transparent 75%
+      );
   }
 
+  /* Headline emphasis: indigo into cyan, not the flat indigo-to-white ramp. The
+     cyan endpoint is the identity's distinctive note. */
   .text-gradient-brand {
     background-image: linear-gradient(
-      100deg,
+      104deg,
       var(--color-ink-50) 0%,
-      var(--color-brand-300) 55%,
-      var(--color-brand-500) 100%
+      var(--color-brand-300) 42%,
+      var(--color-signal-400) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  /* Thin hairline that traces the how-it-works flow as it comes into view. */
+  .flow-line {
+    background-image: linear-gradient(
+      to right,
+      transparent,
+      var(--color-brand-500),
+      var(--color-signal-500),
+      transparent
+    );
+  }
+}
+
+/* =============================================================================
+   Motion — restrained, fast, and always gated on prefers-reduced-motion
+   ========================================================================== */
+@layer utilities {
+  @keyframes wordmark-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.18em);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes line-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* Wordmark reveals letter by letter. Each glyph sets --i for its stagger. */
+  .wordmark-letter {
+    display: inline-block;
+    opacity: 0;
+    animation: wordmark-in 0.42s var(--ease-out-brand) forwards;
+    animation-delay: calc(var(--i) * 0.045s);
+  }
+
+  .rise-in {
+    opacity: 0;
+    animation: rise-in 0.5s var(--ease-out-brand) forwards;
+    animation-delay: calc(var(--i, 0) * 0.09s);
+  }
+
+  .flow-line-grow {
+    transform-origin: left center;
+    animation: line-grow 0.9s var(--ease-out-brand) forwards;
+    animation-delay: 0.15s;
+  }
+  /* The flow reads start-to-end, so it grows from the right under RTL. */
+  :root[dir="rtl"] .flow-line-grow {
+    transform-origin: right center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wordmark-letter,
+    .rise-in,
+    .flow-line-grow {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
   }
 }

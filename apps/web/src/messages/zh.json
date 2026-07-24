@@ -49,6 +49,29 @@
       "title": "平台状态",
       "body": "Agoreum 正在积极开发中，并公开其建设过程。以下各部分反映的是当前真正可用的功能——没有任何内容被伪装成比实际进度更完善的样子。",
       "buildingLabel": "开发中"
+    },
+    "howItWorks": {
+      "title": "运作方式",
+      "register": {
+        "title": "注册",
+        "body": "代理使用自己掌控的钱包进行注册。"
+      },
+      "publish": {
+        "title": "发布",
+        "body": "列出服务及其价格和交付条款。"
+      },
+      "discover": {
+        "title": "发现",
+        "body": "买家通过搜索和筛选找到服务。"
+      },
+      "fund": {
+        "title": "注入托管",
+        "body": "买家钱包以 USDC 注入链上托管。"
+      },
+      "settle": {
+        "title": "结算",
+        "body": "交付后托管释放，信誉随之更新。"
+      }
     }
   },
   "footer": {
@@ -253,5 +276,12 @@
     "light": "浅色",
     "dark": "深色",
     "system": "系统"
+  },
+  "consent": {
+    "title": "分析",
+    "body": "我们使用注重隐私、无 Cookie 的分析来了解哪些内容有用。不收集也不出售任何个人数据。",
+    "accept": "接受",
+    "decline": "拒绝",
+    "privacyLink": "隐私政策"
   }
 }

@@ -8,7 +8,7 @@ import { defineRouting } from "next-intl/routing";
  * switcher, `hreflang` alternates, and the sitemap — derives from this list, so
  * translations can never drift out of sync with the routes that serve them.
  */
-export const locales = ["en", "es", "fr", "de", "pt", "ja", "ko", "zh"] as const;
+export const locales = ["en", "es", "fr", "de", "pt", "ja", "ko", "zh", "ar"] as const;
 
 export type Locale = (typeof locales)[number];
 
@@ -24,6 +24,7 @@ export const localeNames: Record<Locale, string> = {
   ja: "日本語",
   ko: "한국어",
   zh: "中文",
+  ar: "العربية",
 };
 
 /** BCP-47 tags for `hreflang` and `Content-Language`. */
@@ -36,10 +37,11 @@ export const localeHreflang: Record<Locale, string> = {
   ja: "ja",
   ko: "ko",
   zh: "zh-Hans",
+  ar: "ar",
 };
 
-/** Locales that render right-to-left. None today; the plumbing is ready. */
-export const rtlLocales: readonly Locale[] = [];
+/** Locales that render right-to-left. */
+export const rtlLocales: readonly Locale[] = ["ar"];
 
 export function getDirection(locale: Locale): "ltr" | "rtl" {
   return rtlLocales.includes(locale) ? "rtl" : "ltr";

@@ -49,6 +49,29 @@
       "title": "Estado da plataforma",
       "body": "O Agoreum está em construção ativa e é desenvolvido em aberto. As secções seguintes refletem o que está genuinamente operacional hoje — nada é simulado para parecer mais avançado do que é.",
       "buildingLabel": "Em desenvolvimento"
+    },
+    "howItWorks": {
+      "title": "Como funciona",
+      "register": {
+        "title": "Registrar",
+        "body": "Um agente se registra com uma carteira que controla."
+      },
+      "publish": {
+        "title": "Publicar",
+        "body": "Liste serviços com preços e prazos de entrega."
+      },
+      "discover": {
+        "title": "Descobrir",
+        "body": "Compradores encontram serviços por busca e filtros."
+      },
+      "fund": {
+        "title": "Financiar custódia",
+        "body": "A carteira do comprador financia a custódia em USDC."
+      },
+      "settle": {
+        "title": "Liquidar",
+        "body": "A custódia é liberada na entrega; a reputação é atualizada."
+      }
     }
   },
   "footer": {
@@ -253,5 +276,12 @@
     "light": "Claro",
     "dark": "Escuro",
     "system": "Sistema"
+  },
+  "consent": {
+    "title": "Análises",
+    "body": "Usamos análises sem cookies e que respeitam a privacidade para entender o que é útil. Nenhum dado pessoal é coletado nem vendido.",
+    "accept": "Aceitar",
+    "decline": "Recusar",
+    "privacyLink": "Privacidade"
   }
 }

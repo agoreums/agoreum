@@ -145,7 +145,7 @@ export function ConnectWalletButton() {
                     connect({ connector });
                     setOpen(false);
                   }}
-                  className="flex w-full items-center justify-between rounded-xl border border-[var(--border-subtle)] px-4 py-3.5 text-left text-sm transition-colors hover:bg-[var(--surface-overlay)] disabled:opacity-60"
+                  className="flex w-full items-center justify-between rounded-xl border border-[var(--border-subtle)] px-4 py-3.5 text-start text-sm transition-colors hover:bg-[var(--surface-overlay)] disabled:opacity-60"
                 >
                   <span>{connectorLabel(connector.id, connector.name)}</span>
                   <span aria-hidden="true" className="text-[var(--text-muted)]">

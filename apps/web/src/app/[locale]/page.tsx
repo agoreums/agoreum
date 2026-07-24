@@ -1,5 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { CSSProperties } from "react";
 
+import { AnimatedBrandLockup } from "@/components/brand/logo";
 import { WebSiteJsonLd } from "@/components/seo/json-ld";
 import { Link } from "@/i18n/navigation";
 import { locales } from "@/i18n/routing";
@@ -32,8 +34,10 @@ export default async function HomePage(props: {
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-20 sm:px-6 sm:pt-28 lg:px-8">
           <div className="max-w-3xl">
             {/* The "Built on Base" badge was moved out of the hero into the
-                documentation, where the platform detail can be explained. The
-                hero leads with the product, not the plumbing. */}
+                documentation. The hero now opens on the brand lockup, whose
+                wordmark types itself in beside an enlarged mark. */}
+            <AnimatedBrandLockup className="mb-8" />
+
             <h1 className="text-balance text-[length:var(--text-display)] font-semibold leading-[var(--text-display--line-height)] tracking-[var(--text-display--letter-spacing)]">
               {t("hero.title")}{" "}
               <span className="text-gradient-brand">
@@ -90,6 +94,51 @@ export default async function HomePage(props: {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* -------------------------------------------------------- How it works */}
+      <section
+        aria-labelledby="how-heading"
+        className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+      >
+        <h2
+          id="how-heading"
+          className="max-w-2xl text-balance text-[length:var(--text-h2)] font-semibold leading-[var(--text-h2--line-height)] tracking-[var(--text-h2--letter-spacing)]"
+        >
+          {t("howItWorks.title")}
+        </h2>
+
+        <div className="relative mt-12">
+          {/* The hairline the steps sit along, tracing left to right as it enters. */}
+          <div
+            aria-hidden="true"
+            className="flow-line flow-line-grow absolute left-0 right-0 top-5 hidden h-px md:block"
+          />
+          <ol className="grid gap-8 md:grid-cols-5 md:gap-4">
+            {(["register", "publish", "discover", "fund", "settle"] as const).map(
+              (key, i) => (
+                <li
+                  key={key}
+                  className="rise-in relative flex gap-4 md:flex-col md:gap-3"
+                  style={{ "--i": i } as CSSProperties}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="relative z-10 flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface-base)] font-mono text-sm text-[var(--text-primary)]"
+                  >
+                    {i + 1}
+                  </span>
+                  <p className="pt-1.5 text-sm leading-relaxed text-[var(--text-secondary)] md:pt-0">
+                    <span className="font-medium text-[var(--text-primary)]">
+                      {t(`howItWorks.${key}.title`)}
+                    </span>
+                    <span className="mt-1 block">{t(`howItWorks.${key}.body`)}</span>
+                  </p>
+                </li>
+              ),
+            )}
+          </ol>
+        </div>
       </section>
 
       {/* -------------------------------------------------------------- Status */}

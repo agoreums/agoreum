@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeScript } from "@/components/layout/theme-script";
@@ -156,6 +157,7 @@ export default async function LocaleLayout(props: {
               </main>
               <SiteFooter />
             </div>
+            <CookieConsent />
           </Providers>
         </NextIntlClientProvider>
         <OrganizationJsonLd />

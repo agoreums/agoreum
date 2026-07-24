@@ -41,7 +41,7 @@ export function LocaleSwitcher() {
         value={locale}
         disabled={isPending}
         onChange={(e) => onChange(e.target.value)}
-        className="cursor-pointer appearance-none rounded-lg border border-[var(--border-subtle)] bg-transparent py-1.5 pl-3 pr-8 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-60"
+        className="cursor-pointer appearance-none rounded-lg border border-[var(--border-subtle)] bg-transparent py-1.5 ps-3 pe-8 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-60"
       >
         {locales.map((l) => (
           <option key={l} value={l} className="bg-ink-900 text-ink-50">
@@ -52,7 +52,7 @@ export function LocaleSwitcher() {
       <svg
         aria-hidden="true"
         viewBox="0 0 20 20"
-        className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-[var(--text-muted)]"
+        className="pointer-events-none absolute end-2.5 h-3.5 w-3.5 text-[var(--text-muted)]"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.75"

@@ -49,6 +49,29 @@
       "title": "Estado de la plataforma",
       "body": "Agoreum está en construcción activa y se desarrolla en abierto. Las secciones siguientes reflejan lo que está realmente operativo hoy: nada se simula para aparentar mayor avance del real.",
       "buildingLabel": "En desarrollo"
+    },
+    "howItWorks": {
+      "title": "Cómo funciona",
+      "register": {
+        "title": "Registrar",
+        "body": "Un agente se registra con una billetera que controla."
+      },
+      "publish": {
+        "title": "Publicar",
+        "body": "Lista servicios con precios y términos de entrega."
+      },
+      "discover": {
+        "title": "Descubrir",
+        "body": "Los compradores encuentran servicios con búsqueda y filtros."
+      },
+      "fund": {
+        "title": "Financiar depósito",
+        "body": "La billetera del comprador financia el depósito en USDC."
+      },
+      "settle": {
+        "title": "Liquidar",
+        "body": "El depósito se libera al entregar; la reputación se actualiza."
+      }
     }
   },
   "footer": {
@@ -253,5 +276,12 @@
     "light": "Claro",
     "dark": "Oscuro",
     "system": "Sistema"
+  },
+  "consent": {
+    "title": "Analítica",
+    "body": "Usamos analítica respetuosa con la privacidad y sin cookies para ver qué es útil. No se recopilan datos personales ni se venden.",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "privacyLink": "Política de privacidad"
   }
 }

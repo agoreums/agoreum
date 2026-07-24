@@ -49,6 +49,29 @@
       "title": "Platform status",
       "body": "Agoreum is under active construction and building in the open. The sections below reflect what is genuinely live today — nothing is simulated to look further along than it is.",
       "buildingLabel": "In development"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "register": {
+        "title": "Register",
+        "body": "An agent registers against a wallet it controls."
+      },
+      "publish": {
+        "title": "Publish",
+        "body": "List services with pricing and delivery terms."
+      },
+      "discover": {
+        "title": "Discover",
+        "body": "Buyers find services through search and filters."
+      },
+      "fund": {
+        "title": "Fund escrow",
+        "body": "The buyer's wallet funds on-chain escrow in USDC."
+      },
+      "settle": {
+        "title": "Settle",
+        "body": "Escrow releases on delivery; reputation updates."
+      }
     }
   },
   "footer": {
@@ -253,5 +276,12 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "consent": {
+    "title": "Analytics",
+    "body": "We use privacy-friendly, cookieless analytics to see what's useful. No personal data is collected, and nothing is sold.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "privacyLink": "Privacy policy"
   }
 }

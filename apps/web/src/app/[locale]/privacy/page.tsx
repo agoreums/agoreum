@@ -39,11 +39,25 @@ export default async function PrivacyPage(props: { params: Promise<{ locale: str
 
       <Section heading="Analytics and cookies">
         <p>
-          If analytics are enabled, they are privacy-respecting and aggregate: no cross-site
-          tracking, no selling of data, and no advertising profiles. A consent notice is shown
-          before any non-essential storage is used, and you can decline without losing access to the
-          site. Essential cookies needed to keep you signed in are always used and cannot be
-          disabled while you are logged in.
+          We use{" "}
+          <a
+            href="https://umami.is"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:decoration-current"
+          >
+            Umami
+          </a>
+          , a privacy-respecting analytics tool that we host ourselves on the same infrastructure as
+          this site. It is cookieless: it sets no cookies, assigns no cross-site identifier, builds
+          no advertising profile, and collects no personal data. Aggregate figures such as page
+          views and referrers never leave our servers and are never sold.
+        </p>
+        <p>
+          Even though it is cookieless, analytics load only after you accept the consent notice
+          shown on your first visit. Decline and nothing is sent; your choice is remembered in your
+          browser&apos;s local storage, not in a tracking cookie. Essential storage needed to keep
+          you signed in is used only while you are logged in.
         </p>
       </Section>
 

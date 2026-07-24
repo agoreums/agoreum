@@ -251,7 +251,7 @@ function Row({
   return (
     <div className="flex items-baseline justify-between gap-4">
       <dt className="text-[var(--text-muted)]">{label}</dt>
-      <dd className="text-right text-[var(--text-secondary)]">{value}</dd>
+      <dd className="text-end text-[var(--text-secondary)]">{value}</dd>
     </div>
   );
 }
