@@ -8,7 +8,9 @@ WORKDIR /build
 # Installed from the lockfile alone, so this layer is cached until dependencies
 # actually change. `npm ci` fails rather than silently resolving a different
 # tree, which is what makes the build reproducible.
-COPY apps/web/package.json apps/web/package-lock.json ./
+# .npmrc carries legacy-peer-deps, needed so npm ci accepts the unused optional
+# peer ranges AppKit's transitive deps declare (see apps/web/.npmrc).
+COPY apps/web/package.json apps/web/package-lock.json apps/web/.npmrc ./
 RUN npm ci --no-audit --no-fund
 
 # --------------------------------------------------------------------- Build
