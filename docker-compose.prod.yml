@@ -195,13 +195,16 @@ services:
     networks:
       - internal
     healthcheck:
-      # The slim Node runtime ships neither curl nor wget, so the check uses
-      # Node's built-in fetch — no extra package in the image just to probe it.
+      # Checks that *this* process serves, by hitting its own root (a 307 to the
+      # locale). It deliberately does NOT probe the API through the public URL:
+      # that made web report unhealthy whenever the edge had any hiccup, even
+      # though web itself was fine. The slim Node runtime has no curl/wget, so the
+      # probe uses Node's built-in fetch.
       test:
         - "CMD"
         - "node"
         - "-e"
-        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        - "fetch('http://127.0.0.1:3000/',{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 10s
       retries: 3

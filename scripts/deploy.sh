@@ -27,8 +27,8 @@ $COMPOSE build api web indexer
 log "run migrations"
 $COMPOSE run --rm api alembic upgrade head
 
-log "recreate services"
-$COMPOSE up -d api web indexer nginx umami
+log "recreate app + support services"
+$COMPOSE up -d api web indexer umami
 
 log "verify api health"
 ok=false
@@ -38,15 +38,34 @@ for i in $(seq 1 24); do
   if [ "$status" = "ok" ]; then ok=true; break; fi
   sleep 5
 done
-
 if [ "$ok" != true ]; then
   echo "DEPLOY FAILED: api did not report healthy after recreate"
   $COMPOSE ps
   exit 1
 fi
 
-log "verify site serves"
-code=$($COMPOSE exec -T nginx wget -q -O /dev/null -S http://127.0.0.1/healthz 2>&1 | awk '/HTTP\//{print $2; exit}')
-echo "nginx /healthz -> ${code:-unknown}"
+# nginx resolves upstream container IPs once, at load time. Recreating api/web
+# gives them new IPs, so nginx must re-read its config or it keeps proxying to the
+# old, now-dead containers and every request 502s. A reload re-resolves without a
+# restart (zero downtime); fall back to a recreate if the reload cannot run.
+log "reload nginx so it re-resolves the new upstream IPs"
+$COMPOSE exec -T nginx nginx -s reload 2>/dev/null || $COMPOSE up -d --force-recreate nginx
 
-echo "deploy ${AFTER} complete and healthy"
+# The real test: does the public site actually serve? This traverses Cloudflare
+# and nginx back to web, so it catches exactly the 502 a stale upstream causes —
+# which an api-only health check would miss.
+log "verify the public site serves end to end"
+served=false
+for i in $(seq 1 18); do
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://agoreum.xyz/en || true)
+  echo "  agoreum.xyz/en -> ${code}"
+  if [ "$code" = "200" ]; then served=true; break; fi
+  sleep 5
+done
+if [ "$served" != true ]; then
+  echo "DEPLOY FAILED: the public site is not serving after deploy"
+  $COMPOSE ps
+  exit 1
+fi
+
+echo "deploy ${AFTER} complete: api healthy and site serving"
