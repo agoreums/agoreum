@@ -149,6 +149,13 @@ services:
       APP_SECRET: ${UMAMI_APP_SECRET}
       BASE_PATH: /insights
       DISABLE_TELEMETRY: "1"
+      # The connection to the managed database is encrypted but its DigitalOcean
+      # CA is self-signed in-chain, which Prisma rejects by default (the API's
+      # asyncpg client only encrypts, it does not verify, so it connects fine).
+      # The database is reachable only from this droplet over the private VPC, so
+      # matching that posture here — TLS on, chain not verified — is the right
+      # trade rather than the connection failing outright.
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     expose:
       - "3000"
     networks:
