@@ -58,3 +58,19 @@ async def ready(
         # were actually allowed to fail the check.
         "required_components": [c.name for c in required],
     }
+
+
+@router.get("/indexer", summary="Indexer freshness")
+async def indexer(
+    response: Response, db: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
+    """How far the chain indexer trails the head. 503 when it looks stalled.
+
+    Separate from readiness on purpose: a lagging indexer must not take the site
+    out of rotation, but it does need its own signal so monitoring can alert on
+    it before buyers notice their paid orders sitting unfunded.
+    """
+    component = await service.check_indexer(db)
+    if component.status == "down":
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return {"status": component.status, "indexer": component.as_dict()}

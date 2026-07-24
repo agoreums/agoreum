@@ -156,6 +156,66 @@ async def check_chain() -> ComponentHealth:
     )
 
 
+async def check_indexer(session: AsyncSession) -> ComponentHealth:
+    """Report how far the indexer's cursor trails the chain head.
+
+    A stalled indexer is invisible to the readiness probe — the API itself is
+    perfectly healthy — but it means confirmed on-chain events stop being applied,
+    so buyers pay and their orders never move to funded. This makes the gap
+    observable so an operator (or the monitor) can be alerted before a user is.
+    """
+    from sqlalchemy import select
+
+    from app.chain import escrow as contract
+    from app.chain.client import ChainClient
+    from app.chain.models import IndexerCursor
+    from app.core.config import settings
+
+    if not contract.is_configured():
+        return ComponentHealth(
+            name="indexer", status="degraded", error="no escrow contract configured"
+        )
+
+    try:
+        address = contract.contract_address()
+        cursor = (
+            await session.execute(
+                select(IndexerCursor).where(
+                    IndexerCursor.chain_id == settings.CHAIN_ID,
+                    IndexerCursor.contract_address == address,
+                )
+            )
+        ).scalar_one_or_none()
+        async with ChainClient() as client:
+            head = await client.block_number()
+    except Exception as exc:
+        logger.warning("health_indexer_failed", extra={"error_type": type(exc).__name__})
+        return ComponentHealth(name="indexer", status="down", error=type(exc).__name__)
+
+    if cursor is None:
+        # No cursor: the indexer has not completed a scan for this contract yet.
+        return ComponentHealth(
+            name="indexer",
+            status="degraded",
+            error="indexer has not recorded a scan yet",
+            detail={"head_block": str(head)},
+        )
+
+    lag = head - cursor.last_scanned_block
+    # Normal lag is the confirmation depth plus a poll interval of blocks — a
+    # handful on Base's ~2s blocks. Generous slack before calling it stalled.
+    status: Status = "ok" if lag <= 40 else "degraded" if lag <= 200 else "down"
+    return ComponentHealth(
+        name="indexer",
+        status=status,
+        detail={
+            "head_block": str(head),
+            "last_scanned_block": str(cursor.last_scanned_block),
+            "lag_blocks": str(lag),
+        },
+    )
+
+
 def overall_status(components: list[ComponentHealth]) -> Status:
     if any(c.status == "down" for c in components):
         return "down"

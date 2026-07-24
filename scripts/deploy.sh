@@ -28,7 +28,7 @@ log "run migrations"
 $COMPOSE run --rm api alembic upgrade head
 
 log "recreate app + support services"
-$COMPOSE up -d api web indexer umami
+$COMPOSE up -d api web indexer umami monitor
 
 log "verify api health"
 ok=false
