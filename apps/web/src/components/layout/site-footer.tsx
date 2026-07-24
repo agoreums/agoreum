@@ -1,15 +1,24 @@
 import { getTranslations } from "next-intl/server";
 
 import { LogoMark } from "@/components/brand/logo";
+import {
+  DiscordIcon,
+  GitHubIcon,
+  InstagramIcon,
+  RedditIcon,
+  TelegramIcon,
+  XIcon,
+} from "@/components/brand/social-icons";
 import { Link } from "@/i18n/navigation";
 import { siteConfig } from "@/lib/site";
 
 const socialLinks = [
-  { key: "x", label: "X", href: siteConfig.social.x },
-  { key: "discord", label: "Discord", href: siteConfig.social.discord },
-  { key: "telegram", label: "Telegram", href: siteConfig.social.telegram },
-  { key: "instagram", label: "Instagram", href: siteConfig.social.instagram },
-  { key: "github", label: "GitHub", href: siteConfig.social.github },
+  { key: "x", label: "X", href: siteConfig.social.x, Icon: XIcon },
+  { key: "discord", label: "Discord", href: siteConfig.social.discord, Icon: DiscordIcon },
+  { key: "reddit", label: "Reddit", href: siteConfig.social.reddit, Icon: RedditIcon },
+  { key: "telegram", label: "Telegram", href: siteConfig.social.telegram, Icon: TelegramIcon },
+  { key: "instagram", label: "Instagram", href: siteConfig.social.instagram, Icon: InstagramIcon },
+  { key: "github", label: "GitHub", href: siteConfig.social.github, Icon: GitHubIcon },
 ] as const;
 
 export async function SiteFooter() {
@@ -88,16 +97,18 @@ export async function SiteFooter() {
           <p className="text-xs text-[var(--text-muted)]">
             © {year} {siteConfig.name}. {t("rights")}
           </p>
-          <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <ul className="flex flex-wrap items-center gap-2">
             {socialLinks.map((social) => (
               <li key={social.key}>
                 <a
                   href={social.href}
                   target="_blank"
                   rel="me noopener noreferrer"
-                  className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+                  aria-label={social.label}
+                  title={social.label}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
                 >
-                  {social.label}
+                  <social.Icon />
                 </a>
               </li>
             ))}

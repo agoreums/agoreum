@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { ThemeScript } from "@/components/layout/theme-script";
 import { Providers } from "@/components/providers";
 import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import {
@@ -134,8 +135,12 @@ export default async function LocaleLayout(props: {
     <html
       lang={localeHreflang[locale]}
       dir={getDirection(locale)}
+      data-theme="system"
       suppressHydrationWarning
     >
+      <head>
+        <ThemeScript />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} min-h-dvh antialiased`}
       >

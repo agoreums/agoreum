@@ -31,6 +31,7 @@ export function OrganizationJsonLd() {
         sameAs: [
           siteConfig.social.x,
           siteConfig.social.discord,
+          siteConfig.social.reddit,
           siteConfig.social.telegram,
           siteConfig.social.instagram,
           siteConfig.social.github,

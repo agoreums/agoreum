@@ -247,5 +247,11 @@
       "refunded": "Reembolsado",
       "expired": "Expirado"
     }
+  },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Sistema"
   }
 }

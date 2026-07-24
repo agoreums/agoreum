@@ -247,5 +247,11 @@
       "refunded": "返金済み",
       "expired": "期限切れ"
     }
+  },
+  "theme": {
+    "label": "テーマ",
+    "light": "ライト",
+    "dark": "ダーク",
+    "system": "システム"
   }
 }

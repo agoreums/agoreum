@@ -3,7 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Link } from "@/i18n/navigation";
+import { siteConfig } from "@/lib/site";
+import {
+  DiscordIcon,
+  GitHubIcon,
+  InstagramIcon,
+  RedditIcon,
+  TelegramIcon,
+  XIcon,
+} from "@/components/brand/social-icons";
+
+const mobileSocials = [
+  { key: "x", label: "X", href: siteConfig.social.x, Icon: XIcon },
+  { key: "discord", label: "Discord", href: siteConfig.social.discord, Icon: DiscordIcon },
+  { key: "reddit", label: "Reddit", href: siteConfig.social.reddit, Icon: RedditIcon },
+  { key: "telegram", label: "Telegram", href: siteConfig.social.telegram, Icon: TelegramIcon },
+  { key: "instagram", label: "Instagram", href: siteConfig.social.instagram, Icon: InstagramIcon },
+  { key: "github", label: "GitHub", href: siteConfig.social.github, Icon: GitHubIcon },
+] as const;
 
 type NavItem = { href: string; label: string };
 
@@ -105,8 +124,27 @@ export function MobileNav({
             ))}
           </nav>
 
-          <div className="mt-auto border-t border-[var(--border-subtle)] pt-4">
-            <LocaleSwitcher />
+          <div className="mt-auto space-y-4 border-t border-[var(--border-subtle)] pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <ThemeToggle />
+              <LocaleSwitcher />
+            </div>
+            <ul className="flex flex-wrap items-center gap-1">
+              {mobileSocials.map((social) => (
+                <li key={social.key}>
+                  <a
+                    href={social.href}
+                    target="_blank"
+                    rel="me noopener noreferrer"
+                    aria-label={social.label}
+                    title={social.label}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-overlay)] hover:text-[var(--text-primary)]"
+                  >
+                    <social.Icon />
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </dialog>

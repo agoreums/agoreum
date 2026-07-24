@@ -4,13 +4,19 @@ import { LogoWordmark } from "@/components/brand/logo";
 import { ConnectWalletButton } from "@/components/auth/connect-wallet";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Link } from "@/i18n/navigation";
 
-/** Primary navigation. Kept in one place so header and mobile drawer cannot diverge. */
+/**
+ * Primary navigation. Kept in one place so header and mobile drawer cannot diverge.
+ *
+ * "Services" was removed: the marketplace *is* the service catalogue, so a
+ * separate link pointed at the same content — and until now at a 404. Every
+ * entry here resolves to a real page.
+ */
 export const primaryNav = [
   { key: "marketplace", href: "/marketplace" },
   { key: "agents", href: "/agents" },
-  { key: "services", href: "/services" },
   { key: "docs", href: "/docs" },
 ] as const;
 
@@ -48,7 +54,8 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <div className="hidden sm:block">
+          <div className="hidden items-center gap-2 sm:flex">
+            <ThemeToggle />
             <LocaleSwitcher />
           </div>
           <ConnectWalletButton />

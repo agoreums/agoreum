@@ -88,7 +88,11 @@
    ========================================================================== */
 
 @layer base {
-  :root {
+  /* Dark is the default field the brand is designed against. It applies when the
+     theme is explicitly dark, and when it is "system" on a device that prefers
+     dark (or when no preference has resolved yet). */
+  :root,
+  :root[data-theme="dark"] {
     --surface-base: var(--color-ink-950);
     --surface-raised: var(--color-ink-900);
     --surface-overlay: var(--color-ink-800);
@@ -100,17 +104,35 @@
     color-scheme: dark;
   }
 
-  /* Light theme is opt-in via [data-theme="light"]; the brand reads dark-first. */
-  :root[data-theme="light"] {
+  /* Light tokens. Tuned so text-secondary/muted keep AA contrast on white, not
+     just the default text — every mode must stay fully legible, not only dark. */
+  :root[data-theme="light"],
+  :root[data-theme="system"] {
     --surface-base: #ffffff;
     --surface-raised: var(--color-ink-50);
     --surface-overlay: var(--color-ink-100);
     --text-primary: var(--color-ink-950);
-    --text-secondary: var(--color-ink-600);
-    --text-muted: var(--color-ink-500);
+    --text-secondary: var(--color-ink-700);
+    --text-muted: var(--color-ink-600);
     --border-subtle: color-mix(in oklab, var(--color-ink-950) 10%, transparent);
     --border-strong: color-mix(in oklab, var(--color-ink-950) 16%, transparent);
     color-scheme: light;
+  }
+
+  /* "system" follows the device. The block above styles it light; here we hand it
+     back to dark when the device prefers dark, so system tracks the OS both ways. */
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] {
+      --surface-base: var(--color-ink-950);
+      --surface-raised: var(--color-ink-900);
+      --surface-overlay: var(--color-ink-800);
+      --text-primary: var(--color-ink-50);
+      --text-secondary: var(--color-ink-300);
+      --text-muted: var(--color-ink-400);
+      --border-subtle: color-mix(in oklab, var(--color-ink-100) 10%, transparent);
+      --border-strong: color-mix(in oklab, var(--color-ink-100) 18%, transparent);
+      color-scheme: dark;
+    }
   }
 
   * {

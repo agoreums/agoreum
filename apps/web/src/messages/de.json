@@ -247,5 +247,11 @@
       "refunded": "Erstattet",
       "expired": "Abgelaufen"
     }
+  },
+  "theme": {
+    "label": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
   }
 }

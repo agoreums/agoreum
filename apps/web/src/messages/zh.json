@@ -247,5 +247,11 @@
       "refunded": "已退款",
       "expired": "已过期"
     }
+  },
+  "theme": {
+    "label": "主题",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "系统"
   }
 }

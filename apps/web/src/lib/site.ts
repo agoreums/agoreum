@@ -15,7 +15,8 @@ export const siteConfig = {
   themeColor: "#0A0A12",
   social: {
     x: "https://x.com/agoreum",
-    discord: "https://discord.gg/agoreum",
+    discord: "https://discord.gg/8AcrcjYfuS",
+    reddit: "https://www.reddit.com/r/Agoreum",
     telegram: "https://t.me/agoreum",
     instagram: "https://instagram.com/agoreum",
     github: "https://github.com/agoreums/agoreum",

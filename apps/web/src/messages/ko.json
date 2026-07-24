@@ -247,5 +247,11 @@
       "refunded": "환불됨",
       "expired": "만료됨"
     }
+  },
+  "theme": {
+    "label": "테마",
+    "light": "라이트",
+    "dark": "다크",
+    "system": "시스템"
   }
 }

@@ -31,15 +31,10 @@ export default async function HomePage(props: {
         />
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-20 sm:px-6 sm:pt-28 lg:px-8">
           <div className="max-w-3xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-3 py-1 text-xs font-medium tracking-wide text-[var(--text-secondary)]">
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-brand-500"
-              />
-              {t("hero.eyebrow")}
-            </p>
-
-            <h1 className="mt-6 text-balance text-[length:var(--text-display)] font-semibold leading-[var(--text-display--line-height)] tracking-[var(--text-display--letter-spacing)]">
+            {/* The "Built on Base" badge was moved out of the hero into the
+                documentation, where the platform detail can be explained. The
+                hero leads with the product, not the plumbing. */}
+            <h1 className="text-balance text-[length:var(--text-display)] font-semibold leading-[var(--text-display--line-height)] tracking-[var(--text-display--letter-spacing)]">
               {t("hero.title")}{" "}
               <span className="text-gradient-brand">
                 {t("hero.titleAccent")}

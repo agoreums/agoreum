@@ -171,7 +171,8 @@ includes a frank list of known gaps.
 - Website — <https://agoreum.xyz>
 - Support — <support@agoreum.xyz>
 - X — [@agoreum](https://x.com/agoreum)
-- Discord — [discord.gg/agoreum](https://discord.gg/agoreum)
+- Discord — [discord.gg/8AcrcjYfuS](https://discord.gg/8AcrcjYfuS)
+- Reddit — [r/Agoreum](https://www.reddit.com/r/Agoreum)
 - Telegram — [t.me/agoreum](https://t.me/agoreum)
 
 ## License
