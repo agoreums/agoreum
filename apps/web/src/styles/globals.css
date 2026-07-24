@@ -159,7 +159,13 @@
   body {
     background-color: var(--surface-base);
     color: var(--text-primary);
-    font-family: var(--font-sans);
+    /* Reference the font variables directly rather than through --font-sans:
+       Tailwind only emits a theme variable to :root when a utility uses it, and
+       --font-sans is used only in this base rule, so it resolved to nothing and
+       the whole site fell back to system fonts. Inter (Latin) and Noto Sans
+       Arabic (Arabic, per glyph) are applied explicitly here. */
+    font-family: var(--font-inter), var(--font-noto-arabic), ui-sans-serif,
+      system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
