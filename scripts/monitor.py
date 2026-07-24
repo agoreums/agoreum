@@ -27,6 +27,10 @@ SITE_URL = os.environ.get("MONITOR_SITE_URL", "https://agoreum.xyz/en")
 API_BASE = os.environ.get("MONITOR_API_BASE", "http://api:8000/api/v1")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+# A real outage must fail this many checks in a row before it pages. A deploy
+# recreates containers for a few seconds, which briefly 502s; without this every
+# deploy would alert. At a 60s interval, two failures is a ~2 minute real outage.
+FAIL_THRESHOLD = int(os.environ.get("MONITOR_FAIL_THRESHOLD", "2"))
 # A daily "still healthy" heartbeat, so silence is never mistaken for a dead monitor.
 HEARTBEAT_SECONDS = int(os.environ.get("MONITOR_HEARTBEAT_SECONDS", "86400"))
 
@@ -97,35 +101,39 @@ def main() -> None:
         f"telegram={'configured' if (BOT_TOKEN and CHAT_ID) else 'NOT configured'}",
         flush=True,
     )
-    last_healthy: bool | None = None
+    consecutive_fail = 0
+    alerted = False  # whether a PROBLEM alert is currently outstanding
+    announced_start = False
     last_heartbeat = time.time()
 
     while True:
         healthy, problems = check()
 
-        if last_healthy is None:
-            # First observation: announce so it is clear the monitor is alive.
-            telegram(
-                "Agoreum monitor started: all checks passing."
-                if healthy
-                else "Agoreum monitor started with problems:\n- " + "\n- ".join(problems)
-            )
-        elif healthy and not last_healthy:
-            telegram("RECOVERED: Agoreum is passing all checks again.")
-        elif not healthy and last_healthy:
-            telegram("PROBLEM: Agoreum check failed:\n- " + "\n- ".join(problems))
-        elif not healthy:
-            # Still broken; re-alert only if the specific problems changed.
-            pass
+        if healthy:
+            if alerted:
+                telegram("RECOVERED: Agoreum is passing all checks again.")
+                alerted = False
+            elif not announced_start:
+                telegram("Agoreum monitor started: all checks passing.")
+            consecutive_fail = 0
+            announced_start = True
+        else:
+            consecutive_fail += 1
+            if consecutive_fail >= FAIL_THRESHOLD and not alerted:
+                telegram(
+                    f"PROBLEM: Agoreum check failed {consecutive_fail} times in a row:\n- "
+                    + "\n- ".join(problems)
+                )
+                alerted = True
+                announced_start = True
 
-        if healthy and time.time() - last_heartbeat > HEARTBEAT_SECONDS:
+        if not alerted and time.time() - last_heartbeat > HEARTBEAT_SECONDS:
             telegram("Heartbeat: Agoreum is healthy (daily check-in).")
             last_heartbeat = time.time()
 
-        status_line = "healthy" if healthy else "PROBLEMS: " + "; ".join(problems)
-        print(f"[{time.strftime('%H:%M:%S')}] {status_line}", flush=True)
+        state = "healthy" if healthy else f"PROBLEMS (x{consecutive_fail}): " + "; ".join(problems)
+        print(f"[{time.strftime('%H:%M:%S')}] {state}", flush=True)
 
-        last_healthy = healthy
         time.sleep(INTERVAL)
 
 
