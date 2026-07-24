@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Sans_Arabic } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -32,6 +32,15 @@ const inter = Inter({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
+// Arabic is a first-class locale, so it gets a real webfont rather than falling
+// back to whatever the visitor's OS happens to ship. Self-hosted by Next at
+// build time, so no third-party request at runtime.
+const notoArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-noto-arabic",
   display: "swap",
 });
 
@@ -143,7 +152,7 @@ export default async function LocaleLayout(props: {
         <ThemeScript />
       </head>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} min-h-dvh antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} ${notoArabic.variable} min-h-dvh antialiased`}
       >
         <NextIntlClientProvider>
           <Providers>

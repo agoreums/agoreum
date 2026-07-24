@@ -1,81 +1,38 @@
-import { base, baseSepolia } from "wagmi/chains";
-import { createConfig, http } from "wagmi";
-import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
-
-import { siteConfig } from "@/lib/site";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
+import { base, baseSepolia, type AppKitNetwork } from "@reown/appkit/networks";
 
 /**
- * Wallet connection configuration.
+ * Wallet configuration, built on Reown AppKit.
  *
- * Base only for now. `chains` is a tuple so adding a network is a one-line change
- * here rather than a redesign — nothing else in the app hardcodes a chain id.
+ * AppKit replaces the hand-rolled connect dialog: it owns the wallet-selection
+ * modal (MetaMask/injected, Coinbase, and the WalletConnect QR) and the network
+ * switcher, while the rest of the app keeps using the standard wagmi hooks the
+ * adapter exposes. The previous custom dialog drove WalletConnect through the
+ * legacy `showQrModal` path, which silently no-opped under wagmi v3 — this is the
+ * supported route rather than a patch around it.
  */
-const walletConnectProjectId =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+export const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
-/**
- * WalletConnect refuses to initialise without a project id and throws at module
- * load. Rather than crashing the whole app, the connector is omitted and the UI
- * reports WalletConnect as unavailable — an honest degradation instead of a
- * button that cannot work.
- */
-export const walletConnectConfigured = walletConnectProjectId.length > 0;
+// One value, `NEXT_PUBLIC_CHAIN_ID`, selects the chain — the backend's CHAIN_ID
+// and this must agree. The configured network is listed first so AppKit opens on it.
+const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? String(base.id));
 
-const chains = [base, baseSepolia] as const;
+export const defaultNetwork: AppKitNetwork =
+  configuredChainId === baseSepolia.id ? baseSepolia : base;
 
-export const config = createConfig({
-  chains,
-  connectors: [
-    // MetaMask and any other EIP-6963 browser extension wallet.
-    injected({ shimDisconnect: true }),
-    coinbaseWallet({
-      appName: siteConfig.name,
-      appLogoUrl: `${siteConfig.url}/icons/android-chrome-192x192.png`,
-      // "all" enables Coinbase Smart Wallet as well as the extension. Smart
-      // wallets sign via EIP-1271, which the backend verifies when an RPC
-      // provider is configured.
-      preference: "all",
-    }),
-    ...(walletConnectConfigured
-      ? [
-          walletConnect({
-            projectId: walletConnectProjectId,
-            showQrModal: true,
-            metadata: {
-              name: siteConfig.name,
-              description: "The Autonomous Agent Commerce Hub",
-              url: siteConfig.url,
-              icons: [`${siteConfig.url}/icons/android-chrome-192x192.png`],
-            },
-          }),
-        ]
-      : []),
-  ],
-  transports: {
-    // Public RPC by default. A dedicated Alchemy endpoint is used when supplied,
-    // which matters for rate limits once there is real traffic.
-    [base.id]: http(process.env.NEXT_PUBLIC_BASE_RPC_URL || undefined),
-    [baseSepolia.id]: http(
-      process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL || undefined,
-    ),
-  },
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] =
+  configuredChainId === baseSepolia.id ? [baseSepolia, base] : [base, baseSepolia];
+
+/** Retained for the wrong-network check in the connect button. */
+export const defaultChain = {
+  id: Number(defaultNetwork.id),
+  name: defaultNetwork.name,
+};
+
+export const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId,
   ssr: true,
 });
 
-/**
- * The chain the app expects a wallet to be on. Driven by configuration rather
- * than hardcoded, so a testnet deployment nudges users to Base Sepolia and a
- * mainnet one to Base — the backend's CHAIN_ID and this must agree. Defaults to
- * Base mainnet when unset.
- */
-const configuredChainId = Number(
-  process.env.NEXT_PUBLIC_CHAIN_ID ?? String(base.id),
-);
-export const defaultChain =
-  configuredChainId === baseSepolia.id ? baseSepolia : base;
-
-declare module "wagmi" {
-  interface Register {
-    config: typeof config;
-  }
-}
+export const wagmiConfig = wagmiAdapter.wagmiConfig;

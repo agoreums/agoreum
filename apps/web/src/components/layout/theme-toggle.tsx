@@ -1,21 +1,23 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import type { ReactElement } from "react";
+
+import { useStored, writeStored } from "@/lib/use-stored-state";
 
 type Theme = "light" | "dark" | "system";
 
 const STORAGE_KEY = "agoreum-theme";
 const ORDER: readonly Theme[] = ["light", "dark", "system"];
 
-/** Applied before paint by the inline script; kept in sync here after hydration. */
+function isTheme(value: string): value is Theme {
+  return (ORDER as readonly string[]).includes(value);
+}
+
+/** Persist the choice and reflect it on the document (the pre-paint script reads it on load). */
 function apply(theme: Theme) {
   document.documentElement.dataset.theme = theme;
-  try {
-    localStorage.setItem(STORAGE_KEY, theme);
-  } catch {
-    // Private-mode storage refusal is not worth surfacing.
-  }
+  writeStored(STORAGE_KEY, theme);
 }
 
 function SunIcon() {
@@ -44,7 +46,7 @@ function SystemIcon() {
   );
 }
 
-const ICONS: Record<Theme, () => React.ReactElement> = {
+const ICONS: Record<Theme, () => ReactElement> = {
   light: SunIcon,
   dark: MoonIcon,
   system: SystemIcon,
@@ -56,23 +58,13 @@ const ICONS: Record<Theme, () => React.ReactElement> = {
  * A three-state segmented control rather than a single cycling button: the
  * current choice is always visible, which a blind toggle hides. Icons carry the
  * meaning (sun, moon, monitor) with a screen-reader label on each; no text
- * labels crowd the header.
+ * labels crowd the header. The current theme is read from the store, so there is
+ * no effect and no post-mount state flip.
  */
 export function ThemeToggle() {
   const t = useTranslations("theme");
-  const [theme, setTheme] = useState<Theme>("system");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? "system";
-    setTheme(ORDER.includes(stored) ? stored : "system");
-  }, []);
-
-  function choose(next: Theme) {
-    setTheme(next);
-    apply(next);
-  }
+  const stored = useStored(STORAGE_KEY, "system");
+  const theme: Theme = isTheme(stored) ? stored : "system";
 
   return (
     <div
@@ -82,7 +74,7 @@ export function ThemeToggle() {
     >
       {ORDER.map((option) => {
         const Icon = ICONS[option];
-        const active = mounted && theme === option;
+        const active = theme === option;
         return (
           <button
             key={option}
@@ -91,7 +83,7 @@ export function ThemeToggle() {
             aria-checked={active}
             aria-label={t(option)}
             title={t(option)}
-            onClick={() => choose(option)}
+            onClick={() => apply(option)}
             className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
               active
                 ? "bg-[var(--surface-overlay)] text-[var(--text-primary)]"

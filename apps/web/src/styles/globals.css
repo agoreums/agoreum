@@ -59,8 +59,11 @@
   --color-danger-600: #d13c52;
 
   /* --- Typography --------------------------------------------------------- */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, sans-serif;
+  /* Latin glyphs resolve from Inter; Arabic glyphs, absent from Inter, fall
+     through to Noto Sans Arabic per glyph — so a mixed string renders correctly
+     and the whole Arabic locale gets a real webfont, not a system fallback. */
+  --font-sans: var(--font-inter), var(--font-noto-arabic), ui-sans-serif,
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo,
     Consolas, monospace;
 

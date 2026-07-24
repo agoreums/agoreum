@@ -11,7 +11,6 @@ export const siteConfig = {
   domain: "agoreum.xyz",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "https://agoreum.xyz",
   supportEmail: "support@agoreum.xyz",
-  contactEmail: "agoreum@gmail.com",
   themeColor: "#0A0A12",
   social: {
     x: "https://x.com/agoreum",

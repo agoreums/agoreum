@@ -1,7 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { CSSProperties } from "react";
 
-import { AnimatedBrandLockup } from "@/components/brand/logo";
 import { WebSiteJsonLd } from "@/components/seo/json-ld";
 import { Link } from "@/i18n/navigation";
 import { locales } from "@/i18n/routing";
@@ -33,11 +32,9 @@ export default async function HomePage(props: {
         />
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-20 sm:px-6 sm:pt-28 lg:px-8">
           <div className="max-w-3xl">
-            {/* The "Built on Base" badge was moved out of the hero into the
-                documentation. The hero now opens on the brand lockup, whose
-                wordmark types itself in beside an enlarged mark. */}
-            <AnimatedBrandLockup className="mb-8" />
-
+            {/* No logo lockup here: the mark already lives in the header and the
+                footer, and repeating it in the hero read as templated. The hero
+                leads straight with the headline. */}
             <h1 className="text-balance text-[length:var(--text-display)] font-semibold leading-[var(--text-display--line-height)] tracking-[var(--text-display--letter-spacing)]">
               {t("hero.title")}{" "}
               <span className="text-gradient-brand">

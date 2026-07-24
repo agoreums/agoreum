@@ -37,6 +37,22 @@ pytestmark = pytest.mark.anyio
 BUYER = "0x" + "11" * 20
 PROVIDER = "0x" + "22" * 20
 TOKEN = settings.usdc_address.lower()
+ESCROW_ADDRESS = "0x" + "ab" * 20
+
+
+@pytest.fixture(autouse=True)
+def _configure_escrow(monkeypatch):
+    """Give the apply path a contract address to record.
+
+    Applying an EscrowCreated event writes `contract.contract_address()` onto the
+    new Escrow row, and that raises EscrowNotConfiguredError when
+    ESCROW_CONTRACT_ADDRESS is unset — which it is in CI, where no contract is
+    deployed. The test is about the database apply logic, not any specific
+    deployment, so it configures a deterministic address itself rather than
+    depending on the environment. No chain call is made; contract_address() only
+    reads configuration.
+    """
+    monkeypatch.setattr(settings, "ESCROW_CONTRACT_ADDRESS", ESCROW_ADDRESS)
 
 
 @pytest_asyncio.fixture

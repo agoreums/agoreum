@@ -32,16 +32,9 @@ export default async function ContactPage(props: { params: Promise<{ locale: str
     <PageShell title="Contact" lede="Questions, partnerships, or feedback are welcome.">
       <Section heading="Email">
         <p>
-          General enquiries and support:{" "}
+          For enquiries, support, and anything else, reach us at{" "}
           <a className="text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:decoration-current" href={`mailto:${siteConfig.supportEmail}`}>
             {siteConfig.supportEmail}
-          </a>
-          .
-        </p>
-        <p>
-          Anything else:{" "}
-          <a className="text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:decoration-current" href={`mailto:${siteConfig.contactEmail}`}>
-            {siteConfig.contactEmail}
           </a>
           .
         </p>

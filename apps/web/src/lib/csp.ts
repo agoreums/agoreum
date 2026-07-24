@@ -30,6 +30,10 @@ const WALLET_CONNECT_SRC = [
   "https://*.reown.com",
   "wss://*.walletconnect.com",
   "wss://*.walletconnect.org",
+  // Reown AppKit fetches wallet metadata and the WalletConnect relay from these.
+  "https://api.web3modal.org",
+  "https://*.web3modal.org",
+  "https://pulse.walletconnect.org",
 ];
 
 /** Coinbase Smart Wallet renders its signer in a frame at keys.coinbase.com. */

@@ -1,15 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { Link } from "@/i18n/navigation";
+import { useStored, writeStored } from "@/lib/use-stored-state";
 
 const STORAGE_KEY = "agoreum-analytics-consent";
 const UMAMI_URL = process.env.NEXT_PUBLIC_UMAMI_URL;
 const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
-
-type Consent = "accepted" | "declined";
 
 /** Injects the Umami tracker once, only after consent. */
 function loadAnalytics() {
@@ -22,8 +21,6 @@ function loadAnalytics() {
   s.setAttribute("data-website-id", UMAMI_WEBSITE_ID);
   // Keep collection under /insights so it stays same-origin.
   s.setAttribute("data-host-url", UMAMI_URL);
-  // Respect the visitor's choice: no tracking until they accept.
-  s.setAttribute("data-do-not-track", "true");
   document.head.appendChild(s);
 }
 
@@ -32,33 +29,26 @@ function loadAnalytics() {
  *
  * Umami is cookieless and stores no personal data, but a clear disclosure and an
  * explicit choice are shown anyway — nobody is tracked silently. Analytics load
- * only after "Accept"; "Decline" is remembered and nothing is sent. The choice
- * is stored in localStorage, not a cookie, so declining sets nothing tracking.
+ * only after "Accept"; "Decline" is remembered and nothing is sent. The decision
+ * is read from the store (localStorage), so there is no state held here and no
+ * `setState` in an effect. The lone effect performs a side effect — injecting the
+ * tracker for a visitor who accepted on a previous visit — which is exactly what
+ * an effect is for.
  */
 export function CookieConsent() {
   const t = useTranslations("consent");
-  const [decision, setDecision] = useState<Consent | null | "pending">("pending");
+  const decision = useStored(STORAGE_KEY, "");
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Consent | null;
-    setDecision(stored);
-    if (stored === "accepted") loadAnalytics();
-  }, []);
+    if (decision === "accepted") loadAnalytics();
+  }, [decision]);
 
-  function choose(next: Consent) {
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // ignore private-mode refusal
-    }
-    setDecision(next);
+  function choose(next: "accepted" | "declined") {
+    writeStored(STORAGE_KEY, next);
     if (next === "accepted") loadAnalytics();
   }
 
-  // Nothing during SSR/first paint or once a choice exists.
-  if (decision === "pending" || decision === "accepted" || decision === "declined") {
-    return null;
-  }
+  if (decision === "accepted" || decision === "declined") return null;
 
   return (
     <div
