@@ -135,6 +135,30 @@ services:
           memory: 384M
     logging: *logging
 
+  # Self-hosted, cookieless analytics. Served under /insights via nginx so the
+  # tracker is same-origin, and pointed at a dedicated `umami` database on the
+  # managed cluster (no extra database container to run or back up).
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: always
+    env_file:
+      - .env
+    environment:
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: ${UMAMI_DATABASE_URL}
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      BASE_PATH: /insights
+      DISABLE_TELEMETRY: "1"
+    expose:
+      - "3000"
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 320M
+    logging: *logging
+
   web:
     build:
       context: .
@@ -146,6 +170,8 @@ services:
         NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:-}
         NEXT_PUBLIC_BASE_RPC_URL: ${NEXT_PUBLIC_BASE_RPC_URL:-}
         NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: ${NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL:-}
+        NEXT_PUBLIC_UMAMI_URL: ${NEXT_PUBLIC_UMAMI_URL:-/insights}
+        NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
     restart: always
     depends_on:
       api:
