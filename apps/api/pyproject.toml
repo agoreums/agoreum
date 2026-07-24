@@ -16,13 +16,22 @@ dependencies = [
     "alembic>=1.14",
     "redis>=5.2",
     "python-multipart>=0.0.20",
+    # Runtime, not optional: SIWE auth, JWTs, on-chain reads, DNS-based domain
+    # verification, and the HTTP client the chain layer uses. These were only in
+    # the Dockerfile before, so a fresh `pip install` (CI) lacked them and the
+    # test suite could not even import — while the built image worked. Declared
+    # here so pyproject is the single source of truth for both.
+    "eth-account>=0.13",
+    "siwe>=4.4",
+    "pyjwt[crypto]>=2.9",
+    "dnspython>=2.7",
+    "httpx>=0.28",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
-    "httpx>=0.28",
     "ruff>=0.8",
     "mypy>=1.13",
 ]

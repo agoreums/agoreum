@@ -17,20 +17,17 @@ RUN apt-get update \
 WORKDIR /build
 
 # Copied alone so the dependency layer is only rebuilt when dependencies change,
-# not on every source edit.
+# not on every source edit. A stub `app` package satisfies setuptools so the
+# real dependencies install from pyproject — the single source of truth shared
+# with CI, rather than a hand-maintained list that silently drifts from it.
 COPY apps/api/pyproject.toml ./
+RUN mkdir -p app && touch app/__init__.py
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN pip install --upgrade pip setuptools wheel \
-    && pip install \
-        "fastapi>=0.115" "uvicorn[standard]>=0.32" \
-        "pydantic>=2.9" "pydantic-settings>=2.6" \
-        "sqlalchemy[asyncio]>=2.0.36" "asyncpg>=0.30" "psycopg[binary]>=3.2" \
-        "alembic>=1.14" "redis>=5.2" "python-multipart>=0.0.20" \
-        "eth-account>=0.13" "siwe>=4.4" "pyjwt[crypto]>=2.9" \
-        "dnspython>=2.7" "httpx>=0.28"
+    && pip install .
 
 # ----------------------------------------------------------------- Run stage
 FROM python:3.12-slim-bookworm AS runtime
