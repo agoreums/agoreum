@@ -237,3 +237,28 @@ jobs:
             NEXT_PUBLIC_API_URL=https://agoreum.xyz
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Continuous deployment. Runs only on a real merge to main, and only once every
+  # job that could catch a problem has passed. The droplet's authorized key forces
+  # this connection to pull main and run scripts/deploy.sh — nothing else — so a
+  # leaked CI key cannot be used for arbitrary shell access. The deploy script
+  # verifies the API comes back healthy and exits non-zero otherwise, so a broken
+  # release fails the pipeline rather than silently going live.
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    needs: [backend, frontend, contracts, secrets, docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Deploy to the droplet
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # The command sent here is ignored: the droplet key forces the deploy.
+          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes \
+            root@"${{ secrets.DEPLOY_HOST }}" deploy
