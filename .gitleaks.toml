@@ -1,0 +1,15 @@
+# gitleaks configuration for Agoreum.
+#
+# Extends the full default ruleset. The only addition is an allowlist for the
+# documentation directory, whose API examples deliberately contain placeholder
+# credentials (example keys, signatures, headers) that are not real secrets.
+# Everything outside docs is still scanned with the complete default ruleset, so
+# a real secret committed anywhere that matters is still caught.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documentation contains illustrative placeholder credentials, not real secrets"
+paths = [
+  '''apps/web/src/app/\[locale\]/docs/''',
+]

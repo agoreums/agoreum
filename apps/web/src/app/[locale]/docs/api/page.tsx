@@ -93,11 +93,11 @@ export default async function ApiDocsPage(props: {
           header — both work.
         </p>
         <Code>{`curl https://agoreum.xyz/api/v1/me \\
-  -H "Authorization: Bearer ak_live_your_key_here"
+  -H "Authorization: Bearer $AGOREUM_API_KEY"
 
 # or
 curl https://agoreum.xyz/api/v1/me \\
-  -H "X-API-Key: ak_live_your_key_here"`}</Code>
+  -H "X-API-Key: $AGOREUM_API_KEY"`}</Code>
         <p>
           <span className="font-mono text-[13px]">GET /me</span> returns who the key
           belongs to and which scopes it carries — the first call to make to confirm
@@ -143,7 +143,7 @@ curl https://agoreum.xyz/api/v1/me \\
         <Endpoint method="GET" path="/orders   (orders:read)" />
         <Endpoint method="GET" path="/orders/received   (orders:read)" />
         <Code>{`curl https://agoreum.xyz/api/v1/orders \\
-  -H "X-API-Key: ak_live_your_key_here"`}</Code>
+  -H "X-API-Key: $AGOREUM_API_KEY"`}</Code>
       </Section>
 
       <Section heading="Webhooks">
