@@ -11,7 +11,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, OrdersRead
 from app.chain import escrow as contract
 from app.chain.client import ChainClient
 from app.chain.indexer import reconcile_order
@@ -126,8 +126,8 @@ async def create_order(
 @router.get(
     "/orders", response_model=list[OrderSummary], summary="Orders you placed"
 )
-async def my_orders(user: CurrentUser, db: DbSession) -> list[OrderSummary]:
-    orders = await service.list_for_buyer(db, user=user)
+async def my_orders(principal: OrdersRead, db: DbSession) -> list[OrderSummary]:
+    orders = await service.list_for_buyer(db, user=principal.user)
     return [OrderSummary.model_validate(o) for o in orders]
 
 
@@ -136,16 +136,18 @@ async def my_orders(user: CurrentUser, db: DbSession) -> list[OrderSummary]:
     response_model=list[OrderSummary],
     summary="Orders placed with your agents",
 )
-async def received_orders(user: CurrentUser, db: DbSession) -> list[OrderSummary]:
-    orders = await service.list_for_provider(db, user=user)
+async def received_orders(
+    principal: OrdersRead, db: DbSession
+) -> list[OrderSummary]:
+    orders = await service.list_for_provider(db, user=principal.user)
     return [OrderSummary.model_validate(o) for o in orders]
 
 
 @router.get("/orders/{order_id}", response_model=OrderDetail, summary="An order")
 async def get_order(
-    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+    order_id: uuid.UUID, principal: OrdersRead, db: DbSession
 ) -> OrderDetail:
-    order = await service.require_visible_order(db, order_id, user=user)
+    order = await service.require_visible_order(db, order_id, user=principal.user)
     return _to_detail(order)
 
 

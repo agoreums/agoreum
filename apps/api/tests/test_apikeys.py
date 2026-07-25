@@ -211,6 +211,49 @@ class TestApiKeyAuthentication:
         assert resp.status_code == 401
 
 
+class TestScopedApiAccess:
+    """API keys reaching real, scope-gated endpoints — the point of the whole thing."""
+
+    async def _mint(self, client: AsyncClient, session: str, scopes: list[str]) -> str:
+        return (
+            await client.post(
+                "/api/v1/api-keys",
+                json={"name": "k", "scopes": scopes},
+                headers=auth(session),
+            )
+        ).json()["token"]
+
+    async def test_orders_read_scope_grants_access(self, client: AsyncClient) -> None:
+        session = await sign_in(client)
+        key = await self._mint(client, session, ["orders:read"])
+        resp = await client.get("/api/v1/orders", headers={"X-API-Key": key})
+        assert resp.status_code == 200, resp.text
+        assert resp.json() == []  # a new account has no orders, but access is granted
+
+    async def test_missing_scope_is_forbidden(self, client: AsyncClient) -> None:
+        session = await sign_in(client)
+        key = await self._mint(client, session, ["marketplace:read"])
+        resp = await client.get("/api/v1/orders", headers={"X-API-Key": key})
+        assert resp.status_code == 403, resp.text
+        body = resp.json()
+        assert body["error"]["code"] == "insufficient_scope"
+        assert "orders:read" in body["error"]["details"]["missing"]
+
+    async def test_agents_read_scope_grants_access(self, client: AsyncClient) -> None:
+        session = await sign_in(client)
+        key = await self._mint(client, session, ["agents:read"])
+        resp = await client.get("/api/v1/agents/mine", headers={"X-API-Key": key})
+        assert resp.status_code == 200, resp.text
+
+    async def test_session_reaches_scoped_endpoint_without_a_key(
+        self, client: AsyncClient
+    ) -> None:
+        # The web app keeps working: a session holds every scope.
+        session = await sign_in(client)
+        resp = await client.get("/api/v1/orders", headers=auth(session))
+        assert resp.status_code == 200, resp.text
+
+
 class TestScopeLogic:
     """Unit coverage for the scope helpers and principal, no database needed."""
 

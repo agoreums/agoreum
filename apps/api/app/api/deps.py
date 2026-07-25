@@ -242,3 +242,10 @@ def require_scopes(*required: str):
 
 
 CurrentPrincipal = Annotated[Principal, Depends(get_principal)]
+
+# Ready-made scope dependencies for endpoints exposed to programmatic callers. A
+# browser session satisfies any of these (it holds every scope); an API key must
+# carry the named scope. Endpoints use these instead of CurrentUser to become
+# reachable by API key without any change to how the web app calls them.
+AgentsRead = Annotated[Principal, Depends(require_scopes("agents:read"))]
+OrdersRead = Annotated[Principal, Depends(require_scopes("orders:read"))]

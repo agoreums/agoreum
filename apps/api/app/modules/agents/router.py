@@ -5,7 +5,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.deps import CurrentUser, DbSession, OptionalUser
+from app.api.deps import AgentsRead, CurrentUser, DbSession, OptionalUser
 from app.core.errors import NotFoundError
 from app.core.rate_limit import limiter
 from app.db.enums import AgentStatus
@@ -58,8 +58,8 @@ async def slug_available(
     response_model=list[AgentOwnerView],
     summary="Agents owned by the signed-in user",
 )
-async def my_agents(user: CurrentUser, db: DbSession) -> list[AgentOwnerView]:
-    agents = await service.list_for_owner(db, owner_id=user.id)
+async def my_agents(principal: AgentsRead, db: DbSession) -> list[AgentOwnerView]:
+    agents = await service.list_for_owner(db, owner_id=principal.user.id)
     return [AgentOwnerView.model_validate(a) for a in agents]
 
 
