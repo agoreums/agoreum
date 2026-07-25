@@ -23,9 +23,7 @@ contract AgoreumSubscriptionsFuzzTest is Test {
         usdc.approve(address(subs), type(uint256).max);
     }
 
-    function testFuzz_subscribeActivatesForExactlyOnePeriod(uint256 price, uint64 period)
-        public
-    {
+    function testFuzz_subscribeActivatesForExactlyOnePeriod(uint256 price, uint64 period) public {
         price = bound(price, 1, 1_000_000e6);
         period = uint64(bound(period, subs.MIN_PERIOD(), subs.MAX_PERIOD()));
 
@@ -69,9 +67,7 @@ contract AgoreumSubscriptionsFuzzTest is Test {
 
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AgoreumSubscriptions.PriceExceedsMax.selector, price, maxPrice
-            )
+            abi.encodeWithSelector(AgoreumSubscriptions.PriceExceedsMax.selector, price, maxPrice)
         );
         subs.subscribe(1, maxPrice);
         // Nothing moved.

@@ -135,11 +135,7 @@ contract AgoreumSubscriptions is AccessControl, Pausable, ReentrancyGuard {
     /// @param planId The plan to pay for.
     /// @param maxPrice The most the caller is willing to pay, protecting them from
     ///        a price increase that lands between approval and this call.
-    function subscribe(uint256 planId, uint256 maxPrice)
-        external
-        nonReentrant
-        whenNotPaused
-    {
+    function subscribe(uint256 planId, uint256 maxPrice) external nonReentrant whenNotPaused {
         Plan storage plan = _requirePlan(planId);
         if (!plan.active) revert PlanInactive(planId);
         if (plan.price > maxPrice) revert PriceExceedsMax(plan.price, maxPrice);
@@ -260,11 +256,7 @@ contract AgoreumSubscriptions is AccessControl, Pausable, ReentrancyGuard {
     }
 
     /// @notice Seconds of coverage remaining, zero if lapsed.
-    function timeRemaining(address subscriber, uint256 planId)
-        external
-        view
-        returns (uint64)
-    {
+    function timeRemaining(address subscriber, uint256 planId) external view returns (uint64) {
         uint64 expiresAt = _subs[subscriber][planId].expiresAt;
         uint64 nowTs = uint64(block.timestamp);
         return expiresAt > nowTs ? expiresAt - nowTs : 0;

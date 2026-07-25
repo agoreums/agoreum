@@ -116,9 +116,7 @@ contract AgoreumSubscriptionsTest is Test {
         vm.prank(admin);
         subs.updatePlan(MONTHLY, MONTH_PRICE, MONTH, false); // deactivate
         vm.prank(alice);
-        vm.expectRevert(
-            abi.encodeWithSelector(AgoreumSubscriptions.PlanInactive.selector, MONTHLY)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AgoreumSubscriptions.PlanInactive.selector, MONTHLY));
         subs.subscribe(MONTHLY, MONTH_PRICE);
     }
 
@@ -156,9 +154,7 @@ contract AgoreumSubscriptionsTest is Test {
     function test_cancel_reverts_whenNotSubscribed() public {
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AgoreumSubscriptions.NotSubscribed.selector, alice, MONTHLY
-            )
+            abi.encodeWithSelector(AgoreumSubscriptions.NotSubscribed.selector, alice, MONTHLY)
         );
         subs.cancel(MONTHLY);
     }

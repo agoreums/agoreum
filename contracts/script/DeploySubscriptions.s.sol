@@ -40,8 +40,7 @@ contract DeploySubscriptions is Script {
         // Confirm the deployed state matches intent rather than assuming it.
         require(subscriptions.treasury() == treasury, "treasury mismatch");
         require(
-            subscriptions.hasRole(subscriptions.GOVERNOR_ROLE(), admin),
-            "governor role not granted"
+            subscriptions.hasRole(subscriptions.GOVERNOR_ROLE(), admin), "governor role not granted"
         );
         require(
             subscriptions.hasRole(subscriptions.DEFAULT_ADMIN_ROLE(), admin),

@@ -110,8 +110,6 @@ contract AgoreumSubscriptionsInvariantTest is StdInvariant, Test {
     ///         independent ghost total.
     function invariant_allRevenueReachedTreasury() public view {
         assertEq(usdc.balanceOf(treasury), handler.ghostTotalPaid(), "treasury vs ghost");
-        assertEq(
-            subs.revenueRouted(address(usdc)), handler.ghostTotalPaid(), "routed vs ghost"
-        );
+        assertEq(subs.revenueRouted(address(usdc)), handler.ghostTotalPaid(), "routed vs ghost");
     }
 }

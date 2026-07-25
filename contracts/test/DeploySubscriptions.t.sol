@@ -40,8 +40,7 @@ contract DeploySubscriptionsTest is Test {
         vm.setEnv("SUBSCRIPTIONS_TREASURY_ADDRESS", vm.toString(address(0)));
         vm.expectRevert(
             abi.encodeWithSelector(
-                DeploySubscriptions.MissingConfiguration.selector,
-                "SUBSCRIPTIONS_TREASURY_ADDRESS"
+                DeploySubscriptions.MissingConfiguration.selector, "SUBSCRIPTIONS_TREASURY_ADDRESS"
             )
         );
         deployer.run();
