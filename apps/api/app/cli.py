@@ -57,6 +57,69 @@ async def _check_db() -> int:
     return 0 if revision else 1
 
 
+async def _grant_role(args: argparse.Namespace) -> int:
+    """Set a user's platform role. Operator-only, run on the host.
+
+    This is the only way an account becomes an admin: there is deliberately no
+    self-service path and no API endpoint, so administrative access cannot be
+    granted by anything a request can reach. Identify the user by wallet address
+    or username.
+    """
+    from sqlalchemy import func, select
+
+    from app.db.enums import UserRole
+    from app.modules.users.models import User
+
+    try:
+        role = UserRole(args.role)
+    except ValueError:
+        allowed = ", ".join(r.value for r in UserRole)
+        print(f"error: unknown role {args.role!r}. Choose from: {allowed}")
+        return 1
+
+    identifier = args.user.strip()
+    async with SessionLocal() as session:
+        user = (
+            await session.execute(
+                select(User).where(
+                    func.lower(User.primary_address) == identifier.lower()
+                )
+            )
+        ).scalar_one_or_none()
+        if user is None:
+            user = (
+                await session.execute(
+                    select(User).where(User.username == identifier.lower())
+                )
+            ).scalar_one_or_none()
+        if user is None:
+            print(f"error: no user matching {identifier!r} (by address or username)")
+            await dispose_engine()
+            return 1
+
+        previous = user.role
+        user.role = role
+        await session.commit()
+        addr = user.primary_address
+
+    await dispose_engine()
+    print(f"{addr}: role {previous.value} -> {role.value}")
+    return 0
+
+
+def _add_grant_role(subparsers: argparse._SubParsersAction) -> None:
+    from app.db.enums import UserRole
+
+    parser = subparsers.add_parser(
+        "grant-role", help="set a user's platform role (operator only)"
+    )
+    parser.add_argument("user", help="wallet address or username")
+    parser.add_argument(
+        "role", choices=[r.value for r in UserRole], help="role to grant"
+    )
+    parser.set_defaults(handler=_grant_role)
+
+
 async def _index_chain(args: argparse.Namespace) -> int:
     """Ingest confirmed escrow events from the chain.
 
@@ -130,6 +193,7 @@ def main() -> int:
     subparsers.add_parser("check-db", help="verify the database").set_defaults(
         handler=_simple(_check_db)
     )
+    _add_grant_role(subparsers)
     _add_index_chain(subparsers)
 
     args = parser.parse_args()
