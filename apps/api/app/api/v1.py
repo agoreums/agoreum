@@ -19,6 +19,7 @@ from app.modules.notifications.router import router as notifications_router
 from app.modules.orders.router import router as orders_router
 from app.modules.reputation.router import router as reputation_router
 from app.modules.services.router import router as services_router
+from app.modules.subscriptions.router import router as subscriptions_router
 from app.modules.webhooks.router import router as webhooks_router
 
 api_router = APIRouter()
@@ -35,5 +36,6 @@ api_router.include_router(dashboard_router)
 api_router.include_router(apikeys_router)
 api_router.include_router(identity_router)
 api_router.include_router(webhooks_router)
+api_router.include_router(subscriptions_router)
 
 # Modules registered in later stages: analytics, administration.

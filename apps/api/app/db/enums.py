@@ -226,6 +226,16 @@ class NotificationChannel(StrEnum):
     EMAIL = "email"
 
 
+# --- Subscriptions ----------------------------------------------------------
+
+
+class SubscriptionInterval(StrEnum):
+    """Billing cadence of a subscription plan."""
+
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
 class NotificationCategory(StrEnum):
     """Groups notifications for per-category delivery preferences."""
 

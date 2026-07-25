@@ -227,6 +227,55 @@ def _add_deliver_webhooks(subparsers: argparse._SubParsersAction) -> None:
     parser.set_defaults(handler=_deliver_webhooks)
 
 
+async def _index_subscriptions(args: argparse.Namespace) -> int:
+    """Ingest confirmed subscription events from the chain.
+
+    The same shape as index-chain, against the subscription contract. It only ever
+    reads the chain and is the only thing that may activate a subscription.
+    """
+    from app.chain import subscriptions as contract
+    from app.chain.client import ChainClient
+    from app.chain.subscription_indexer import SubscriptionIndexerStartUnknown, run_once
+
+    if not contract.is_configured():
+        print("SUBSCRIPTIONS_CONTRACT_ADDRESS is not set. Nothing to index.")
+        return 1
+
+    print(f"contract : {contract.contract_address()}")
+    print(f"chain    : {settings.CHAIN_ID}")
+
+    try:
+        async with ChainClient() as client:
+            while True:
+                async with SessionLocal() as session:
+                    result = await run_once(session, client)
+                print(result)
+                if not args.follow:
+                    return 0
+                await asyncio.sleep(args.interval)
+    except SubscriptionIndexerStartUnknown as exc:
+        print(f"error: {exc}")
+        return 1
+    except KeyboardInterrupt:  # pragma: no cover - operator interrupt
+        print("stopped")
+        return 0
+    finally:
+        await dispose_engine()
+
+
+def _add_index_subscriptions(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "index-subscriptions", help="ingest confirmed subscription events from the chain"
+    )
+    parser.add_argument(
+        "--follow", action="store_true", help="keep polling instead of one pass"
+    )
+    parser.add_argument(
+        "--interval", type=float, default=15.0, help="seconds between polls (default: 15)"
+    )
+    parser.set_defaults(handler=_index_subscriptions)
+
+
 def _simple(handler: Callable[[], Awaitable[int]]) -> Callable[[argparse.Namespace], Awaitable[int]]:
     """Adapt a no-argument command to the handler signature."""
 
@@ -249,6 +298,7 @@ def main() -> int:
     )
     _add_grant_role(subparsers)
     _add_index_chain(subparsers)
+    _add_index_subscriptions(subparsers)
     _add_deliver_webhooks(subparsers)
 
     args = parser.parse_args()

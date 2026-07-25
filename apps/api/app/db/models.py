@@ -27,6 +27,11 @@ from app.modules.orders.models import (
 )
 from app.modules.reputation.models import ReputationSnapshot, Review
 from app.modules.services.models import Category, Service
+from app.modules.subscriptions.models import (
+    Subscription,
+    SubscriptionPayment,
+    SubscriptionPlan,
+)
 from app.modules.users.models import Session, SiweNonce, User, Wallet
 from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
@@ -50,6 +55,9 @@ __all__ = [
     "Service",
     "Session",
     "SiweNonce",
+    "Subscription",
+    "SubscriptionPayment",
+    "SubscriptionPlan",
     "User",
     "Wallet",
     "WebhookDelivery",

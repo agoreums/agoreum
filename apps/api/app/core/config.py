@@ -91,6 +91,14 @@ class Settings(BaseSettings):
 
     ESCROW_CONTRACT_ADDRESS: str | None = None
 
+    # The subscription contract, indexed the same way as the escrow. Both are
+    # configuration, never constants, so a redeploy is an env change.
+    SUBSCRIPTIONS_CONTRACT_ADDRESS: str | None = None
+    SUBSCRIPTIONS_DEPLOY_BLOCK: int | None = None
+    # Absolute path to the subscription ABI; defaults to the repo layout like the
+    # escrow ABI, and is set explicitly by the container image.
+    SUBSCRIPTIONS_ABI_PATH: str | None = None
+
     # The block the escrow contract was deployed in. The indexer starts here on
     # its first run for a given contract; there is nothing to find before it.
     # Without this the only safe default is genesis, and scanning 44 million

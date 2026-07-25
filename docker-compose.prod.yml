@@ -135,6 +135,40 @@ services:
           memory: 384M
     logging: *logging
 
+  # Subscription indexer. The same shape as the escrow indexer, against the
+  # subscription contract: it alone may activate a subscription, and only from a
+  # confirmed on-chain payment. Idle and harmless until SUBSCRIPTIONS_CONTRACT_ADDRESS
+  # is set, at which point it begins projecting subscription state from the chain.
+  subscriptions-indexer:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+      CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
+      SUBSCRIPTIONS_ABI_PATH: /srv/packages/contracts/AgoreumSubscriptions.abi.json
+    networks:
+      - internal
+    healthcheck:
+      disable: true
+    command: >
+      sh -c "if [ -n \"$$SUBSCRIPTIONS_CONTRACT_ADDRESS\" ]; then
+      python -m app.cli index-subscriptions --follow --interval 15;
+      else echo 'subscriptions contract not configured; idling'; sleep infinity; fi"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    logging: *logging
+
   # Webhook delivery worker. Drains the outbox the API writes when events fire,
   # signs each payload, and POSTs it to subscribers, retrying failures. Single
   # instance by design, reusing the API image with a different entrypoint. It
