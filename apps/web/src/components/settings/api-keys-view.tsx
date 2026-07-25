@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import {
@@ -27,28 +27,39 @@ export function ApiKeysView() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    if (!accessToken) return;
-    try {
-      const [cat, list] = await Promise.all([
-        apiKeysApi.scopes(),
-        apiKeysApi.list(accessToken),
-      ]);
-      setCatalog(cat.scopes);
-      setKeys(list.items);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [accessToken, t]);
+  // Bumped after a create or revoke to re-run the loader. Keeping the fetch inside
+  // the effect — rather than in a callback the effect calls — is what lets the
+  // linter see that state is only ever set after an await, never on the render path.
+  const [reload, setReload] = useState(0);
+  const refresh = () => setReload((n) => n + 1);
 
   useEffect(() => {
     if (status !== "authenticated" || !accessToken) return;
-    void load();
-  }, [status, accessToken, load]);
+    let cancelled = false;
+
+    async function run() {
+      try {
+        const [cat, list] = await Promise.all([
+          apiKeysApi.scopes(),
+          apiKeysApi.list(accessToken!),
+        ]);
+        if (cancelled) return;
+        setCatalog(cat.scopes);
+        setKeys(list.items);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : t("loadFailed"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, accessToken, reload, t]);
 
   if (status !== "authenticated") {
     return (
@@ -73,14 +84,10 @@ export function ApiKeysView() {
       <CreateKey
         catalog={catalog}
         accessToken={accessToken!}
-        onCreated={() => void load()}
+        onCreated={refresh}
       />
 
-      <KeyList
-        keys={keys}
-        accessToken={accessToken!}
-        onChanged={() => void load()}
-      />
+      <KeyList keys={keys} accessToken={accessToken!} onChanged={refresh} />
     </div>
   );
 }
