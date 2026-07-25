@@ -92,7 +92,6 @@ every write path stays correct, including migrations and manual repairs.
 
 ## Local development database
 
-Docker Desktop's Linux engine cannot start on the current workstation (no WSL2
-distribution installed), so local development runs a self-managed PostgreSQL 17
-cluster instead. The Docker Compose configuration targets the Ubuntu droplet and
-is unaffected by this. See `docs/development.md` for the setup commands.
+Local development can use either the PostgreSQL container from Docker Compose or a
+PostgreSQL instance installed directly on your machine — the application only needs
+a reachable `DATABASE_URL`. See `docs/development.md` for the setup commands.

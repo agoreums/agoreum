@@ -1,6 +1,6 @@
 # Database
 
-PostgreSQL 16+ (DigitalOcean managed in production), accessed through SQLAlchemy
+PostgreSQL 16+ (a managed service in production), accessed through SQLAlchemy
 2.0 async with Alembic migrations.
 
 **17 tables, 17 native enum types, 82 CHECK constraints, 27 foreign keys, 82

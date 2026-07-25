@@ -1,46 +1,46 @@
 # Deployment
 
-Running Agoreum in production.
+How Agoreum runs in production, at the level a contributor needs. This describes
+the deployment *model*, not a specific provider, host, or region — the stack is
+containerised and runs anywhere Docker does.
 
-> **Only the escrow contract is deployed, and only to Base Sepolia testnet.**
-> No production host, database, or web deployment exists yet. Treat the first run
-> of each procedure below as the first time it has been exercised.
+> **Chain state is testnet only.** The escrow contract is deployed to Base Sepolia
+> and nothing is on mainnet. Any mainnet action is gated on an explicit decision,
+> a real audit, and separated key-holding addresses — see [contracts.md](contracts.md).
 
-## Target
+## Topology
 
-| Component | Choice | Why |
-| --- | --- | --- |
-| Host | DigitalOcean droplet, Ubuntu 24.04, 4 GB, 2 vCPU, 120 GB | Sized for early traffic |
-| Database | DigitalOcean managed PostgreSQL | A droplet rebuild cannot take the data with it |
-| Cache | Redis in a container | Disposable; nothing here needs to survive a restart |
-| Edge | Cloudflare | DNS, WAF, CDN, TLS |
-| Proxy | Nginx in a container | TLS again, per-IP limits, routing |
-| Chain | Base via Alchemy | Read-only |
+| Component | Role |
+| --- | --- |
+| API + web + indexer | Application containers, built from this repo |
+| PostgreSQL | A managed database service, kept out of the compose file so backups and failover are handled by the provider |
+| Redis | A container on the internal network; disposable, nothing here needs to survive a restart |
+| Reverse proxy (Nginx) | TLS termination, per-IP limits, routing; a container |
+| Edge (CDN/WAF) | DNS, TLS, caching, and a web application firewall in front of the origin |
+| Chain access | An EVM RPC provider, read-only |
 
-**Postgres is deliberately not in the production compose file.** Backups,
-point-in-time recovery and failover are somebody's full-time job, and that
-somebody should not be us at this stage.
+**PostgreSQL is deliberately not in the production compose file.** Backups,
+point-in-time recovery, and failover belong to a managed service rather than to a
+container whose host could be rebuilt out from under the data.
 
 ## Before the first deploy
 
-- [ ] Droplet provisioned, SSH key access only, password auth disabled
-- [ ] Managed PostgreSQL created, droplet added to its trusted sources
-- [ ] Cloudflare DNS pointed at the droplet, proxy enabled
-- [ ] Cloudflare SSL mode set to **Full (strict)**
-- [ ] Cloudflare Origin certificate installed at `infra/nginx/certs/`
-- [ ] `.env` present on the droplet with production values
+- [ ] A Linux host with Docker and the Compose plugin, reachable only over SSH keys (password auth disabled)
+- [ ] A managed PostgreSQL database, with the host allowed through its firewall over a private network
+- [ ] DNS pointed at the host through the CDN/edge, proxy enabled
+- [ ] Edge SSL mode set to **Full (strict)**
+- [ ] An origin TLS certificate installed at `infra/nginx/certs/`
+- [ ] `.env` present on the host with production values (never in the image, never in git)
 - [ ] Escrow contract deployed and `ESCROW_CONTRACT_ADDRESS` set
 - [ ] `JWT_SECRET` generated fresh — never reused from any other environment
 
 ## Host preparation
 
+Install Docker and the Compose plugin, then open only what is needed. Everything
+but SSH, HTTP, and HTTPS stays closed:
+
 ```bash
-adduser --disabled-password --gecos "" agoreum
-usermod -aG sudo,docker agoreum
-
-apt update && apt upgrade -y
-apt install -y docker.io docker-compose-plugin
-
+# firewall: allow SSH + HTTP + HTTPS only
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow OpenSSH
@@ -49,31 +49,29 @@ ufw allow 443/tcp
 ufw enable
 ```
 
-Only 22, 80 and 443 are open. Postgres and Redis are never exposed: Redis lives
-on the internal Docker network and is not published, and the managed database is
-reached over its private endpoint.
-
-Consider restricting 80/443 to [Cloudflare's IP ranges](https://www.cloudflare.com/ips/)
+Postgres and Redis are never exposed: Redis lives on the internal Docker network
+and is not published, and the managed database is reached over its private
+endpoint. Consider restricting 80/443 to the [CDN's IP ranges](https://www.cloudflare.com/ips/)
 so the origin cannot be reached directly, bypassing the WAF.
 
 ## Environment
 
-`.env` on the droplet, never in the image and never in git:
+`.env` on the host, never in the image and never in git:
 
 ```bash
 APP_ENV=production
 DEBUG=false
 
-DATABASE_URL=postgresql+asyncpg://user:pass@private-host:25060/agoreum?ssl=require
-DATABASE_URL_SYNC=postgresql+psycopg://user:pass@private-host:25060/agoreum?sslmode=require
+DATABASE_URL=postgresql+asyncpg://user:pass@private-host:PORT/agoreum?ssl=require
+DATABASE_URL_SYNC=postgresql+psycopg://user:pass@private-host:PORT/agoreum?sslmode=require
 
 JWT_SECRET=<48+ random bytes, unique to production>
 SIWE_DOMAIN=agoreum.xyz
 APP_URL=https://agoreum.xyz
 CORS_ALLOWED_ORIGINS=https://agoreum.xyz,https://www.agoreum.xyz
 
-CHAIN_ID=8453
-ALCHEMY_BASE_URL_MAINNET=<full endpoint>
+CHAIN_ID=<target chain id>
+ALCHEMY_BASE_URL_SEPOLIA=<full endpoint>
 ESCROW_CONTRACT_ADDRESS=<deployed address>
 
 RESEND_API_KEY=<key>
@@ -86,9 +84,9 @@ RATE_LIMIT_ENABLED=true
 chmod 600 .env
 ```
 
-`CHAIN_ID` alone selects the RPC endpoint, USDC address and block explorer.
-Setting it to `8453` without also setting `ALCHEMY_BASE_URL_MAINNET` leaves the
-chain unreachable, which readiness reports rather than hiding.
+`CHAIN_ID` alone selects the RPC endpoint, USDC address, and block explorer.
+Setting it without also setting the matching RPC endpoint leaves the chain
+unreachable, which readiness reports rather than hiding.
 
 ## Deploy
 
@@ -114,19 +112,17 @@ Readiness returns 503 if Postgres or Redis is unreachable. The chain is reported
 but excluded from the verdict — an RPC outage should degrade the platform, not
 take the site out of rotation over a third party.
 
-## Updating
+## Continuous deployment
 
-```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec api alembic upgrade head
-```
+A merge to `main` runs CI; when every check passes, the deploy job builds the
+images on the host, runs `alembic upgrade head`, recreates the services, reloads
+the proxy so it re-resolves the new containers, and verifies the public site
+serves before reporting success. If the site does not come back, the job fails
+loudly rather than leaving a half-deployed stack looking green.
 
-Compose replaces containers one service at a time and each has a healthcheck, so
-Nginx keeps routing to the old container until the new one is healthy. There is
-a brief window where both may serve; migrations must therefore be backwards
-compatible with the running version — add columns before using them, drop them
-a release later.
+The runner reaches the host through a deploy key scoped to exactly that action,
+not a general-purpose credential — giving a CI runner access to production is a
+real security decision and is kept deliberately narrow.
 
 ### Rolling back
 
@@ -135,27 +131,25 @@ git checkout <previous-tag>
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-If the release included a migration, roll that back **first**, while the old
-code is still running:
+If the release included a migration, roll that back **first**, while the old code
+is still running:
 
 ```bash
 docker compose -f docker-compose.prod.yml exec api alembic downgrade -1
 ```
 
 CI verifies every migration reverses, so this path is tested rather than hoped
-for.
+for. Migrations must be backwards compatible with the running version — add
+columns before using them, drop them a release later — because there is a brief
+window during a deploy where both the old and new code may serve.
 
 ## TLS
 
-TLS terminates twice: at Cloudflare's edge, and again at Nginx using a
-Cloudflare Origin certificate. Traffic between the two is encrypted rather than
-travelling in clear inside the datacentre.
-
-Set Cloudflare SSL mode to **Full (strict)**. Anything less lets the edge accept
-an invalid origin certificate, defeating the point.
-
-Origin certificates last 15 years, so there is no renewal automation — and no
-renewal cron quietly failing either. See [infra/nginx/README.md](../infra/nginx/README.md).
+TLS terminates twice: at the CDN edge, and again at Nginx using an origin
+certificate. Traffic between the two is encrypted rather than travelling in the
+clear. Set the edge SSL mode to **Full (strict)**; anything less lets the edge
+accept an invalid origin certificate, defeating the point. See
+[infra/nginx/README.md](../infra/nginx/README.md).
 
 ## Contract deployment
 
@@ -166,12 +160,12 @@ renewal cron quietly failing either. See [infra/nginx/README.md](../infra/nginx/
 | Network | Base Sepolia (chain 84532) |
 | Address | [`0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D`](https://sepolia.basescan.org/address/0x13c90ba1441bd02d55801cb2f8bda3515020a16d) (verified) |
 | Deploy block | 44531775 |
-| Roles | admin, arbiter and fee recipient all set to the deployer — **testnet only** |
+| Roles | admin, arbiter, and fee recipient all set to the deployer — **testnet only** |
 | Fee | 250 bps (2.5%), cap 1000 bps |
 
-Mainnet must use three genuinely separate addresses, with admin and fee
-recipient behind a multisig. The single-key arrangement here exists only because
-a testnet has nothing at stake.
+Mainnet must use three genuinely separate addresses, with admin and fee recipient
+behind a multisig. The single-key arrangement here exists only because a testnet
+has nothing at stake.
 
 ### Procedure
 
@@ -190,27 +184,26 @@ ESCROW_DEPLOY_BLOCK=<block the deployment landed in>
 ```
 
 The address is configuration everywhere, so nothing else needs changing. The
-deploy block is what the indexer starts from the first time it runs against
-this contract — there is nothing to find before it, and without it the only
-safe default is genesis, which is not a viable scan on a live chain.
+deploy block is what the indexer starts from the first time it runs against this
+contract — there is nothing to find before it, and without it the only safe
+default is genesis, which is not a viable scan on a live chain.
 
 ## Running the indexer
 
-**Nothing is marked funded or completed until the indexer runs.** It is a
-separate process, not part of the API:
+**Nothing is marked funded or completed until the indexer runs.** It is a separate
+process, not part of the API, and runs as its own long-lived service:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -d api \
-  python -m app.cli index-chain --follow --interval 15
+python -m app.cli index-chain --follow --interval 15
 ```
 
-Two reasons it is separate rather than a background task inside the API:
-indexing must not stop while the API is being redeployed, and two API replicas
-would otherwise both index the same range concurrently.
+Two reasons it is separate rather than a background task inside the API: indexing
+must not stop while the API is being redeployed, and two API replicas would
+otherwise both index the same range concurrently.
 
-Concurrency is nonetheless safe — events are keyed by `(tx_hash, log_index)`,
-so a duplicate scan applies nothing twice — but doing it by accident wastes an
-RPC allowance.
+Concurrency is nonetheless safe — events are keyed by `(tx_hash, log_index)`, so a
+duplicate scan applies nothing twice — but doing it by accident wastes an RPC
+allowance.
 
 Position is stored in `indexer_cursors`, keyed by chain id **and** contract
 address. Redeploying the contract therefore starts a fresh scan from
@@ -228,11 +221,10 @@ docker compose -f docker-compose.prod.yml logs -f api
 docker compose -f docker-compose.prod.yml logs -f nginx
 ```
 
-Both emit single-line JSON. Logs rotate at 10 MB × 3 files per container, so a
-noisy failure cannot fill 120 GB.
-
-Every request carries a `request_id`, echoed in `X-Request-ID` and in error
-envelopes. Nginx logs the same field, so a user's report traces end to end.
+Both emit single-line JSON. Logs rotate per container, so a noisy failure cannot
+fill the disk. Every request carries a `request_id`, echoed in `X-Request-ID` and
+in error envelopes; the proxy logs the same field, so a user's report traces end
+to end.
 
 Worth alerting on:
 
@@ -249,44 +241,26 @@ Worth alerting on:
 `orphan_escrow_event` and `order_chain_divergence` are the two that involve
 someone's money. Treat them as pages, not tickets.
 
-The indexer is the one to alert on by **absence** rather than by an error line.
-It emits `chain_scan_complete` on every pass; if that stops appearing, buyers
-are funding escrows and nothing is marking their orders paid. A silent indexer
-looks exactly like a quiet marketplace.
+The indexer is the one to alert on by **absence** rather than by an error line. It
+emits `chain_scan_complete` on every pass; if that stops appearing, buyers are
+funding escrows and nothing is marking their orders paid. A silent indexer looks
+exactly like a quiet marketplace.
 
 ## Backups
 
-The managed database handles automated backups and point-in-time recovery.
-Verify the retention window matches what you would need, and **restore into a
-scratch database occasionally** — an unverified backup is a hypothesis.
+The managed database handles automated backups and point-in-time recovery. Verify
+the retention window matches what you would need, and **restore into a scratch
+database occasionally** — an unverified backup is a hypothesis. Redis holds only
+cache and rate-limit counters; losing it costs a cold cache.
 
-Redis holds only cache and rate-limit counters. Losing it costs a cold cache.
+## Resources
 
-## Sizing
+Each container sets an explicit memory limit. On a modest host an unbounded
+container can push the others into the OOM killer, and the process that dies is
+whichever allocated last rather than the one at fault, so the limits are stated in
+`docker-compose.prod.yml` rather than left to chance.
 
-4 GB across: API 1 GB, web 768 MB, Redis 640 MB, indexer 384 MB, Nginx 256 MB —
-3 GB committed, leaving about 1 GB for the host. Limits are explicit because on
-a small box an unbounded container pushes the others into the OOM killer, and
-the process that dies is whichever allocated last rather than the one at fault.
-
-That headroom is now thinner than it was before the indexer became its own
-service. It is still adequate — the indexer holds one HTTP connection and a
-block range at a time — but this is the first thing to re-measure under real
-traffic rather than to assume.
-
-Two uvicorn workers for two vCPUs. More would contend for the same cores while
-multiplying the database connection pool.
-
-When this stops being enough, the first move is separating web and API onto
-different droplets behind a load balancer. The module boundaries make splitting
-the API itself possible after that, but that is a later problem.
-
-## What is not automated
-
-CI builds and validates images but **does not deploy**. Deployment is a
-deliberate action.
-
-Adding continuous deployment means giving a CI runner SSH access to production.
-That is a real security decision — a compromised action, or a malicious
-dependency in the build, would reach the host. It should be taken explicitly,
-with a deploy key scoped to exactly that, not inherited by default.
+Two uvicorn workers per API container matches a two-core host; more would contend
+for the same cores while multiplying the database connection pool. When one host
+stops being enough, the first move is separating web and API behind a load
+balancer; the module boundaries make splitting the API itself possible after that.

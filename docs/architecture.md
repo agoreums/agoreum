@@ -74,7 +74,7 @@ deal. There is no independent scaling pressure, no team boundary that needs
 enforcing, and no component with a different availability requirement. What
 services *would* add immediately is network calls where function calls used to
 be, distributed transactions across what is currently one database transaction,
-and an operational surface a single droplet cannot host.
+and an operational surface a single host cannot support.
 
 **What makes it splittable later.** Each module owns its own models, schemas,
 service layer and router. Cross-module access goes through a module's service
@@ -236,4 +236,4 @@ Things that do not exist yet, and why:
 - [contracts.md](contracts.md) — the escrow contract and its guarantees
 - [api.md](api.md) — endpoint reference
 - [security.md](security.md) — threat model and controls
-- [deployment.md](deployment.md) — running it on the droplet
+- [deployment.md](deployment.md) — deploying to production

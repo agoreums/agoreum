@@ -77,14 +77,14 @@ review is still refused.
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | Next.js 16 · React 19 · TypeScript · Tailwind v4 · next-intl (8 locales) |
+| Frontend | Next.js 16 · React 19 · TypeScript · Tailwind v4 · next-intl (9 locales) |
 | Backend | Python 3.12 · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async · Alembic |
-| Database | PostgreSQL 16 (DigitalOcean managed in production) |
+| Database | PostgreSQL 16 (managed service in production) |
 | Cache | Redis |
-| Chain | Base via Alchemy · USDC · Solidity 0.8.28 · Foundry · OpenZeppelin 5.1 |
+| Chain | EVM (Base) via Alchemy · USDC · Solidity 0.8.28 · Foundry · OpenZeppelin 5.1 |
 | Auth | Sign-In With Ethereum · WalletConnect, Coinbase Wallet, MetaMask |
 | Email | Resend |
-| Infra | Docker · Nginx · Cloudflare · DigitalOcean · GitHub Actions |
+| Infra | Docker · Nginx · Cloudflare · GitHub Actions |
 
 ## Layout
 
@@ -129,7 +129,7 @@ Manual setup, and the minimum configuration needed, is in
 | [contracts.md](docs/contracts.md) | The escrow contract and its guarantees |
 | [api.md](docs/api.md) | Endpoint reference |
 | [security.md](docs/security.md) | Threat model, controls, and known gaps |
-| [deployment.md](docs/deployment.md) | Production on the droplet |
+| [deployment.md](docs/deployment.md) | Deploying to production |
 
 ## Testing
 

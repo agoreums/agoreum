@@ -1,6 +1,6 @@
 # infra/nginx
 
-Reverse proxy configuration for the production droplet.
+Reverse proxy configuration for production.
 
 ## Files
 
@@ -13,13 +13,11 @@ Reverse proxy configuration for the production droplet.
 
 ## Certificates
 
-TLS terminates twice: once at Cloudflare's edge, and again here. Traffic between
-the edge and the droplet is therefore encrypted rather than travelling in clear
-inside the datacentre.
+TLS terminates twice: once at the CDN edge, and again here. Traffic between the
+edge and the origin is therefore encrypted rather than travelling in the clear.
 
-Generate a Cloudflare Origin certificate for `agoreum.xyz` and `*.agoreum.xyz`
-in the Cloudflare dashboard (SSL/TLS → Origin Server), then place it on the
-droplet:
+Generate an origin certificate for `agoreum.xyz` and `*.agoreum.xyz` at the CDN
+(SSL/TLS → Origin Server), then place it on the host:
 
 ```bash
 mkdir -p infra/nginx/certs
