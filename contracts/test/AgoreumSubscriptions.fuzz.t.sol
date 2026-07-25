@@ -42,19 +42,19 @@ contract AgoreumSubscriptionsFuzzTest is Test {
 
     function testFuzz_renewStacksExactly(uint64 period, uint8 renewals) public {
         period = uint64(bound(period, subs.MIN_PERIOD(), 60 days));
-        uint256 n = bound(renewals, 1, 12);
+        uint64 n = uint64(bound(renewals, 1, 12));
 
         vm.prank(admin);
         subs.createPlan(1, address(usdc), 1e6, period);
 
         uint64 start = uint64(block.timestamp);
-        for (uint256 i = 0; i < n; i++) {
+        for (uint64 i = 0; i < n; i++) {
             vm.prank(alice);
             subs.subscribe(1, 1e6);
         }
         // n back-to-back renewals buy exactly n periods from the start.
-        assertEq(subs.getSubscription(alice, 1).expiresAt, start + period * uint64(n));
-        assertEq(usdc.balanceOf(treasury), 1e6 * n);
+        assertEq(subs.getSubscription(alice, 1).expiresAt, start + period * n);
+        assertEq(usdc.balanceOf(treasury), 1e6 * uint256(n));
     }
 
     function testFuzz_maxPriceAlwaysBinds(uint256 price, uint256 maxPrice) public {
