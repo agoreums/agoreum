@@ -173,6 +173,60 @@ def _add_index_chain(subparsers: argparse._SubParsersAction) -> None:
     parser.set_defaults(handler=_index_chain)
 
 
+async def _deliver_webhooks(args: argparse.Namespace) -> int:
+    """Drain the webhook outbox: sign and POST due deliveries, retrying failures.
+
+    Runs single-instance as its own service, the same shape as the indexer. Makes
+    no outbound request unless WEBHOOK_DELIVERY_ENABLED is set; until then it marks
+    due deliveries suppressed so the queue does not grow unbounded.
+    """
+    import httpx
+
+    from app.modules.webhooks import service as webhooks
+
+    print(f"webhook delivery: enabled={settings.WEBHOOK_DELIVERY_ENABLED}")
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.WEBHOOK_TIMEOUT_SECONDS, follow_redirects=False
+        ) as client:
+            while True:
+                processed = 0
+                async with SessionLocal() as session:
+                    due = await webhooks.claim_due(session, limit=args.batch)
+                    for delivery in due:
+                        await webhooks.deliver_one(session, client, delivery)
+                        processed += 1
+                if processed:
+                    print(f"attempted {processed} deliver(y/ies)")
+                if not args.follow:
+                    return 0
+                await asyncio.sleep(args.interval)
+    except KeyboardInterrupt:  # pragma: no cover - operator interrupt
+        print("stopped")
+        return 0
+    finally:
+        await dispose_engine()
+
+
+def _add_deliver_webhooks(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "deliver-webhooks", help="send queued webhook deliveries"
+    )
+    parser.add_argument(
+        "--follow", action="store_true", help="keep polling instead of one pass"
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=5.0,
+        help="seconds between polls when following (default: 5)",
+    )
+    parser.add_argument(
+        "--batch", type=int, default=50, help="max deliveries per pass (default: 50)"
+    )
+    parser.set_defaults(handler=_deliver_webhooks)
+
+
 def _simple(handler: Callable[[], Awaitable[int]]) -> Callable[[argparse.Namespace], Awaitable[int]]:
     """Adapt a no-argument command to the handler signature."""
 
@@ -195,6 +249,7 @@ def main() -> int:
     )
     _add_grant_role(subparsers)
     _add_index_chain(subparsers)
+    _add_deliver_webhooks(subparsers)
 
     args = parser.parse_args()
     return asyncio.run(args.handler(args))

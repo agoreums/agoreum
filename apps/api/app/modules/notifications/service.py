@@ -112,6 +112,16 @@ async def notify(
         await _deliver(db, notification=notification, user=user, channel=channel)
 
     await db.flush()
+
+    # The same event that raises an in-app notification is offered to the user's
+    # webhook endpoints. This only queues outbox rows; a worker sends them. It
+    # never raises, so a webhook problem cannot fail the action behind the event.
+    from app.modules.webhooks import service as webhooks
+
+    await webhooks.dispatch(
+        db, user_id=user_id, event_type=event_type, data=payload
+    )
+
     logger.info(
         "notification_created",
         extra={

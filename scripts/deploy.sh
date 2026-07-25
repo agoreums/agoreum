@@ -22,13 +22,13 @@ AFTER=$(git rev-parse --short HEAD)
 echo "deploying ${BEFORE} -> ${AFTER}"
 
 log "build images"
-$COMPOSE build api web indexer
+$COMPOSE build api web indexer webhooks
 
 log "run migrations"
 $COMPOSE run --rm api alembic upgrade head
 
 log "recreate app + support services"
-$COMPOSE up -d api web indexer umami monitor
+$COMPOSE up -d api web indexer webhooks umami monitor
 
 log "verify api health"
 ok=false

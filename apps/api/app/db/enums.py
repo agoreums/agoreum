@@ -246,6 +246,25 @@ class NotificationDeliveryStatus(StrEnum):
     SUPPRESSED = "suppressed"
 
 
+# --- Webhooks ---------------------------------------------------------------
+
+
+class WebhookDeliveryStatus(StrEnum):
+    """State of a single webhook delivery attempt record.
+
+    A delivery is created `PENDING`, retried while `FAILED` until it either
+    succeeds or exhausts its attempts (`EXHAUSTED`), and is `SUPPRESSED` when
+    outbound delivery is disabled for the deployment — recorded, never silently
+    dropped, so the intent is always visible.
+    """
+
+    PENDING = "pending"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    EXHAUSTED = "exhausted"
+    SUPPRESSED = "suppressed"
+
+
 # --- SQLAlchemy binding ------------------------------------------------------
 
 

@@ -119,6 +119,17 @@ class Settings(BaseSettings):
     # reason — so the intent is visible without anyone being contacted.
     EMAIL_SENDING_ENABLED: bool = False
 
+    # --- Webhooks ------------------------------------------------------------
+    # Master switch for outbound webhook HTTP, mirroring email above. Off by
+    # default so no request leaves for a user-configured URL until an operator
+    # turns it on; until then deliveries are recorded as suppressed, with the
+    # reason, so the intent is visible without anything being sent.
+    WEBHOOK_DELIVERY_ENABLED: bool = False
+    # How many times a failing delivery is retried before it is abandoned.
+    WEBHOOK_MAX_ATTEMPTS: int = 6
+    # Per-request timeout when POSTing to a subscriber, in seconds.
+    WEBHOOK_TIMEOUT_SECONDS: float = 10.0
+
     # --- Observability -------------------------------------------------------
     SENTRY_DSN: SecretStr | None = None
 

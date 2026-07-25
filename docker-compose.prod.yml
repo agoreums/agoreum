@@ -135,6 +135,38 @@ services:
           memory: 384M
     logging: *logging
 
+  # Webhook delivery worker. Drains the outbox the API writes when events fire,
+  # signs each payload, and POSTs it to subscribers, retrying failures. Single
+  # instance by design, reusing the API image with a different entrypoint. It
+  # sends nothing outbound unless WEBHOOK_DELIVERY_ENABLED is set in .env; until
+  # then it records due deliveries as suppressed rather than contacting anyone.
+  webhooks:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+      CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
+    networks:
+      - internal
+    healthcheck:
+      disable: true
+    command: >
+      python -m app.cli deliver-webhooks --follow --interval 5
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    logging: *logging
+
   # Self-hosted, cookieless analytics. Served under /insights via nginx so the
   # tracker is same-origin, and pointed at a dedicated `umami` database on the
   # managed cluster (no extra database container to run or back up).

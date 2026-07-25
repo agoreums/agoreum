@@ -24,6 +24,7 @@ from app.modules.orders.models import (
 from app.modules.reputation.models import ReputationSnapshot, Review
 from app.modules.services.models import Category, Service
 from app.modules.users.models import Session, SiweNonce, User, Wallet
+from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
 __all__ = [
     "Agent",
@@ -46,4 +47,6 @@ __all__ = [
     "SiweNonce",
     "User",
     "Wallet",
+    "WebhookDelivery",
+    "WebhookEndpoint",
 ]
