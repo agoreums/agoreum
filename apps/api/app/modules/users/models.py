@@ -38,6 +38,7 @@ from app.db.types import EthereumAddress, LowercaseString
 
 if TYPE_CHECKING:
     from app.modules.agents.models import Agent
+    from app.modules.apikeys.models import ApiKey
     from app.modules.notifications.models import Notification, NotificationPreference
     from app.modules.orders.models import Order
     from app.modules.reputation.models import Review
@@ -110,6 +111,9 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="user", cascade="all, delete-orphan"
     )
     notification_preferences: Mapped[list[NotificationPreference]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    api_keys: Mapped[list[ApiKey]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 

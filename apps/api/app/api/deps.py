@@ -7,18 +7,26 @@ that belong with the resource, because only that module knows what ownership mea
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import Depends, Request
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, Request, Security
+from fastapi.security import (
+    APIKeyHeader,
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AuthenticationError, PermissionDeniedError
-from app.core.security import decode_access_token
+from app.core.security import API_KEY_PREFIX, decode_access_token
 from app.db.enums import AccountStatus, UserRole
 from app.db.session import get_db
+from app.modules.apikeys import service as apikey_service
+from app.modules.apikeys.models import ApiKey
+from app.modules.apikeys.scopes import SCOPES
 from app.modules.users.models import Session, User
 
 # auto_error=False so a missing header raises our own error envelope rather than
@@ -141,3 +149,96 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
 AdminUser = Annotated[User, Depends(require_admin)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]
+
+
+# --- Programmatic access: API keys ------------------------------------------
+#
+# The public API is reachable two ways: by a browser session (the site itself) or
+# by an API key (an SDK or another agent). A *principal* unifies them so an endpoint
+# is written once and works for both. A session carries the user's full authority;
+# an API key carries only its granted scopes.
+
+# The full set of scope strings, granted implicitly to a session principal so that
+# a browser can do anything its user could.
+ALL_SCOPES: frozenset[str] = frozenset(SCOPES)
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False, scheme_name="API key")
+
+
+@dataclass(frozen=True)
+class Principal:
+    """Who is making a programmatic request, and what they are allowed to do."""
+
+    user: User
+    scopes: frozenset[str]
+    # The key used, when authenticated by API key; None for a browser session.
+    api_key: ApiKey | None
+
+    @property
+    def via_api_key(self) -> bool:
+        return self.api_key is not None
+
+    def has_scopes(self, required: frozenset[str]) -> bool:
+        return required <= self.scopes
+
+
+async def get_principal(
+    request: Request,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
+    ],
+    api_key_value: Annotated[str | None, Security(api_key_header)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Principal:
+    """Resolve a principal from either an API key or a browser session.
+
+    An API key may arrive as `X-API-Key: ak_...` or as `Authorization: Bearer ak_...`;
+    both are supported because different HTTP clients favour different conventions.
+    A bearer credential that is not shaped like a key is treated as a session JWT.
+    """
+    bearer = credentials.credentials if credentials else None
+
+    key_token = api_key_value or (
+        bearer if bearer and bearer.startswith(API_KEY_PREFIX) else None
+    )
+    if key_token:
+        user, key = await apikey_service.authenticate(db, token=key_token)
+        return Principal(user=user, scopes=frozenset(key.scopes), api_key=key)
+
+    if bearer:
+        user = await get_current_user(credentials, db)
+        # A signed-in human acts with full authority; scopes only ever narrow a key.
+        return Principal(user=user, scopes=ALL_SCOPES, api_key=None)
+
+    raise AuthenticationError(
+        "Provide an API key (X-API-Key) or sign in.", code="unauthenticated"
+    )
+
+
+def require_scopes(*required: str):
+    """Build a dependency that authenticates a principal and enforces scopes.
+
+    Session principals always pass (they hold every scope); API-key principals must
+    carry all of the listed scopes or the request is refused with 403.
+    """
+    needed = frozenset(required)
+    unknown = needed - ALL_SCOPES
+    if unknown:  # a wiring mistake, caught at import rather than at request time
+        raise ValueError(f"require_scopes referenced unknown scope(s): {sorted(unknown)}")
+
+    async def dependency(
+        principal: Annotated[Principal, Depends(get_principal)],
+    ) -> Principal:
+        if not principal.has_scopes(needed):
+            missing = sorted(needed - principal.scopes)
+            raise PermissionDeniedError(
+                f"This API key is missing the required scope(s): {', '.join(missing)}.",
+                code="insufficient_scope",
+                details={"missing": missing},
+            )
+        return principal
+
+    return dependency
+
+
+CurrentPrincipal = Annotated[Principal, Depends(get_principal)]

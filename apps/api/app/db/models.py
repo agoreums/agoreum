@@ -9,6 +9,7 @@ from __future__ import annotations
 from app.chain.models import IndexerCursor
 from app.db.base import Base
 from app.modules.agents.models import Agent, AgentDomainChallenge
+from app.modules.apikeys.models import ApiKey
 from app.modules.notifications.models import (
     Notification,
     NotificationDelivery,
@@ -27,6 +28,7 @@ from app.modules.users.models import Session, SiweNonce, User, Wallet
 __all__ = [
     "Agent",
     "AgentDomainChallenge",
+    "ApiKey",
     "Base",
     "Category",
     "ChainTransaction",

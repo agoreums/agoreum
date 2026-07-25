@@ -53,6 +53,17 @@ def generate_refresh_token() -> str:
     return secrets.token_urlsafe(TOKEN_ENTROPY_BYTES)
 
 
+# A stable, greppable marker so a leaked key is recognisable in logs and secret
+# scanners, and so authentication can reject anything not shaped like a key before
+# spending a database lookup on it.
+API_KEY_PREFIX = "ak_"
+
+
+def generate_api_key() -> str:
+    """A programmatic API key. Returned to its owner once; only its hash is stored."""
+    return API_KEY_PREFIX + secrets.token_urlsafe(TOKEN_ENTROPY_BYTES)
+
+
 def hash_token(token: str) -> str:
     """SHA-256 of an opaque token, hex-encoded.
 
