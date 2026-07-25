@@ -56,8 +56,10 @@ async def create_key(
         scopes=payload.scopes,
         expires_in_days=payload.expires_in_days,
     )
-    created = ApiKeyCreated.model_validate(key)
-    return created.model_copy(update={"token": token})
+    # The ORM row has no `token` attribute, so validate it to the public shape
+    # first, then attach the plaintext secret — the one and only time it is shown.
+    public = ApiKeyPublic.model_validate(key)
+    return ApiKeyCreated(**public.model_dump(), token=token)
 
 
 @router.delete(
