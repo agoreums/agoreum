@@ -28,6 +28,7 @@ export default async function DashboardPage(props: {
 
   const t = await getTranslations("dashboard");
   const tKeys = await getTranslations("apiKeys");
+  const tHooks = await getTranslations("webhooks");
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -40,12 +41,20 @@ export default async function DashboardPage(props: {
             {t("subtitle")}
           </p>
         </div>
-        <Link
-          href="/settings/api-keys"
-          className="shrink-0 rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
-        >
-          {tKeys("dashboardLink")}
-        </Link>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link
+            href="/settings/api-keys"
+            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
+          >
+            {tKeys("dashboardLink")}
+          </Link>
+          <Link
+            href="/settings/webhooks"
+            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
+          >
+            {tHooks("dashboardLink")}
+          </Link>
+        </div>
       </header>
 
       <div className="mt-10">

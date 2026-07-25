@@ -585,3 +585,69 @@ export const apiKeysApi = {
       accessToken,
     }),
 };
+
+// --- Webhooks ---------------------------------------------------------------
+
+export type WebhookEvent = {
+  event: string;
+  description: string;
+};
+
+export type WebhookEndpoint = {
+  id: string;
+  url: string;
+  description: string | null;
+  events: string[];
+  last_delivery_at: string | null;
+  last_success_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
+/** Only ever returned once, at creation: it carries the plaintext signing `secret`. */
+export type WebhookEndpointCreated = WebhookEndpoint & { secret: string };
+
+export type WebhookDelivery = {
+  id: string;
+  event_type: string;
+  event_id: string;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  last_status_code: number | null;
+  last_error: string | null;
+  last_duration_ms: number | null;
+  next_attempt_at: string;
+  delivered_at: string | null;
+  created_at: string;
+};
+
+export const webhooksApi = {
+  events: () => apiFetch<{ events: WebhookEvent[] }>("/api/v1/webhooks/events"),
+
+  list: (accessToken: string) =>
+    apiFetch<{ items: WebhookEndpoint[]; total: number }>("/api/v1/webhooks", {
+      accessToken,
+    }),
+
+  create: (
+    accessToken: string,
+    body: { url: string; events: string[]; description?: string | null },
+  ) =>
+    apiFetch<WebhookEndpointCreated>("/api/v1/webhooks", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  revoke: (accessToken: string, id: string) =>
+    apiFetch<void>(`/api/v1/webhooks/${id}`, {
+      method: "DELETE",
+      accessToken,
+    }),
+
+  deliveries: (accessToken: string, id: string) =>
+    apiFetch<WebhookDelivery[]>(`/api/v1/webhooks/${id}/deliveries`, {
+      accessToken,
+    }),
+};
