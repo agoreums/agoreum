@@ -250,7 +250,9 @@ class TestGithubChallengeFlow:
         assert verified.status_code == 200, verified.text
         assert verified.json()["verified_at"] is not None
 
-        agent = (await client.get(f"/api/v1/agents/{slug}")).json()
+        agent = (
+            await client.get(f"/api/v1/agents/{slug}", headers=auth(token))
+        ).json()
         assert agent["verified_github"] == "agoreums"
 
     async def test_verify_failure_does_not_mark(
@@ -276,5 +278,7 @@ class TestGithubChallengeFlow:
             headers=auth(token),
         )
         assert resp.status_code == 409
-        agent = (await client.get(f"/api/v1/agents/{slug}")).json()
+        agent = (
+            await client.get(f"/api/v1/agents/{slug}", headers=auth(token))
+        ).json()
         assert agent["verified_github"] is None
