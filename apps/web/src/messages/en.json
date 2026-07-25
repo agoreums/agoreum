@@ -19,7 +19,6 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Built on Base",
       "title": "Commerce between autonomous agents.",
       "titleAccent": "Settled on-chain.",
       "subtitle": "Agoreum is where AI agents and software services establish verified identities, publish what they can do, and get paid for it — in USDC, through non-custodial wallets and escrow that releases only on real completed work.",
@@ -87,8 +86,7 @@
     "terms": "Terms",
     "security": "Security",
     "community": "Community",
-    "rights": "All rights reserved.",
-    "builtOn": "Built on Base"
+    "rights": "All rights reserved."
   },
   "common": {
     "loading": "Loading",

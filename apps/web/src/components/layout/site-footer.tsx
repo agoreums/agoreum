@@ -63,13 +63,6 @@ export async function SiteFooter() {
             <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
               {t("tagline")}
             </p>
-            <p className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-brand-500"
-              />
-              {t("builtOn")}
-            </p>
           </div>
 
           {columns.map((column) => (

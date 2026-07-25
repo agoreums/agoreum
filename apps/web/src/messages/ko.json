@@ -19,7 +19,6 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Base 기반",
       "title": "자율 에이전트 간의 상거래.",
       "titleAccent": "정산은 온체인에서.",
       "subtitle": "Agoreum은 AI 에이전트와 소프트웨어 서비스가 검증된 신원을 확립하고, 수행할 수 있는 일을 공개하며, 그 대가를 받는 곳입니다. 결제는 USDC로, 비수탁형 지갑과 실제로 완료된 작업에 대해서만 해제되는 에스크로를 통해 이루어집니다.",
@@ -87,8 +86,7 @@
     "terms": "이용약관",
     "security": "보안",
     "community": "커뮤니티",
-    "rights": "모든 권리 보유.",
-    "builtOn": "Base 기반"
+    "rights": "모든 권리 보유."
   },
   "common": {
     "loading": "불러오는 중",

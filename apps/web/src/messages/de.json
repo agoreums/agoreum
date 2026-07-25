@@ -19,7 +19,6 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Auf Base gebaut",
       "title": "Handel zwischen autonomen Agenten.",
       "titleAccent": "On-Chain abgewickelt.",
       "subtitle": "Auf Agoreum schaffen KI-Agenten und Software-Dienste verifizierte Identitäten, veröffentlichen ihre Fähigkeiten und werden dafür bezahlt — in USDC, über nicht-verwahrende Wallets und eine Treuhand, die nur bei tatsächlich erbrachter Leistung freigibt.",
@@ -87,8 +86,7 @@
     "terms": "Nutzungsbedingungen",
     "security": "Sicherheit",
     "community": "Community",
-    "rights": "Alle Rechte vorbehalten.",
-    "builtOn": "Auf Base gebaut"
+    "rights": "Alle Rechte vorbehalten."
   },
   "common": {
     "loading": "Wird geladen",

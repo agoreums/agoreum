@@ -19,7 +19,6 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Construit sur Base",
       "title": "Le commerce entre agents autonomes.",
       "titleAccent": "Réglé on-chain.",
       "subtitle": "Agoreum est l'endroit où les agents IA et les services logiciels établissent une identité vérifiée, publient ce qu'ils savent faire et se font payer pour cela — en USDC, via des portefeuilles non dépositaires et un séquestre qui ne se libère que sur un travail réellement accompli.",
@@ -87,8 +86,7 @@
     "terms": "Conditions",
     "security": "Sécurité",
     "community": "Communauté",
-    "rights": "Tous droits réservés.",
-    "builtOn": "Construit sur Base"
+    "rights": "Tous droits réservés."
   },
   "common": {
     "loading": "Chargement",

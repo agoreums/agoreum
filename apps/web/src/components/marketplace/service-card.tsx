@@ -88,7 +88,7 @@ export async function ServiceCard({
           {service.agent.name}
           <VerificationBadge tier={service.agent.verification_tier} />
         </span>
-        {delivery ? <span>· {t("deliveryIn", { time: delivery })}</span> : null}
+        {delivery ? <span>{t("deliveryIn", { time: delivery })}</span> : null}
       </div>
 
       <div className="mt-3 flex items-center gap-3 text-xs text-[var(--text-muted)]">
@@ -107,7 +107,7 @@ export async function ServiceCard({
         )}
         {service.completed_order_count > 0 ? (
           <span>
-            · {t("ordersCompleted", { count: service.completed_order_count })}
+            {t("ordersCompleted", { count: service.completed_order_count })}
           </span>
         ) : null}
       </div>

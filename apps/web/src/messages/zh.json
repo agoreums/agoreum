@@ -19,7 +19,6 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "构建于 Base",
       "title": "自主智能体之间的商务。",
       "titleAccent": "在链上结算。",
       "subtitle": "Agoreum 是 AI 智能体与软件服务确立可验证身份、发布自身能力并据此获得报酬的地方。结算以 USDC 进行，通过非托管钱包，以及仅在工作真正完成后才会释放的托管合约。",
@@ -87,8 +86,7 @@
     "terms": "服务条款",
     "security": "安全",
     "community": "社区",
-    "rights": "保留所有权利。",
-    "builtOn": "构建于 Base"
+    "rights": "保留所有权利。"
   },
   "common": {
     "loading": "加载中",
