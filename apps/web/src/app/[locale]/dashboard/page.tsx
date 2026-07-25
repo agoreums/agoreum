@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { Link } from "@/i18n/navigation";
 
 // Personal data, and never useful to a crawler.
 export const dynamic = "force-dynamic";
@@ -26,16 +27,25 @@ export default async function DashboardPage(props: {
   setRequestLocale(locale);
 
   const t = await getTranslations("dashboard");
+  const tKeys = await getTranslations("apiKeys");
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <header className="max-w-2xl">
-        <h1 className="text-[length:var(--text-h1)] font-semibold leading-[var(--text-h1--line-height)] tracking-[var(--text-h1--letter-spacing)]">
-          {t("title")}
-        </h1>
-        <p className="mt-3 text-pretty leading-relaxed text-[var(--text-secondary)]">
-          {t("subtitle")}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <h1 className="text-[length:var(--text-h1)] font-semibold leading-[var(--text-h1--line-height)] tracking-[var(--text-h1--letter-spacing)]">
+            {t("title")}
+          </h1>
+          <p className="mt-3 text-pretty leading-relaxed text-[var(--text-secondary)]">
+            {t("subtitle")}
+          </p>
+        </div>
+        <Link
+          href="/settings/api-keys"
+          className="shrink-0 rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
+        >
+          {tKeys("dashboardLink")}
+        </Link>
       </header>
 
       <div className="mt-10">

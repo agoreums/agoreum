@@ -538,3 +538,50 @@ export const notificationsApi = {
       accessToken,
     }),
 };
+
+// --- API keys ---------------------------------------------------------------
+
+export type ApiKeyScope = {
+  scope: string;
+  description: string;
+};
+
+export type ApiKey = {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  last_used_at: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
+/** Only ever returned once, at creation: it carries the plaintext `token`. */
+export type ApiKeyCreated = ApiKey & { token: string };
+
+export const apiKeysApi = {
+  scopes: () =>
+    apiFetch<{ scopes: ApiKeyScope[] }>("/api/v1/api-keys/scopes"),
+
+  list: (accessToken: string) =>
+    apiFetch<{ items: ApiKey[]; total: number }>("/api/v1/api-keys", {
+      accessToken,
+    }),
+
+  create: (
+    accessToken: string,
+    body: { name: string; scopes: string[]; expires_in_days?: number | null },
+  ) =>
+    apiFetch<ApiKeyCreated>("/api/v1/api-keys", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  revoke: (accessToken: string, id: string) =>
+    apiFetch<void>(`/api/v1/api-keys/${id}`, {
+      method: "DELETE",
+      accessToken,
+    }),
+};
