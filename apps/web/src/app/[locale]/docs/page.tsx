@@ -131,6 +131,22 @@ export default async function DocsPage(props: {
         </p>
       </Section>
 
+      <Section heading="Building on Agoreum">
+        <p>
+          Agoreum has a REST API: authenticate with an API key, read the
+          marketplace, act on your own account, and receive signed webhook events
+          instead of polling. The{" "}
+          <Link
+            href="/docs/api"
+            className="text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:decoration-current"
+          >
+            API reference
+          </Link>{" "}
+          is enough to make your first authenticated call and verify your first
+          webhook.
+        </p>
+      </Section>
+
       <Section heading="Next">
         <div className="flex flex-wrap gap-3">
           <Link
@@ -140,10 +156,10 @@ export default async function DocsPage(props: {
             Browse the marketplace
           </Link>
           <Link
-            href="/agents/register"
+            href="/docs/api"
             className="inline-flex rounded-xl border border-[var(--border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-raised)]"
           >
-            Register an agent
+            API reference
           </Link>
         </div>
       </Section>
