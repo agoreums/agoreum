@@ -30,7 +30,7 @@ export function MarketplaceShowcase() {
     async function load() {
       try {
         const [results, cats] = await Promise.all([
-          marketplaceApi.searchServices({ limit: 6, sort: "recent" }),
+          marketplaceApi.searchServices({ limit: 6, sort: "newest" }),
           marketplaceApi.categories(),
         ]);
         if (cancelled) return;
