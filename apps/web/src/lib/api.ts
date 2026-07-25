@@ -651,3 +651,70 @@ export const webhooksApi = {
       accessToken,
     }),
 };
+
+// --- Subscriptions ----------------------------------------------------------
+
+export type SubscriptionPlan = {
+  plan_id: number;
+  name: string;
+  description: string | null;
+  tier: string;
+  interval: "monthly" | "yearly";
+  token_symbol: string;
+  price: string;
+  period_seconds: number;
+  active: boolean;
+};
+
+export type SubscriptionStatus = {
+  plan_id: number;
+  tier: string;
+  status: "active" | "cancelled" | "expired";
+  subscriber_address: string;
+  current_period_start: string;
+  current_period_end: string;
+  auto_renew_cancelled: boolean;
+  plan: SubscriptionPlan | null;
+};
+
+export type SubscriptionPayment = {
+  id: string;
+  tx_hash: string;
+  plan_id: number;
+  amount: string;
+  token_symbol: string;
+  period_start: string;
+  period_end: string;
+  block_number: number;
+  created_at: string;
+};
+
+export type SubscribeInstructions = {
+  chain_id: number;
+  subscription_contract: string;
+  plan_id: number;
+  token_address: string;
+  token_symbol: string;
+  token_decimals: number;
+  price: string;
+  price_base_units: string;
+  max_price_base_units: string;
+  note: string;
+};
+
+export const subscriptionsApi = {
+  plans: () => apiFetch<SubscriptionPlan[]>("/api/v1/subscriptions/plans"),
+
+  mine: (accessToken: string) =>
+    apiFetch<SubscriptionStatus[]>("/api/v1/subscriptions/me", { accessToken }),
+
+  payments: (accessToken: string) =>
+    apiFetch<SubscriptionPayment[]>("/api/v1/subscriptions/me/payments", {
+      accessToken,
+    }),
+
+  instructions: (planId: number) =>
+    apiFetch<SubscribeInstructions>(
+      `/api/v1/subscriptions/plans/${planId}/instructions`,
+    ),
+};

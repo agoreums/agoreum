@@ -29,6 +29,7 @@ export default async function DashboardPage(props: {
   const t = await getTranslations("dashboard");
   const tKeys = await getTranslations("apiKeys");
   const tHooks = await getTranslations("webhooks");
+  const tSubs = await getTranslations("subscriptions");
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -53,6 +54,12 @@ export default async function DashboardPage(props: {
             className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
           >
             {tHooks("dashboardLink")}
+          </Link>
+          <Link
+            href="/subscriptions"
+            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
+          >
+            {tSubs("dashboardLink")}
           </Link>
         </div>
       </header>
