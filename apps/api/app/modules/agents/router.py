@@ -18,6 +18,8 @@ from app.modules.agents.schemas import (
     AgentUpdate,
     DomainChallengeCreate,
     DomainChallengeResponse,
+    GithubChallengeCreate,
+    GithubChallengeResponse,
     validate_slug,
 )
 
@@ -28,6 +30,13 @@ def _challenge_response(challenge, *, with_instructions: bool = True):
     payload = DomainChallengeResponse.model_validate(challenge)
     if with_instructions:
         payload.instructions = service.challenge_instructions(challenge)
+    return payload
+
+
+def _github_challenge_response(challenge, *, with_instructions: bool = True):
+    payload = GithubChallengeResponse.model_validate(challenge)
+    if with_instructions:
+        payload.instructions = service.github_challenge_instructions(challenge)
     return payload
 
 
@@ -193,3 +202,43 @@ async def verify_domain_challenge(
         db, challenge=challenge, agent=agent
     )
     return _challenge_response(verified, with_instructions=False)
+
+
+# --- GitHub verification ----------------------------------------------------
+
+
+@router.post(
+    "/{slug}/github-challenges",
+    response_model=GithubChallengeResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start proving control of a GitHub account",
+)
+async def create_github_challenge(
+    slug: str, payload: GithubChallengeCreate, user: CurrentUser, db: DbSession
+) -> GithubChallengeResponse:
+    agent = await service.require_owned_agent(db, slug, user=user)
+    challenge = await service.create_github_challenge(
+        db, agent=agent, github_login=payload.github_login
+    )
+    return _github_challenge_response(challenge)
+
+
+@router.post(
+    "/{slug}/github-challenges/{challenge_id}/verify",
+    response_model=GithubChallengeResponse,
+    summary="Check the published gist",
+    dependencies=[Depends(limiter("agents:verify_github"))],
+)
+async def verify_github_challenge(
+    slug: str, challenge_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> GithubChallengeResponse:
+    """Performs a real read of the account's public gists. Never succeeds without
+    observing the token."""
+    agent = await service.require_owned_agent(db, slug, user=user)
+    challenge = await service.get_github_challenge(
+        db, agent=agent, challenge_id=challenge_id
+    )
+    verified = await service.verify_github_challenge(
+        db, challenge=challenge, agent=agent
+    )
+    return _github_challenge_response(verified, with_instructions=False)

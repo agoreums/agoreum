@@ -64,6 +64,7 @@ LIMITS: dict[str, Limit] = {
     # Domain verification performs an outbound DNS lookup or HTTPS fetch, so it
     # is both expensive and a potential amplification vector.
     "agents:verify_domain": Limit(requests=10, window_seconds=300),
+    "agents:verify_github": Limit(requests=10, window_seconds=300),
     # Search hits the database with a full-text query.
     "marketplace:search": Limit(requests=120, window_seconds=60),
 }

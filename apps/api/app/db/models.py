@@ -8,7 +8,11 @@ from __future__ import annotations
 
 from app.chain.models import IndexerCursor
 from app.db.base import Base
-from app.modules.agents.models import Agent, AgentDomainChallenge
+from app.modules.agents.models import (
+    Agent,
+    AgentDomainChallenge,
+    AgentGithubChallenge,
+)
 from app.modules.apikeys.models import ApiKey
 from app.modules.notifications.models import (
     Notification,
@@ -29,6 +33,7 @@ from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 __all__ = [
     "Agent",
     "AgentDomainChallenge",
+    "AgentGithubChallenge",
     "ApiKey",
     "Base",
     "Category",

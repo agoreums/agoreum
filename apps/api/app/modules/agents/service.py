@@ -1,6 +1,7 @@
 """Agent registration, identity, and lifecycle."""
 from __future__ import annotations
 
+import re
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -9,7 +10,12 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError, NotFoundError, PermissionDeniedError
+from app.core.errors import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
 from app.core.logging import get_logger
 from app.db.enums import (
     AccountStatus,
@@ -17,7 +23,11 @@ from app.db.enums import (
     AgentVerificationTier,
     WalletVerificationStatus,
 )
-from app.modules.agents.models import Agent, AgentDomainChallenge
+from app.modules.agents.models import (
+    Agent,
+    AgentDomainChallenge,
+    AgentGithubChallenge,
+)
 from app.modules.agents.schemas import AgentCreate, AgentUpdate
 from app.modules.users.models import User, Wallet
 
@@ -30,6 +40,12 @@ MAX_AGENTS_PER_USER = 25
 
 DOMAIN_CHALLENGE_TTL = timedelta(days=7)
 DNS_TXT_PREFIX = "agoreum-verification"
+
+GITHUB_CHALLENGE_TTL = timedelta(days=7)
+GITHUB_TOKEN_PREFIX = "agoreum-verification"  # noqa: S105 - a public label, not a secret
+# GitHub logins: 1-39 chars, alphanumeric or single hyphens, not starting/ending
+# with a hyphen. Validated before it is ever placed in a request path.
+_GITHUB_LOGIN_RE = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
 
 
 # --- Reads ------------------------------------------------------------------
@@ -387,6 +403,128 @@ async def get_challenge(
     ).scalar_one_or_none()
     if challenge is None:
         raise NotFoundError("No such verification challenge.")
+    return challenge
+
+
+# --- GitHub verification ----------------------------------------------------
+
+
+def _normalize_github_login(login: str) -> str:
+    """Accept a username, @handle, or profile URL; return the bare login or raise."""
+    login = login.strip().lstrip("@")
+    prefix = "https://github.com/"
+    if login.lower().startswith(prefix):
+        login = login[len(prefix):]
+    login = login.strip("/").split("/")[0]
+    if not _GITHUB_LOGIN_RE.match(login):
+        raise ValidationError(
+            "That does not look like a GitHub username or organisation.",
+            code="invalid_github_login",
+        )
+    return login.lower()
+
+
+async def create_github_challenge(
+    db: AsyncSession, *, agent: Agent, github_login: str
+) -> AgentGithubChallenge:
+    """Issue a proof-of-control challenge for a GitHub account or organisation."""
+    login = _normalize_github_login(github_login)
+    existing = (
+        await db.execute(
+            select(AgentGithubChallenge).where(
+                AgentGithubChallenge.agent_id == agent.id,
+                AgentGithubChallenge.github_login == login,
+            )
+        )
+    ).scalar_one_or_none()
+
+    token = f"{GITHUB_TOKEN_PREFIX}={secrets.token_urlsafe(24)}"
+    expires_at = datetime.now(UTC) + GITHUB_CHALLENGE_TTL
+
+    if existing is not None:
+        # Reissue rather than refuse; a fresh token is strictly safer than reuse.
+        existing.token = token
+        existing.expires_at = expires_at
+        existing.verified_at = None
+        existing.attempt_count = 0
+        existing.last_error = None
+        await db.flush()
+        return existing
+
+    challenge = AgentGithubChallenge(
+        agent_id=agent.id,
+        github_login=login,
+        token=token,
+        expires_at=expires_at,
+    )
+    db.add(challenge)
+    await db.flush()
+    return challenge
+
+
+def github_challenge_instructions(challenge: AgentGithubChallenge) -> str:
+    return (
+        f"Signed in as {challenge.github_login} on GitHub, create a public gist with "
+        f"this exact text as its description:\n{challenge.token}"
+    )
+
+
+async def get_github_challenge(
+    db: AsyncSession, *, agent: Agent, challenge_id: uuid.UUID
+) -> AgentGithubChallenge:
+    challenge = (
+        await db.execute(
+            select(AgentGithubChallenge).where(
+                AgentGithubChallenge.id == challenge_id,
+                AgentGithubChallenge.agent_id == agent.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if challenge is None:
+        raise NotFoundError("No such verification challenge.")
+    return challenge
+
+
+async def verify_github_challenge(
+    db: AsyncSession, *, challenge: AgentGithubChallenge, agent: Agent
+) -> AgentGithubChallenge:
+    """Check the published gist and, if valid, record the account as verified.
+
+    The check is a real read of the claimed account's public gists. It never
+    succeeds without observing the token.
+    """
+    from app.modules.agents import github_check
+
+    challenge.attempt_count += 1
+    challenge.last_attempt_at = datetime.now(UTC)
+
+    if challenge.expires_at <= datetime.now(UTC):
+        challenge.last_error = "This challenge has expired. Request a new one."
+        await db.flush()
+        raise ConflictError(challenge.last_error, code="challenge_expired")
+
+    found, error = await github_check.check_gist(
+        challenge.github_login, challenge.token
+    )
+    if not found:
+        challenge.last_error = error or "The verification token was not found."
+        await db.flush()
+        logger.info(
+            "github_verification_failed",
+            extra={"agent_id": str(agent.id), "reason": challenge.last_error},
+        )
+        raise ConflictError(challenge.last_error, code="verification_failed")
+
+    now = datetime.now(UTC)
+    challenge.verified_at = now
+    challenge.last_error = None
+    agent.verified_github = challenge.github_login
+    agent.github_verified_at = now
+    await db.flush()
+    logger.info(
+        "github_verified",
+        extra={"agent_id": str(agent.id), "github": challenge.github_login},
+    )
     return challenge
 
 

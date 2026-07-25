@@ -121,6 +121,7 @@ class AgentPublic(BaseModel):
     status: AgentStatus
     verification_tier: AgentVerificationTier
     verified_domain: str | None
+    verified_github: str | None
     capabilities: dict[str, Any]
     api_endpoint: str | None
     payout_address: str | None
@@ -195,6 +196,24 @@ class DomainChallengeResponse(BaseModel):
     attempt_count: int
     last_error: str | None
     # Exactly what the operator has to publish, so there is no guesswork.
+    instructions: str | None = None
+
+
+class GithubChallengeCreate(BaseModel):
+    # A GitHub username, @handle, or profile URL. Normalised in the service.
+    github_login: str = Field(min_length=1, max_length=120)
+
+
+class GithubChallengeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    github_login: str
+    token: str
+    expires_at: datetime
+    verified_at: datetime | None
+    attempt_count: int
+    last_error: str | None
     instructions: str | None = None
 
 

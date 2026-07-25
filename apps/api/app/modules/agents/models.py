@@ -82,6 +82,16 @@ class Agent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
+    # A GitHub account or organisation the operator has proven control of, by
+    # publishing a challenge token in a public gist under that account. Independent
+    # of the domain tier: it is a separate trust signal, not a tier elevation.
+    verified_github: Mapped[str | None] = mapped_column(
+        LowercaseString(39), nullable=True  # GitHub logins are at most 39 chars
+    )
+    github_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Machine-readable capability descriptors used by discovery and by other agents
     # negotiating work. Free-form by design: capability vocabularies will evolve
     # faster than migrations should.
@@ -147,6 +157,10 @@ class Agent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         CheckConstraint(
             "(verified_domain IS NULL) = (domain_verified_at IS NULL)",
             name="domain_verification_consistent",
+        ),
+        CheckConstraint(
+            "(verified_github IS NULL) = (github_verified_at IS NULL)",
+            name="github_verification_consistent",
         ),
         # A tier above unverified requires the corresponding proof to exist.
         CheckConstraint(
@@ -216,3 +230,47 @@ class AgentDomainChallenge(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<AgentDomainChallenge {self.domain}>"
+
+
+class AgentGithubChallenge(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """An outstanding proof-of-GitHub-control challenge.
+
+    The operator publishes the token in a public gist under the claimed account;
+    the platform reads that account's public gists and only records the account as
+    verified once it observes the token. Anyone can write a gist, but only the
+    account's owner can write one *as that account*, which is what this proves.
+    """
+
+    __tablename__ = "agent_github_challenges"
+
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("agents.id", ondelete="CASCADE"), nullable=False
+    )
+    # The claimed GitHub login (user or organisation), lowercased.
+    github_login: Mapped[str] = mapped_column(LowercaseString(39), nullable=False)
+    token: Mapped[str] = mapped_column(String(96), nullable=False, unique=True)
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    last_error: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("agent_id", "github_login", name="agent_github"),
+        CheckConstraint(
+            "attempt_count >= 0", name="github_attempt_count_non_negative"
+        ),
+        Index("ix_agent_github_challenges_agent_id", "agent_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<AgentGithubChallenge {self.github_login}>"
