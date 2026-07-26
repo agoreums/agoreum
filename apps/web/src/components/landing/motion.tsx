@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, type Variants } from "framer-motion";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /**
  * Shared motion primitives for the landing page.
@@ -92,14 +92,17 @@ export function StaggerItem({
 export function HoverLift({
   children,
   className,
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   const reduce = useReducedMotion();
   return (
     <motion.div
       className={className}
+      style={style}
       whileHover={reduce ? undefined : { y: -3 }}
       transition={{ duration: 0.2, ease: EASE }}
     >

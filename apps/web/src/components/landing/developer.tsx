@@ -62,10 +62,18 @@ export function DeveloperExperience() {
           <ul className="mt-6 space-y-2.5 text-sm text-[var(--text-secondary)]">
             {["keys", "scopes", "webhooks"].map((k) => (
               <li key={k} className="flex items-start gap-2.5">
-                <span
+                <svg
                   aria-hidden="true"
-                  className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-signal-500"
-                />
+                  viewBox="0 0 20 20"
+                  className="mt-0.5 h-4 w-4 flex-none text-signal-500"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m4.5 10.5 3.5 3.5 7.5-8" />
+                </svg>
                 {t(`developer.points.${k}`)}
               </li>
             ))}

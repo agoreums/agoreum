@@ -1,10 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type { CSSProperties } from "react";
 
 import { Link } from "@/i18n/navigation";
 
 import { HoverLift, Reveal, Stagger, StaggerItem } from "./motion";
+import { TECH_LOGOS, type TechLogo } from "./tech-logos-data";
 
 function SectionHeading({ id, title, lede }: { id: string; title: string; lede?: string }) {
   return (
@@ -133,21 +135,33 @@ export function SecurityTrust() {
 
 // --- Supported technologies -------------------------------------------------
 
-// Real, factual stack. Proper nouns, not translated.
-const TECH = [
-  "EVM",
-  "USDC",
-  "Solidity",
-  "Foundry",
-  "OpenZeppelin",
-  "Sign-In With Ethereum",
-  "FastAPI",
-  "PostgreSQL",
-  "Next.js",
-  "React",
-  "TypeScript",
-  "Docker",
-];
+// Each entry carries its authentic brand mark (see tech-logos-data.ts). The mark
+// rests in the muted text tone and warms to its true brand hue on hover.
+
+function TechMark({ logo }: { logo: TechLogo }) {
+  if (logo.raw) {
+    // Multi-tone marks (the USDC coin) keep their own fills at all times.
+    return (
+      <svg
+        viewBox={logo.viewBox}
+        role="img"
+        aria-label={logo.name}
+        className="h-9 w-9"
+        dangerouslySetInnerHTML={{ __html: logo.raw }}
+      />
+    );
+  }
+  return (
+    <svg
+      viewBox={logo.viewBox}
+      role="img"
+      aria-label={logo.name}
+      className="h-9 w-9 fill-current"
+    >
+      <path d={logo.path} />
+    </svg>
+  );
+}
 
 export function SupportedTechnologies() {
   const t = useTranslations("home");
@@ -161,12 +175,18 @@ export function SupportedTechnologies() {
         title={t("tech.title")}
         lede={t("tech.subtitle")}
       />
-      <Stagger className="mt-10 flex flex-wrap gap-2.5">
-        {TECH.map((name) => (
-          <StaggerItem key={name}>
-            <span className="inline-flex rounded-full border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-2 text-sm text-[var(--text-secondary)]">
-              {name}
-            </span>
+      <Stagger className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {TECH_LOGOS.map((logo) => (
+          <StaggerItem key={logo.name}>
+            <HoverLift
+              className="tech-tile flex h-full items-center gap-3.5 rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-5 py-4"
+              style={{ "--brand": logo.brand ?? "var(--text-primary)" } as CSSProperties}
+            >
+              <TechMark logo={logo} />
+              <span className="text-sm font-medium text-[var(--text-primary)]">
+                {logo.name}
+              </span>
+            </HoverLift>
           </StaggerItem>
         ))}
       </Stagger>

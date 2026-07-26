@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AgentTransaction } from "@/components/landing/agent-transaction";
+import { LandingBackground } from "@/components/landing/background";
 import { DeveloperExperience } from "@/components/landing/developer";
 import { Faq } from "@/components/landing/faq";
 import { Hero } from "@/components/landing/hero";
@@ -33,6 +34,8 @@ export default async function HomePage(props: {
   return (
     <>
       <WebSiteJsonLd description={tMeta("description")} />
+
+      <LandingBackground />
 
       <Hero />
       <Stats />

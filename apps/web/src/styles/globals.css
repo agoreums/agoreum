@@ -280,6 +280,164 @@
       transparent
     );
   }
+
+  /* --- Ambient site background ------------------------------------------------
+     A premium, slow aurora: three softly-drifting light pools in the brand triad
+     (indigo, cyan, a whisper of settlement amber) over a fine engineered grid.
+     Everything animates on transform/opacity only, so it stays GPU-cheap, and it
+     sits at -z-10 behind all content. Deliberately low-contrast so body text keeps
+     full legibility on top of it. */
+  .aurora-field {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: var(--surface-base);
+  }
+
+  .aurora-blob {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform;
+    /* Radial fill gives soft edges without an expensive blur filter. */
+    opacity: 0.55;
+  }
+  :root[data-theme="light"] .aurora-blob,
+  :root[data-theme="system"] .aurora-blob {
+    opacity: 0.4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] .aurora-blob {
+      opacity: 0.55;
+    }
+  }
+
+  .aurora-indigo {
+    inset-block-start: -18%;
+    inset-inline-start: -12%;
+    width: min(70vw, 900px);
+    height: min(70vw, 900px);
+    background-image: radial-gradient(
+      circle at center,
+      color-mix(in oklab, var(--color-brand-500) 55%, transparent) 0%,
+      transparent 68%
+    );
+    animation: aurora-a 26s var(--ease-out-brand) infinite;
+  }
+
+  .aurora-cyan {
+    inset-block-start: -12%;
+    inset-inline-end: -14%;
+    width: min(62vw, 760px);
+    height: min(62vw, 760px);
+    background-image: radial-gradient(
+      circle at center,
+      color-mix(in oklab, var(--color-signal-500) 42%, transparent) 0%,
+      transparent 70%
+    );
+    animation: aurora-b 32s var(--ease-out-brand) infinite;
+  }
+
+  .aurora-amber {
+    inset-block-end: -22%;
+    inset-inline-start: 38%;
+    width: min(58vw, 720px);
+    height: min(58vw, 720px);
+    background-image: radial-gradient(
+      circle at center,
+      color-mix(in oklab, var(--color-accent-500) 24%, transparent) 0%,
+      transparent 72%
+    );
+    animation: aurora-c 38s var(--ease-out-brand) infinite;
+  }
+
+  /* Fine engineered grid, masked to fade out toward the edges. Reads as precision
+     scaffolding rather than decoration. */
+  .aurora-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--color-ink-100) 6%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-ink-100) 6%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 30%,
+      #000 0%,
+      transparent 78%
+    );
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 0%, transparent 78%);
+  }
+  :root[data-theme="light"] .aurora-grid,
+  :root[data-theme="system"] .aurora-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--color-ink-950) 5%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-ink-950) 5%, transparent) 1px,
+        transparent 1px
+      );
+  }
+
+  @keyframes aurora-a {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(6%, 5%, 0) scale(1.12);
+    }
+  }
+  @keyframes aurora-b {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-5%, 7%, 0) scale(1.08);
+    }
+  }
+  @keyframes aurora-c {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(4%, -6%, 0) scale(1.16);
+    }
+  }
+
+  /* --- Technology logo tile --------------------------------------------------
+     Each mark rests in the muted text tone and warms to its own true brand hue on
+     hover, with the border and fill picking up the same colour. `--brand` is set
+     per tile in the component (falling back to the primary text colour for marks
+     whose brand colour is near-black). */
+  .tech-tile {
+    color: var(--text-muted);
+    transition:
+      color 0.22s var(--ease-out-brand),
+      border-color 0.22s var(--ease-out-brand),
+      background-color 0.22s var(--ease-out-brand);
+  }
+  @media (hover: hover) {
+    .tech-tile:hover {
+      color: var(--brand);
+      border-color: color-mix(in oklab, var(--brand) 42%, transparent);
+      background-color: color-mix(in oklab, var(--brand) 7%, var(--surface-raised));
+    }
+  }
 }
 
 /* =============================================================================

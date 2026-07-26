@@ -36,10 +36,6 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="brand-glow pointer-events-none absolute inset-x-0 -top-32 h-[36rem]"
-      />
       <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 lg:px-8">
         <div className="max-w-3xl">
           <motion.p
@@ -82,17 +78,12 @@ export function Hero() {
             </Link>
           </motion.div>
 
-          <motion.ul
-            {...rise(0.32)}
-            className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-[var(--text-muted)]"
-          >
+          <motion.ul {...rise(0.32)} className="mt-10 flex flex-wrap gap-2.5">
             {chips.map((chip) => (
-              <li key={chip} className="inline-flex items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className="h-1.5 w-1.5 rounded-full bg-signal-500"
-                />
-                {chip}
+              <li key={chip}>
+                <span className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface-raised)_70%,transparent)] px-3.5 py-1.5 text-sm text-[var(--text-secondary)] backdrop-blur-sm">
+                  {chip}
+                </span>
               </li>
             ))}
           </motion.ul>
