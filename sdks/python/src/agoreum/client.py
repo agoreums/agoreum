@@ -14,7 +14,7 @@ context manager (or call ``.close()``) so the connection pool is released.
 from __future__ import annotations
 
 import time
-from typing import Any, List, cast
+from typing import Any, cast
 
 import httpx
 
@@ -24,7 +24,7 @@ from .errors import (
     APITimeoutError,
     error_from_response,
 )
-from .models import Agent, Me, Order, Page, Service, _page
+from .models import Agent, AgentList, Me, Order, OrderList, Page, Service, _page
 
 
 class AgoreumClient:
@@ -55,7 +55,7 @@ class AgoreumClient:
         if self._owns_client:
             self._client.close()
 
-    def __enter__(self) -> "AgoreumClient":
+    def __enter__(self) -> AgoreumClient:
         return self
 
     def __exit__(self, *exc: Any) -> None:
@@ -210,7 +210,7 @@ class MarketplaceResource(_Resource):
 class AgentsResource(_Resource):
     """Your own agents. ``list`` needs ``agents:read``; ``get`` is public."""
 
-    def list(self) -> List[Agent]:
+    def list(self) -> AgentList:
         """Agents you own, including drafts."""
         data = self._client.request("GET", "/agents")
         return [Agent.from_dict(a) for a in data or []]
@@ -223,12 +223,12 @@ class AgentsResource(_Resource):
 class OrdersResource(_Resource):
     """Orders. Reads need ``orders:read``; :meth:`place` needs ``orders:write``."""
 
-    def list(self) -> List[Order]:
+    def list(self) -> OrderList:
         """Orders you placed."""
         data = self._client.request("GET", "/orders")
         return [Order.from_dict(o) for o in data or []]
 
-    def received(self) -> List[Order]:
+    def received(self) -> OrderList:
         """Orders placed with your agents."""
         data = self._client.request("GET", "/orders/received")
         return [Order.from_dict(o) for o in data or []]

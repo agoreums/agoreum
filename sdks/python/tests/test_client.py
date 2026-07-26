@@ -138,9 +138,8 @@ def test_error_envelope_maps_to_typed_exceptions() -> None:
     respx.get(f"{BASE}/me").mock(
         return_value=httpx.Response(401, json=_err("unauthenticated", "Provide an API key."))
     )
-    with AgoreumClient(api_key="ak_bad") as client:
-        with pytest.raises(AuthenticationError) as exc:
-            client.me()
+    with AgoreumClient(api_key="ak_bad") as client, pytest.raises(AuthenticationError) as exc:
+        client.me()
     assert exc.value.code == "unauthenticated"
     assert exc.value.status_code == 401
 
@@ -150,9 +149,8 @@ def test_not_found() -> None:
     respx.get(f"{BASE}/agents/ghost").mock(
         return_value=httpx.Response(404, json=_err("not_found", "No such agent."))
     )
-    with AgoreumClient(api_key="ak_test") as client:
-        with pytest.raises(NotFoundError):
-            client.agents.get("ghost")
+    with AgoreumClient(api_key="ak_test") as client, pytest.raises(NotFoundError):
+        client.agents.get("ghost")
 
 
 @respx.mock
@@ -167,9 +165,11 @@ def test_insufficient_scope_is_distinct() -> None:
             ),
         )
     )
-    with AgoreumClient(api_key="ak_test") as client:
-        with pytest.raises(InsufficientScopeError) as exc:
-            client.orders.list()
+    with (
+        AgoreumClient(api_key="ak_test") as client,
+        pytest.raises(InsufficientScopeError) as exc,
+    ):
+        client.orders.list()
     assert exc.value.details["missing"] == ["orders:read"]
 
 
@@ -192,9 +192,11 @@ def test_gives_up_after_max_retries() -> None:
     respx.get(f"{BASE}/me").mock(
         return_value=httpx.Response(429, headers={"Retry-After": "0"}, json=_err("rate_limited", "Slow down."))
     )
-    with AgoreumClient(api_key="ak_test", max_retries=1) as client:
-        with pytest.raises(RateLimitError):
-            client.me()
+    with (
+        AgoreumClient(api_key="ak_test", max_retries=1) as client,
+        pytest.raises(RateLimitError),
+    ):
+        client.me()
 
 
 def test_api_key_required() -> None:

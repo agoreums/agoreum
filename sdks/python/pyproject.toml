@@ -30,7 +30,9 @@ Documentation = "https://agoreum.xyz/developers"
 Source = "https://github.com/agoreums/agoreum/tree/main/sdks/python"
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-asyncio>=0.21", "respx>=0.20", "mypy>=1.5", "ruff>=0.5"]
+# ruff is pinned: its rule set is version-sensitive, so a floating range would let
+# CI flag lints that pass locally. Bump deliberately, in lockstep with the repo.
+dev = ["pytest>=7", "pytest-asyncio>=0.21", "respx>=0.20", "mypy>=1.5", "ruff==0.16.*"]
 
 [tool.hatch.version]
 path = "src/agoreum/_version.py"
@@ -45,6 +47,18 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+# Mirrors the repository house style (apps/api) so the SDK is held to the same bar.
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "C4", "SIM", "S", "ASYNC"]
+ignore = [
+    # The formatter owns line length.
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert; it is how pytest expresses expectations.
+"tests/*" = ["S101"]
 
 [tool.mypy]
 python_version = "3.10"

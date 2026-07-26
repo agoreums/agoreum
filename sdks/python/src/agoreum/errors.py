@@ -151,9 +151,12 @@ def error_from_response(
     else:
         cls = APIStatusError
 
-    kwargs: dict[str, Any] = dict(
-        status_code=status_code, code=code, details=details, request_id=request_id
-    )
+    kwargs: dict[str, Any] = {
+        "status_code": status_code,
+        "code": code,
+        "details": details,
+        "request_id": request_id,
+    }
     if cls is RateLimitError:
         return RateLimitError(message, retry_after=retry_after, **kwargs)
     return cls(message, **kwargs)

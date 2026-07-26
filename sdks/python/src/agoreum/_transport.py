@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import random
 from enum import Enum
-from typing import Any, Iterable
+from typing import Any
 
 from ._version import __version__
 
@@ -83,7 +83,8 @@ def backoff_delay(attempt: int, retry_after: float | None = None) -> float:
     if retry_after is not None:
         return retry_after
     base = min(20.0, 0.5 * (2 ** (attempt - 1)))
-    return random.uniform(0.0, base)
+    # Jitter for retry spacing, not a security context — a PRNG is the right tool.
+    return random.uniform(0.0, base)  # noqa: S311
 
 
 def clean_json(data: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -95,7 +96,3 @@ def clean_json(data: dict[str, Any] | None) -> dict[str, Any] | None:
 
 def join_url(base_url: str, path: str) -> str:
     return f"{base_url.rstrip('/')}/{path.lstrip('/')}"
-
-
-def each_scope(scopes: Iterable[str]) -> str:
-    return ", ".join(scopes)

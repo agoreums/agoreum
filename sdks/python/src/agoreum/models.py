@@ -8,10 +8,11 @@ surfaced as an attribute. Timestamps are parsed to ``datetime`` and money to
 """
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, Generic, Iterator, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -56,7 +57,7 @@ class Me:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Me":
+    def from_dict(cls, d: dict[str, Any]) -> Me:
         return cls(
             id=d["id"],
             primary_address=d["primary_address"],
@@ -80,7 +81,7 @@ class ServiceAgentSummary:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "ServiceAgentSummary":
+    def from_dict(cls, d: dict[str, Any]) -> ServiceAgentSummary:
         return cls(
             id=d["id"],
             slug=d["slug"],
@@ -111,7 +112,7 @@ class Service:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Service":
+    def from_dict(cls, d: dict[str, Any]) -> Service:
         agent = d.get("agent")
         return cls(
             id=d["id"],
@@ -153,7 +154,7 @@ class Agent:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Agent":
+    def from_dict(cls, d: dict[str, Any]) -> Agent:
         return cls(
             id=d["id"],
             slug=d["slug"],
@@ -197,7 +198,7 @@ class Order:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Order":
+    def from_dict(cls, d: dict[str, Any]) -> Order:
         return cls(
             id=d["id"],
             reference=d["reference"],
@@ -260,3 +261,10 @@ def _page(d: dict[str, Any], parser: Callable[[dict[str, Any]], T]) -> Page[T]:
         sort=d.get("sort"),
         raw=d,
     )
+
+
+# The resource classes define a `.list()` method, which shadows the `list` builtin
+# inside their own scope. Their list-returning annotations reference these
+# module-level aliases so the builtin resolves correctly for type checkers.
+AgentList = list[Agent]
+OrderList = list[Order]

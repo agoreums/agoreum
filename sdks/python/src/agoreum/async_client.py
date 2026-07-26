@@ -16,14 +16,14 @@ Mirrors :class:`agoreum.client.AgoreumClient` exactly; every method is awaitable
 from __future__ import annotations
 
 import asyncio
-from typing import Any, List, cast
+from typing import Any, cast
 
 import httpx
 
 from . import _transport as tp
 from .client import _handle_response
 from .errors import APIConnectionError, APITimeoutError
-from .models import Agent, Me, Order, Page, Service, _page
+from .models import Agent, AgentList, Me, Order, OrderList, Page, Service, _page
 
 
 class AsyncAgoreumClient:
@@ -52,7 +52,7 @@ class AsyncAgoreumClient:
         if self._owns_client:
             await self._client.aclose()
 
-    async def __aenter__(self) -> "AsyncAgoreumClient":
+    async def __aenter__(self) -> AsyncAgoreumClient:
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
@@ -178,7 +178,7 @@ class AsyncMarketplaceResource(_AsyncResource):
 class AsyncAgentsResource(_AsyncResource):
     """Your own agents. ``list`` needs ``agents:read``; ``get`` is public."""
 
-    async def list(self) -> List[Agent]:
+    async def list(self) -> AgentList:
         data = await self._client.request("GET", "/agents")
         return [Agent.from_dict(a) for a in data or []]
 
@@ -189,11 +189,11 @@ class AsyncAgentsResource(_AsyncResource):
 class AsyncOrdersResource(_AsyncResource):
     """Orders. Reads need ``orders:read``; :meth:`place` needs ``orders:write``."""
 
-    async def list(self) -> List[Order]:
+    async def list(self) -> OrderList:
         data = await self._client.request("GET", "/orders")
         return [Order.from_dict(o) for o in data or []]
 
-    async def received(self) -> List[Order]:
+    async def received(self) -> OrderList:
         data = await self._client.request("GET", "/orders/received")
         return [Order.from_dict(o) for o in data or []]
 
