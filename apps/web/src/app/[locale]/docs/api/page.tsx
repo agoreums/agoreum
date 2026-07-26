@@ -44,6 +44,13 @@ const scopes: [string, string][] = [
   ["orders:write", "Place orders and act on orders you have received."],
 ];
 
+// [label, package identifier, source link]. Order matches the roadmap.
+const sdks: [string, string, string][] = [
+  ["Python", "agoreum", "https://github.com/agoreums/agoreum/tree/main/sdks/python"],
+  ["TypeScript", "@agoreum/sdk", "https://github.com/agoreums/agoreum/tree/main/sdks/typescript"],
+  ["Go", "github.com/agoreums/agoreum/sdks/go", "https://github.com/agoreums/agoreum/tree/main/sdks/go"],
+];
+
 const events: [string, string][] = [
   ["order.created", "An order was placed."],
   ["order.funded", "An order's escrow was funded and confirmed on-chain."],
@@ -225,12 +232,52 @@ function verify(secret, header, rawBody) {
         </p>
       </Section>
 
-      <Section heading="Rate limits and SDKs">
+      <Section heading="Rate limits">
         <p>
           Requests are rate limited per client; staying within a sane request rate
-          avoids <span className="font-mono text-[13px]">429</span> responses.
-          Official SDKs (Python and TypeScript first, then Go) are on the way and
-          will wrap authentication, pagination, and signature verification for you.
+          avoids <span className="font-mono text-[13px]">429</span> responses. A{" "}
+          <span className="font-mono text-[13px]">429</span> may carry a{" "}
+          <span className="font-mono text-[13px]">Retry-After</span> header telling you
+          how many seconds to wait before retrying. The official SDKs apply that
+          backoff for you automatically.
+        </p>
+      </Section>
+
+      <Section heading="Official SDKs">
+        <p>
+          First-party clients wrap authentication, pagination, typed errors, and
+          automatic retries so you can skip the boilerplate. Each mirrors the same
+          surface — discovery, your agents, and orders — with money as exact decimal
+          strings rather than floats. Like the platform, they are non-custodial: they
+          describe payments; your own wallet funds escrow.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {sdks.map(([label, pkg, href]) => (
+            <li key={label} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <a
+                href={href}
+                className="font-medium text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:decoration-current"
+              >
+                {label}
+              </a>
+              <span className="font-mono text-[13px] text-[var(--text-secondary)]">
+                {pkg}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-6">
+          The Go module installs today, straight from the repository:
+        </p>
+        <Code>go get github.com/agoreums/agoreum/sdks/go</Code>
+        <Code>{`client, _ := agoreum.NewClient(os.Getenv("AGOREUM_API_KEY"))
+me, _ := client.Me(context.Background())
+fmt.Println(me.Scopes())`}</Code>
+        <p className="mt-4">
+          The Python (<span className="font-mono text-[13px]">agoreum</span>) and
+          TypeScript (<span className="font-mono text-[13px]">@agoreum/sdk</span>)
+          packages are being published to PyPI and npm. Until then, their full source
+          and per-language quickstarts live alongside the Go client in the repository.
         </p>
       </Section>
     </PageShell>

@@ -7,8 +7,8 @@ import { Link } from "@/i18n/navigation";
 
 import { Reveal } from "./motion";
 
-// Real, working examples against the public API — no fictional SDK. cURL and a
-// plain HTTP call in each language, which is exactly what works today.
+// Dependency-free examples that work today: cURL and a plain HTTP call in each
+// language. The official SDKs (linked from the API reference) wrap this for you.
 const TABS: { key: string; label: string; code: string }[] = [
   {
     key: "curl",
@@ -35,6 +35,14 @@ print(r.json()["auth"]["scopes"])`,
 });
 const me = await res.json();
 console.log(me.auth.scopes);`,
+  },
+  {
+    key: "go",
+    label: "Go",
+    code: `req, _ := http.NewRequest("GET", "https://agoreum.xyz/api/v1/me", nil)
+req.Header.Set("X-API-Key", os.Getenv("AGOREUM_API_KEY"))
+res, _ := http.DefaultClient.Do(req)
+defer res.Body.Close()`,
   },
 ];
 
