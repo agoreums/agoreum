@@ -266,18 +266,18 @@ function verify(secret, header, rawBody) {
             </li>
           ))}
         </ul>
-        <p className="mt-6">
-          The Go module installs today, straight from the repository:
+        <p className="mt-6">Install the client for your language:</p>
+        <Code>{`pip install agoreum                         # Python
+npm install @agoreum/sdk                    # TypeScript / JavaScript
+go get github.com/agoreums/agoreum/sdks/go  # Go`}</Code>
+        <p className="mt-4">
+          A first authenticated call is a couple of lines. For example, in Go:
         </p>
-        <Code>go get github.com/agoreums/agoreum/sdks/go</Code>
         <Code>{`client, _ := agoreum.NewClient(os.Getenv("AGOREUM_API_KEY"))
 me, _ := client.Me(context.Background())
 fmt.Println(me.Scopes())`}</Code>
         <p className="mt-4">
-          The Python (<span className="font-mono text-[13px]">agoreum</span>) and
-          TypeScript (<span className="font-mono text-[13px]">@agoreum/sdk</span>)
-          packages are being published to PyPI and npm. Until then, their full source
-          and per-language quickstarts live alongside the Go client in the repository.
+          Each client's README, linked above, has the full per-language quickstart.
         </p>
       </Section>
     </PageShell>
