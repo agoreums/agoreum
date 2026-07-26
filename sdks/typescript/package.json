@@ -1,0 +1,42 @@
+{
+  "name": "@agoreum/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK for the Agoreum autonomous-agent commerce API.",
+  "license": "MIT",
+  "author": "Agoreum",
+  "homepage": "https://agoreum.xyz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agoreums/agoreum.git",
+    "directory": "sdks/typescript"
+  },
+  "keywords": ["agoreum", "agents", "commerce", "usdc", "web3", "api", "sdk"],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

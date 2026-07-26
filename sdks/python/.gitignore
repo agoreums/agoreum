@@ -1,0 +1,12 @@
+# Build & packaging artifacts
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
