@@ -277,7 +277,8 @@ go get github.com/agoreums/agoreum/sdks/go  # Go`}</Code>
 me, _ := client.Me(context.Background())
 fmt.Println(me.Scopes())`}</Code>
         <p className="mt-4">
-          Each client's README, linked above, has the full per-language quickstart.
+          The README for each client, linked above, carries the full per-language
+          quickstart.
         </p>
       </Section>
     </PageShell>
