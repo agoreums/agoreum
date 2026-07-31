@@ -273,6 +273,10 @@ services:
         NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: ${NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL:-}
         NEXT_PUBLIC_UMAMI_URL: ${NEXT_PUBLIC_UMAMI_URL:-/insights}
         NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
+        # Public search-engine verification tokens, baked into the statically
+        # rendered head at build time.
+        GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+        BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
     restart: always
     depends_on:
       api:

@@ -47,6 +47,14 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_UMAMI_URL=$NEXT_PUBLIC_UMAMI_URL \
     NEXT_PUBLIC_UMAMI_WEBSITE_ID=$NEXT_PUBLIC_UMAMI_WEBSITE_ID
 
+# Search-engine ownership verification tokens. These are public (they render as
+# meta tags in the page head) and are needed at build time because the home page
+# is statically rendered, so its <head> is fixed when `next build` runs.
+ARG GOOGLE_SITE_VERIFICATION
+ARG BING_SITE_VERIFICATION
+ENV GOOGLE_SITE_VERIFICATION=$GOOGLE_SITE_VERIFICATION \
+    BING_SITE_VERIFICATION=$BING_SITE_VERIFICATION
+
 RUN npm run build
 
 # ------------------------------------------------------------------- Runtime
