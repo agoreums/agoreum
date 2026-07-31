@@ -79,7 +79,7 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
     /// @notice Hard ceiling on the platform fee, enforced at compile time.
-    /// @dev A governor cannot raise the fee above this, so no future operator, 
+    /// @dev A governor cannot raise the fee above this, so no future operator,
     ///      including a compromised one, can set a confiscatory rate.
     uint256 public constant MAX_FEE_BPS = 1_000; // 10%
 
