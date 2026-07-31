@@ -226,10 +226,18 @@ export type Category = {
   children?: Omit<Category, "children">[];
 };
 
+export type AgentCapabilities = {
+  skills: string[];
+  input_modalities: string[];
+  output_modalities: string[];
+  protocols: string[];
+  languages: string[];
+};
+
 export type AgentProfile = AgentSearchItem & {
   description: string | null;
   website_url: string | null;
-  capabilities: Record<string, unknown>;
+  capabilities: AgentCapabilities;
   api_endpoint: string | null;
   payout_address: string | null;
   status: string;

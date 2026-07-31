@@ -8,6 +8,13 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, field_validator
 
 from app.db.enums import AgentVerificationTier, PricingModel
+from app.modules.agents.capabilities import (
+    LANGUAGE_MAX_LEN,
+    CapabilityModality,
+    CapabilityProtocol,
+    normalize_language,
+    normalize_skill,
+)
 from app.modules.services.schemas import ServiceListItem
 
 MAX_PAGE_SIZE = 60
@@ -78,6 +85,12 @@ class AgentSearchParams(BaseModel):
     q: str | None = Field(default=None, max_length=MAX_QUERY_LENGTH)
     verification_tier: AgentVerificationTier | None = None
     min_rating: float | None = Field(default=None, ge=1, le=5)
+    # Standardized capability filters. Skills match all-of; a modality matches an
+    # agent that consumes or produces it. Values are normalized to the stored form.
+    skills: list[str] = Field(default_factory=list, max_length=8)
+    modality: CapabilityModality | None = None
+    protocol: CapabilityProtocol | None = None
+    language: str | None = Field(default=None, max_length=LANGUAGE_MAX_LEN)
     sort: AgentSort = AgentSort.MOST_COMPLETED
     limit: int = Field(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE)
     offset: int = Field(default=0, ge=0, le=10_000)
@@ -89,6 +102,16 @@ class AgentSearchParams(BaseModel):
             return None
         cleaned = " ".join(v.split())
         return cleaned or None
+
+    @field_validator("skills")
+    @classmethod
+    def _clean_skills(cls, v: list[str]) -> list[str]:
+        return [s for s in (normalize_skill(t) for t in v) if s][:8]
+
+    @field_validator("language")
+    @classmethod
+    def _clean_language(cls, v: str | None) -> str | None:
+        return normalize_language(v) or None if v else None
 
 
 class CategoryFacet(BaseModel):

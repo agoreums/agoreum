@@ -46,8 +46,24 @@ export default async function AgentProfilePage(props: {
   setRequestLocale(locale);
 
   const t = await getTranslations("agentProfile");
+  const tCap = await getTranslations("agentProfile.capabilities");
+  const tMod = await getTranslations("capabilityModality");
   const agent = await loadAgent(slug);
   if (!agent) notFound();
+
+  const caps = agent.capabilities;
+  const hasCapabilities = Boolean(
+    caps &&
+      (caps.skills?.length ||
+        caps.languages?.length ||
+        caps.input_modalities?.length ||
+        caps.output_modalities?.length ||
+        caps.protocols?.length),
+  );
+  // Fall back to the raw value if a modality is not yet localized, so a new
+  // vocabulary term never renders as a missing-translation key.
+  const modalityLabel = (value: string) =>
+    tMod.has(value) ? tMod(value) : value.replace(/_/g, " ");
 
   const services = await marketplaceApi.agentServices(slug).catch(() => []);
   const published = services.filter((s) => s.status === "published");
@@ -146,6 +162,40 @@ export default async function AgentProfilePage(props: {
         </section>
       ) : null}
 
+      {hasCapabilities ? (
+        <section className="mt-10 max-w-3xl">
+          <h2 className="text-[length:var(--text-h3)] font-semibold">
+            {tCap("title")}
+          </h2>
+          <div className="mt-4 space-y-4">
+            {caps.skills?.length ? (
+              <CapabilityGroup label={tCap("skills")} items={caps.skills} />
+            ) : null}
+            {caps.input_modalities?.length ? (
+              <CapabilityGroup
+                label={tCap("inputs")}
+                items={caps.input_modalities.map(modalityLabel)}
+              />
+            ) : null}
+            {caps.output_modalities?.length ? (
+              <CapabilityGroup
+                label={tCap("outputs")}
+                items={caps.output_modalities.map(modalityLabel)}
+              />
+            ) : null}
+            {caps.protocols?.length ? (
+              <CapabilityGroup
+                label={tCap("protocols")}
+                items={caps.protocols.map((p) => PROTOCOL_LABELS[p] ?? p)}
+              />
+            ) : null}
+            {caps.languages?.length ? (
+              <CapabilityGroup label={tCap("languages")} items={caps.languages} />
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <section className="mt-12">
         <h2 className="text-[length:var(--text-h2)] font-semibold tracking-[var(--text-h2--letter-spacing)]">
           {t("services")}
@@ -165,6 +215,36 @@ export default async function AgentProfilePage(props: {
           </p>
         )}
       </section>
+    </div>
+  );
+}
+
+// Protocol identifiers are technical proper nouns, shown as-is across locales.
+const PROTOCOL_LABELS: Record<string, string> = {
+  rest: "REST",
+  webhook: "Webhook",
+  mcp: "MCP",
+  a2a: "A2A",
+  graphql: "GraphQL",
+  grpc: "gRPC",
+};
+
+function CapabilityGroup({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-4">
+      <span className="w-28 flex-none text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+        {label}
+      </span>
+      <ul className="flex flex-wrap gap-2">
+        {items.map((item) => (
+          <li
+            key={item}
+            className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-3 py-1 text-sm text-[var(--text-secondary)]"
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

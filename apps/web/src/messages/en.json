@@ -371,6 +371,14 @@
       "services": "Services",
       "rating": "Rating",
       "notRated": "Not rated yet"
+    },
+    "capabilities": {
+      "title": "Capabilities",
+      "skills": "Skills",
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "protocols": "Protocols",
+      "languages": "Languages"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "The transaction was reverted on-chain.",
     "historyTitle": "Payment history",
     "paidOn": "Paid {when}"
+  },
+  "capabilityModality": {
+    "text": "Text",
+    "image": "Image",
+    "audio": "Audio",
+    "video": "Video",
+    "code": "Code",
+    "structured_data": "Structured data",
+    "file": "File",
+    "embedding": "Embedding"
   }
 }

@@ -4,11 +4,12 @@ from __future__ import annotations
 import re
 import uuid
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.db.enums import AgentStatus, AgentVerificationTier
+from app.modules.agents.capabilities import AgentCapabilities
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
 
@@ -44,7 +45,7 @@ class AgentCreate(BaseModel):
     description: str | None = Field(default=None, max_length=8000)
     website_url: str | None = Field(default=None, max_length=512)
     avatar_url: str | None = Field(default=None, max_length=512)
-    capabilities: dict[str, Any] = Field(default_factory=dict)
+    capabilities: AgentCapabilities = Field(default_factory=AgentCapabilities)
     api_endpoint: str | None = Field(default=None, max_length=512)
 
     @field_validator("slug")
@@ -83,7 +84,7 @@ class AgentUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=8000)
     website_url: str | None = Field(default=None, max_length=512)
     avatar_url: str | None = Field(default=None, max_length=512)
-    capabilities: dict[str, Any] | None = None
+    capabilities: AgentCapabilities | None = None
     api_endpoint: str | None = Field(default=None, max_length=512)
 
     @field_validator("website_url", "avatar_url", "api_endpoint")
@@ -122,7 +123,7 @@ class AgentPublic(BaseModel):
     verification_tier: AgentVerificationTier
     verified_domain: str | None
     verified_github: str | None
-    capabilities: dict[str, Any]
+    capabilities: AgentCapabilities
     api_endpoint: str | None
     payout_address: str | None
     completed_orders: int

@@ -371,6 +371,14 @@
       "services": "الخدمات",
       "rating": "التقييم",
       "notRated": "لم يُقيَّم بعد"
+    },
+    "capabilities": {
+      "title": "القدرات",
+      "skills": "المهارات",
+      "inputs": "المدخلات",
+      "outputs": "المخرجات",
+      "protocols": "البروتوكولات",
+      "languages": "اللغات"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "تم التراجع عن المعاملة على السلسلة.",
     "historyTitle": "سجل المدفوعات",
     "paidOn": "دُفِع في {when}"
+  },
+  "capabilityModality": {
+    "text": "نص",
+    "image": "صورة",
+    "audio": "صوت",
+    "video": "فيديو",
+    "code": "كود",
+    "structured_data": "بيانات منظّمة",
+    "file": "ملف",
+    "embedding": "تضمين"
   }
 }

@@ -371,6 +371,14 @@
       "services": "服务",
       "rating": "评分",
       "notRated": "暂无评分"
+    },
+    "capabilities": {
+      "title": "能力",
+      "skills": "技能",
+      "inputs": "输入",
+      "outputs": "输出",
+      "protocols": "协议",
+      "languages": "语言"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "交易在链上被回滚。",
     "historyTitle": "付款历史",
     "paidOn": "于 {when} 付款"
+  },
+  "capabilityModality": {
+    "text": "文本",
+    "image": "图像",
+    "audio": "音频",
+    "video": "视频",
+    "code": "代码",
+    "structured_data": "结构化数据",
+    "file": "文件",
+    "embedding": "嵌入"
   }
 }

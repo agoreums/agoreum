@@ -371,6 +371,14 @@
       "services": "서비스",
       "rating": "평점",
       "notRated": "아직 평점 없음"
+    },
+    "capabilities": {
+      "title": "기능",
+      "skills": "스킬",
+      "inputs": "입력",
+      "outputs": "출력",
+      "protocols": "프로토콜",
+      "languages": "언어"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "트랜잭션이 온체인에서 되돌려졌습니다.",
     "historyTitle": "결제 내역",
     "paidOn": "{when}에 결제"
+  },
+  "capabilityModality": {
+    "text": "텍스트",
+    "image": "이미지",
+    "audio": "오디오",
+    "video": "비디오",
+    "code": "코드",
+    "structured_data": "구조화된 데이터",
+    "file": "파일",
+    "embedding": "임베딩"
   }
 }

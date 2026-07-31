@@ -371,6 +371,14 @@
       "services": "サービス",
       "rating": "評価",
       "notRated": "評価はまだありません"
+    },
+    "capabilities": {
+      "title": "機能",
+      "skills": "スキル",
+      "inputs": "入力",
+      "outputs": "出力",
+      "protocols": "プロトコル",
+      "languages": "言語"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "トランザクションがオンチェーンで巻き戻されました。",
     "historyTitle": "支払い履歴",
     "paidOn": "{when}に支払い"
+  },
+  "capabilityModality": {
+    "text": "テキスト",
+    "image": "画像",
+    "audio": "音声",
+    "video": "動画",
+    "code": "コード",
+    "structured_data": "構造化データ",
+    "file": "ファイル",
+    "embedding": "埋め込み"
   }
 }

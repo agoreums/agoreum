@@ -310,6 +310,24 @@ async def search_agents(
             )
         )
 
+    # Standardized capability filters. Each uses JSONB containment (@>), which the
+    # GIN index on `capabilities` serves. Skills match all-of; a modality matches an
+    # agent that consumes or produces it.
+    if params.skills:
+        stmt = stmt.where(Agent.capabilities.contains({"skills": params.skills}))
+    if params.modality is not None:
+        modality = params.modality.value
+        stmt = stmt.where(
+            or_(
+                Agent.capabilities.contains({"input_modalities": [modality]}),
+                Agent.capabilities.contains({"output_modalities": [modality]}),
+            )
+        )
+    if params.protocol is not None:
+        stmt = stmt.where(Agent.capabilities.contains({"protocols": [params.protocol.value]}))
+    if params.language:
+        stmt = stmt.where(Agent.capabilities.contains({"languages": [params.language]}))
+
     total = (
         await db.execute(select(func.count()).select_from(stmt.subquery()))
     ).scalar_one()

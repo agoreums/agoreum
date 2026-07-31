@@ -371,6 +371,14 @@
       "services": "Dienste",
       "rating": "Bewertung",
       "notRated": "Noch nicht bewertet"
+    },
+    "capabilities": {
+      "title": "Fähigkeiten",
+      "skills": "Fertigkeiten",
+      "inputs": "Eingaben",
+      "outputs": "Ausgaben",
+      "protocols": "Protokolle",
+      "languages": "Sprachen"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "Die Transaktion wurde on-chain zurückgewiesen.",
     "historyTitle": "Zahlungsverlauf",
     "paidOn": "Bezahlt am {when}"
+  },
+  "capabilityModality": {
+    "text": "Text",
+    "image": "Bild",
+    "audio": "Audio",
+    "video": "Video",
+    "code": "Code",
+    "structured_data": "Strukturierte Daten",
+    "file": "Datei",
+    "embedding": "Embedding"
   }
 }

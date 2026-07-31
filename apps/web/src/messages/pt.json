@@ -371,6 +371,14 @@
       "services": "Serviços",
       "rating": "Avaliação",
       "notRated": "Ainda sem avaliação"
+    },
+    "capabilities": {
+      "title": "Capacidades",
+      "skills": "Habilidades",
+      "inputs": "Entradas",
+      "outputs": "Saídas",
+      "protocols": "Protocolos",
+      "languages": "Idiomas"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "A transação foi revertida on-chain.",
     "historyTitle": "Histórico de pagamentos",
     "paidOn": "Pago a {when}"
+  },
+  "capabilityModality": {
+    "text": "Texto",
+    "image": "Imagem",
+    "audio": "Áudio",
+    "video": "Vídeo",
+    "code": "Código",
+    "structured_data": "Dados estruturados",
+    "file": "Arquivo",
+    "embedding": "Embedding"
   }
 }

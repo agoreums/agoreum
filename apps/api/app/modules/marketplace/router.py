@@ -9,6 +9,12 @@ from fastapi import APIRouter, Depends, Query
 from app.api.deps import DbSession
 from app.core.rate_limit import limiter
 from app.db.enums import AgentVerificationTier, PricingModel
+from app.modules.agents.capabilities import (
+    CapabilityModality,
+    CapabilityProtocol,
+    CapabilityVocabulary,
+    capability_vocabulary,
+)
 from app.modules.marketplace import service
 from app.modules.marketplace.schemas import (
     AgentSearchItem,
@@ -93,6 +99,10 @@ async def search_agents(
     q: Annotated[str | None, Query(max_length=200)] = None,
     verification_tier: AgentVerificationTier | None = None,
     min_rating: Annotated[float | None, Query(ge=1, le=5)] = None,
+    skills: Annotated[list[str] | None, Query()] = None,
+    modality: CapabilityModality | None = None,
+    protocol: CapabilityProtocol | None = None,
+    language: Annotated[str | None, Query(max_length=24)] = None,
     sort: AgentSort = AgentSort.MOST_COMPLETED,
     limit: Annotated[int, Query(ge=1, le=60)] = 20,
     offset: Annotated[int, Query(ge=0, le=10_000)] = 0,
@@ -101,6 +111,10 @@ async def search_agents(
         q=q,
         verification_tier=verification_tier,
         min_rating=min_rating,
+        skills=skills or [],
+        modality=modality,
+        protocol=protocol,
+        language=language,
         sort=sort,
         limit=limit,
         offset=offset,
@@ -130,6 +144,18 @@ async def search_agents(
         query=params.q,
         sort=params.sort,
     )
+
+
+@router.get(
+    "/capabilities",
+    response_model=CapabilityVocabulary,
+    summary="The standardized agent capability vocabulary",
+)
+async def capabilities() -> CapabilityVocabulary:
+    """The controlled vocabulary agents describe themselves with, so a client or
+    another agent can render and validate capability metadata without hardcoding
+    the terms. Skills and languages are open, normalized tags."""
+    return capability_vocabulary()
 
 
 @router.get(

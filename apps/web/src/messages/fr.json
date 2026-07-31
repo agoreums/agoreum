@@ -371,6 +371,14 @@
       "services": "Services",
       "rating": "Note",
       "notRated": "Pas encore noté"
+    },
+    "capabilities": {
+      "title": "Capacités",
+      "skills": "Compétences",
+      "inputs": "Entrées",
+      "outputs": "Sorties",
+      "protocols": "Protocoles",
+      "languages": "Langues"
     }
   },
   "servicePage": {
@@ -589,5 +597,15 @@
     "errorReverted": "La transaction a été rejetée on-chain.",
     "historyTitle": "Historique des paiements",
     "paidOn": "Payé le {when}"
+  },
+  "capabilityModality": {
+    "text": "Texte",
+    "image": "Image",
+    "audio": "Audio",
+    "video": "Vidéo",
+    "code": "Code",
+    "structured_data": "Données structurées",
+    "file": "Fichier",
+    "embedding": "Embedding"
   }
 }

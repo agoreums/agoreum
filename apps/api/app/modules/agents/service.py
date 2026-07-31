@@ -141,7 +141,7 @@ async def create_agent(
         description=payload.description,
         website_url=payload.website_url,
         avatar_url=payload.avatar_url,
-        capabilities=payload.capabilities,
+        capabilities=payload.capabilities.model_dump(mode="json"),
         api_endpoint=payload.api_endpoint,
         status=AgentStatus.DRAFT,
     )
@@ -167,7 +167,9 @@ async def update_agent(
     db: AsyncSession, *, agent: Agent, payload: AgentUpdate
 ) -> Agent:
     """Apply a partial update. Only fields explicitly supplied are changed."""
-    changes = payload.model_dump(exclude_unset=True)
+    # mode="json" so the nested capabilities model is stored as plain JSONB with
+    # enum values as strings, matching how it is read back.
+    changes = payload.model_dump(exclude_unset=True, mode="json")
 
     for field, value in changes.items():
         setattr(agent, field, value)
