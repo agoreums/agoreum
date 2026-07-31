@@ -16,7 +16,11 @@ import {
   TrustedArchitecture,
 } from "@/components/landing/sections";
 import { Stats } from "@/components/landing/stats";
-import { WebSiteJsonLd } from "@/components/seo/json-ld";
+import {
+  OrganizationJsonLd,
+  SoftwareApplicationJsonLd,
+  WebSiteJsonLd,
+} from "@/components/seo/json-ld";
 import { locales } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -33,7 +37,9 @@ export default async function HomePage(props: {
 
   return (
     <>
+      <OrganizationJsonLd />
       <WebSiteJsonLd description={tMeta("description")} />
+      <SoftwareApplicationJsonLd description={tMeta("description")} />
 
       <LandingBackground />
 

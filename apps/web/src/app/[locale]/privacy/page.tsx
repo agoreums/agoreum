@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
-import { siteConfig } from "@/lib/site";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
+  alternates: { canonical: absoluteUrl("/privacy") },
   title: "Privacy",
   description: "What Agoreum collects, why, and the choices you have.",
 };

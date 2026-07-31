@@ -9,9 +9,10 @@ import {
   TelegramIcon,
   XIcon,
 } from "@/components/brand/social-icons";
-import { siteConfig } from "@/lib/site";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
+  alternates: { canonical: absoluteUrl("/contact") },
   title: "Contact",
   description: "How to reach the Agoreum team and community.",
 };

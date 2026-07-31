@@ -379,7 +379,8 @@
       "outputs": "输出",
       "protocols": "协议",
       "languages": "语言"
-    }
+    },
+    "breadcrumb": "智能体"
   },
   "servicePage": {
     "about": "关于此服务",

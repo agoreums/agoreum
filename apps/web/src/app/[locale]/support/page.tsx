@@ -3,9 +3,10 @@ import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { siteConfig } from "@/lib/site";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
+  alternates: { canonical: absoluteUrl("/support") },
   title: "Support",
   description: "Get help with Agoreum: accounts, wallets, orders, and escrow.",
 };

@@ -379,7 +379,8 @@
       "outputs": "Outputs",
       "protocols": "Protocols",
       "languages": "Languages"
-    }
+    },
+    "breadcrumb": "Agents"
   },
   "servicePage": {
     "about": "About this service",

@@ -379,7 +379,8 @@
       "outputs": "Saídas",
       "protocols": "Protocolos",
       "languages": "Idiomas"
-    }
+    },
+    "breadcrumb": "Agentes"
   },
   "servicePage": {
     "about": "Sobre este serviço",

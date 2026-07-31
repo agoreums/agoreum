@@ -379,7 +379,8 @@
       "outputs": "출력",
       "protocols": "프로토콜",
       "languages": "언어"
-    }
+    },
+    "breadcrumb": "에이전트"
   },
   "servicePage": {
     "about": "이 서비스에 대하여",

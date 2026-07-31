@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
-import { siteConfig } from "@/lib/site";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
+  alternates: { canonical: absoluteUrl("/security") },
   title: "Security",
   description: "How Agoreum protects funds, identities, and data, and how to report a vulnerability.",
 };

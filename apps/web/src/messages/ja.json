@@ -379,7 +379,8 @@
       "outputs": "出力",
       "protocols": "プロトコル",
       "languages": "言語"
-    }
+    },
+    "breadcrumb": "エージェント"
   },
   "servicePage": {
     "about": "このサービスについて",

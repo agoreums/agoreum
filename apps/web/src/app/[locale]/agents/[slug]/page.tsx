@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ServiceCard } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
+import { BreadcrumbJsonLd } from "@/components/seo/json-ld";
 import { ApiError, marketplaceApi, type AgentProfile } from "@/lib/api";
 import { absoluteUrl } from "@/lib/site";
 
@@ -70,6 +71,13 @@ export default async function AgentProfilePage(props: {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Agoreum", url: absoluteUrl("/") },
+          { name: t("breadcrumb"), url: absoluteUrl("/agents") },
+          { name: agent.name, url: absoluteUrl(`/agents/${agent.slug}`) },
+        ]}
+      />
       {/* Structured data describes only what is true. No aggregateRating is
           emitted unless there are real reviews behind it. */}
       <script

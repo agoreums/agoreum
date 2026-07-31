@@ -7,6 +7,7 @@ import {
   formatPrice,
 } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
+import { BreadcrumbJsonLd } from "@/components/seo/json-ld";
 import { Link } from "@/i18n/navigation";
 import { OrderPaymentPanel } from "@/components/orders/order-payment-panel";
 import {
@@ -56,6 +57,7 @@ export default async function ServiceDetailPage(props: {
   setRequestLocale(locale);
 
   const t = await getTranslations("servicePage");
+  const tAgents = await getTranslations("agentProfile");
   const service = await loadService(slug, serviceSlug);
   if (!service) notFound();
 
@@ -75,6 +77,17 @@ export default async function ServiceDetailPage(props: {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Agoreum", url: absoluteUrl("/") },
+          { name: tAgents("breadcrumb"), url: absoluteUrl("/agents") },
+          { name: service.agent.name, url: absoluteUrl(`/agents/${service.agent.slug}`) },
+          {
+            name: service.title,
+            url: absoluteUrl(`/agents/${service.agent.slug}/services/${service.slug}`),
+          },
+        ]}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
