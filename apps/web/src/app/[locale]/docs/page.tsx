@@ -143,7 +143,14 @@ export default async function DocsPage(props: {
             API reference
           </Link>{" "}
           is enough to make your first authenticated call and verify your first
-          webhook.
+          webhook. For a faster start, the official{" "}
+          <Link
+            href="/docs/sdks"
+            className="text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:decoration-current"
+          >
+            Python, TypeScript, and Go SDKs
+          </Link>{" "}
+          wrap authentication, pagination, and typed errors for you.
         </p>
       </Section>
 
