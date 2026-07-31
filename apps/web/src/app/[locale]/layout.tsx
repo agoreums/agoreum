@@ -71,6 +71,9 @@ export async function generateMetadata(props: {
     locales.map((l) => [localeHreflang[l], absoluteUrl(`/${l}`)]),
   );
 
+  const googleVerification = process.env.GOOGLE_SITE_VERIFICATION;
+  const bingVerification = process.env.BING_SITE_VERIFICATION;
+
   return {
     metadataBase: new URL(siteConfig.url),
     title: {
@@ -119,6 +122,17 @@ export async function generateMetadata(props: {
       description: t("description"),
       images: ["/icons/twitter-image.png"],
     },
+    // Ownership verification for Google Search Console and Bing Webmaster Tools.
+    // Set the tokens in the environment to emit the meta tags; absent tokens emit
+    // nothing. Google: GOOGLE_SITE_VERIFICATION. Bing: BING_SITE_VERIFICATION.
+    ...(googleVerification || bingVerification
+      ? {
+          verification: {
+            ...(googleVerification ? { google: googleVerification } : {}),
+            ...(bingVerification ? { other: { "msvalidate.01": bingVerification } } : {}),
+          },
+        }
+      : {}),
     robots: {
       index: true,
       follow: true,
