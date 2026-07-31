@@ -1,7 +1,7 @@
 """Schema integrity tests.
 
 These run against the SQLAlchemy metadata and need no database. They assert the
-structural guarantees the platform depends on — particularly the ones that make
+structural guarantees the platform depends on, particularly the ones that make
 fabricated reputation and inconsistent money state impossible to represent.
 """
 from __future__ import annotations

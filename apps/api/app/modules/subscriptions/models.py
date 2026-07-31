@@ -11,7 +11,7 @@ Three tables, and a strict rule about which is authoritative:
   `Subscribed` event. Nothing in the application marks a subscription active; a
   subscription is active because a real payment happened.
 
-* `subscription_payments` is the on-chain payment history — one row per confirmed
+* `subscription_payments` is the on-chain payment history, one row per confirmed
   `Subscribed` event, keyed by `(tx_hash, log_index)` so re-scanning applies
   nothing twice. This is the receipt trail.
 """

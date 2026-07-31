@@ -2,7 +2,7 @@
 
 Signing and the event catalogue are unit-tested. Registration, dispatch, and the
 delivery state machine run against the real database and the real service code;
-only the outbound HTTP call is faked, because a test must not make network calls —
+only the outbound HTTP call is faked, because a test must not make network calls, 
 everything that decides an endpoint's fate is exercised for real.
 """
 from __future__ import annotations

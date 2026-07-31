@@ -5,7 +5,7 @@ import type { Tokens, UserProfile } from "@/lib/api";
  *
  * Tokens live in `sessionStorage`, not `localStorage`: the session ends when the
  * tab closes, which meaningfully limits exposure on a shared machine. Neither is
- * immune to XSS — the real defence there is the strict CSP in `next.config.ts`
+ * immune to XSS, the real defence there is the strict CSP in `next.config.ts`
  * and never rendering untrusted HTML.
  *
  * A cookie-based httpOnly session would be stronger still, but requires the API

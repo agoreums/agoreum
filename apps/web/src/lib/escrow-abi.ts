@@ -8,7 +8,7 @@
  * Trimmed to the entry points the interface actually calls, plus every custom
  * error so a revert can be reported with its real reason rather than "failed".
  *
- * Do not edit by hand — run `python scripts/sync_abi.py`.
+ * Do not edit by hand, run `python scripts/sync_abi.py`.
  */
 const escrowAbi = [
   {

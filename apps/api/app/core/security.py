@@ -2,10 +2,10 @@
 
 Two token types, with deliberately different properties:
 
-* **Access token** — a short-lived signed JWT. Stateless, so every request can be
+* **Access token**, a short-lived signed JWT. Stateless, so every request can be
   authorised without touching the database. Cannot be revoked before it expires,
   which is precisely why it is short-lived.
-* **Refresh token** — a long-lived opaque random string. Only its SHA-256 hash is
+* **Refresh token**, a long-lived opaque random string. Only its SHA-256 hash is
   ever stored, so a database disclosure yields nothing usable. It is rotated on
   every use, and reuse of a spent token is treated as theft.
 
@@ -37,7 +37,7 @@ TOKEN_ENTROPY_BYTES = 32
 
 # EIP-4361 constrains the nonce to [a-zA-Z0-9], minimum 8 characters. A URL-safe
 # token would include '-' and '_', which makes the resulting message unparseable
-# by a spec-compliant wallet or verifier — and only some of the time, which is the
+# by a spec-compliant wallet or verifier, and only some of the time, which is the
 # worst kind of failure. The alphabet is therefore restricted explicitly.
 NONCE_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 NONCE_LENGTH = 24  # ~143 bits of entropy

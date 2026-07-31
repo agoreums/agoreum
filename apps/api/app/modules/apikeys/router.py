@@ -47,7 +47,7 @@ async def list_keys(user: CurrentUser, db: DbSession) -> ApiKeyList:
 async def create_key(
     payload: ApiKeyCreate, user: CurrentUser, db: DbSession
 ) -> ApiKeyCreated:
-    """Mint a key. The plaintext token is in the response and is shown only here —
+    """Mint a key. The plaintext token is in the response and is shown only here, 
     it cannot be retrieved again, only replaced."""
     key, token = await service.create_api_key(
         db,
@@ -57,7 +57,7 @@ async def create_key(
         expires_in_days=payload.expires_in_days,
     )
     # The ORM row has no `token` attribute, so validate it to the public shape
-    # first, then attach the plaintext secret — the one and only time it is shown.
+    # first, then attach the plaintext secret, the one and only time it is shown.
     public = ApiKeyPublic.model_validate(key)
     return ApiKeyCreated(**public.model_dump(), token=token)
 

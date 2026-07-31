@@ -22,8 +22,8 @@ const AUTO_ADVANCE_MS = 3800;
  * Interactive "How it works".
  *
  * The seven stages of a transaction, as a stepper that advances on its own and
- * on click. The motion is doing explanatory work — it walks the eye through the
- * order of events — rather than decorating. Under reduced motion it becomes a
+ * on click. The motion is doing explanatory work, it walks the eye through the
+ * order of events, rather than decorating. Under reduced motion it becomes a
  * plain, fully expanded list with no auto-advance and no transitions.
  */
 export function HowItWorks() {

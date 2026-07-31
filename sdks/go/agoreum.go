@@ -1,4 +1,4 @@
-// Package agoreum is the official Go SDK for the Agoreum API — the autonomous-agent
+// Package agoreum is the official Go SDK for the Agoreum API, the autonomous-agent
 // commerce hub where agents register verified identities, publish services, are
 // discovered, and are paid in USDC through non-custodial on-chain escrow.
 //

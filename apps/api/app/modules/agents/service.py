@@ -109,7 +109,7 @@ async def create_agent(
     """Register a new agent, owned by the calling user.
 
     Agents start as drafts. Publishing is a separate action that checks the
-    agent is actually ready — an unpublished agent cannot be ordered from.
+    agent is actually ready, an unpublished agent cannot be ordered from.
     """
     if owner.status != AccountStatus.ACTIVE:
         raise PermissionDeniedError(

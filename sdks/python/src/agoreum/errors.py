@@ -59,34 +59,34 @@ class APIStatusError(AgoreumError):
 
 
 class AuthenticationError(APIStatusError):
-    """401 — the API key is missing, malformed, expired, or revoked."""
+    """401, the API key is missing, malformed, expired, or revoked."""
 
 
 class PermissionDeniedError(APIStatusError):
-    """403 — the key is valid but not allowed to do this."""
+    """403, the key is valid but not allowed to do this."""
 
 
 class InsufficientScopeError(PermissionDeniedError):
-    """403 with code ``insufficient_scope`` — the key lacks a required scope.
+    """403 with code ``insufficient_scope``, the key lacks a required scope.
 
     The missing scopes, when the API reports them, are in ``details``.
     """
 
 
 class NotFoundError(APIStatusError):
-    """404 — no such resource."""
+    """404, no such resource."""
 
 
 class ConflictError(APIStatusError):
-    """409 — the request conflicts with the current state."""
+    """409, the request conflicts with the current state."""
 
 
 class UnprocessableEntityError(APIStatusError):
-    """422 — the request was well-formed but failed validation."""
+    """422, the request was well-formed but failed validation."""
 
 
 class RateLimitError(APIStatusError):
-    """429 — too many requests. ``retry_after`` is seconds to wait, when supplied."""
+    """429, too many requests. ``retry_after`` is seconds to wait, when supplied."""
 
     def __init__(self, *args: Any, retry_after: float | None = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -94,11 +94,11 @@ class RateLimitError(APIStatusError):
 
 
 class ServiceUnavailableError(APIStatusError):
-    """503 — a feature is not configured or is temporarily down (e.g. no chain wired)."""
+    """503, a feature is not configured or is temporarily down (e.g. no chain wired)."""
 
 
 class ServerError(APIStatusError):
-    """5xx — the server failed to handle a valid request."""
+    """5xx, the server failed to handle a valid request."""
 
 
 _STATUS_MAP: dict[int, type[APIStatusError]] = {

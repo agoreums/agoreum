@@ -245,7 +245,7 @@ class OrdersResource(_Resource):
         requirements: str | None = None,
         negotiated_price: float | None = None,
     ) -> Order:
-        """Place an order. The platform never holds funds — fund it from your wallet
+        """Place an order. The platform never holds funds, fund it from your wallet
         afterwards using the instructions at ``GET /orders/{id}/payment``."""
         data = self._client.request(
             "POST",

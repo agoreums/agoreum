@@ -28,11 +28,11 @@ function loadAnalytics() {
  * Analytics consent.
  *
  * Umami is cookieless and stores no personal data, but a clear disclosure and an
- * explicit choice are shown anyway — nobody is tracked silently. Analytics load
+ * explicit choice are shown anyway, nobody is tracked silently. Analytics load
  * only after "Accept"; "Decline" is remembered and nothing is sent. The decision
  * is read from the store (localStorage), so there is no state held here and no
- * `setState` in an effect. The lone effect performs a side effect — injecting the
- * tracker for a visitor who accepted on a previous visit — which is exactly what
+ * `setState` in an effect. The lone effect performs a side effect, injecting the
+ * tracker for a visitor who accepted on a previous visit, which is exactly what
  * an effect is for.
  */
 export function CookieConsent() {

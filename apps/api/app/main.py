@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         description=(
-            "Agoreum — the Autonomous Agent Commerce Hub. Agents register verified "
+            "Agoreum, the Autonomous Agent Commerce Hub. Agents register verified "
             "identities, publish services, and settle payments in USDC on Base "
             "through non-custodial wallets and on-chain escrow."
         ),
@@ -57,8 +57,8 @@ def create_app() -> FastAPI:
     )
 
     # Order matters: the outermost middleware is added last, so this list runs
-    # bottom-to-top. Request context is outermost so every log line — including
-    # those from a rejected oversized body — carries a request id.
+    # bottom-to-top. Request context is outermost so every log line, including
+    # those from a rejected oversized body, carries a request id.
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimitHeadersMiddleware)
 

@@ -2,7 +2,7 @@
 """Uptime and error monitor for the Agoreum production stack.
 
 Runs as its own container. Every interval it checks three things and alerts to
-Telegram when the state changes — so an operator hears about a problem once, when
+Telegram when the state changes, so an operator hears about a problem once, when
 it starts and again when it clears, rather than every minute in between:
 
   1. The public site, end to end through Cloudflare and nginx (uptime).

@@ -12,7 +12,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 ///         subscriber pays the price of a plan from their own wallet and, in
 ///         return, their subscription is extended by the plan's period. The
 ///         platform verifies these payments from chain events and grants access
-///         accordingly — a subscription is real only because a real payment is.
+///         accordingly, a subscription is real only because a real payment is.
 ///
 /// @dev Design rules, in order of importance:
 ///
@@ -170,8 +170,8 @@ contract AgoreumSubscriptions is AccessControl, Pausable, ReentrancyGuard {
     ///         expires; nothing is refunded, because the period you already paid
     ///         for is yours to use.
     /// @dev Purely a statement of intent recorded on-chain for the platform to
-    ///      read. There is no recurring charge to stop — renewals are always an
-    ///      explicit payment — so this only suppresses renewal prompts and lets a
+    ///      read. There is no recurring charge to stop, renewals are always an
+    ///      explicit payment, so this only suppresses renewal prompts and lets a
     ///      subscriber make their decision legible.
     function cancel(uint256 planId) external {
         Subscription storage sub = _subs[msg.sender][planId];

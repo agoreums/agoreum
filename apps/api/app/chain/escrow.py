@@ -258,7 +258,7 @@ class OnChainEscrow:
     """The contract's own view of an escrow.
 
     Used to reconcile the database against the chain. Where the two disagree,
-    the chain is authoritative — it is the record that actually holds the money.
+    the chain is authoritative, it is the record that actually holds the money.
     """
 
     buyer: str
@@ -310,7 +310,7 @@ def escrow_id_for_order(order_id: str) -> str:
 
     Deterministic so the two records can always be reconciled without trusting
     log ordering or storing a mapping that could drift. A UUID is 16 bytes and
-    the contract takes bytes32, so it is left-padded — no hashing, which keeps
+    the contract takes bytes32, so it is left-padded, no hashing, which keeps
     the relationship reversible and obvious when reading a block explorer.
     """
     import uuid as _uuid

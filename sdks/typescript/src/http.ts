@@ -1,4 +1,4 @@
-/** Pure transport helpers shared by the client — no I/O, easy to unit-test. */
+/** Pure transport helpers shared by the client, no I/O, easy to unit-test. */
 import { VERSION } from "./version.js";
 
 export const DEFAULT_BASE_URL = "https://agoreum.xyz/api/v1";

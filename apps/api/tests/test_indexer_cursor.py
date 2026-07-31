@@ -1,7 +1,7 @@
 """Indexer position tracking.
 
 The cursor decides where scanning resumes, so every bug here is an event that
-never gets applied — an order that stays unfunded although the buyer paid, or a
+never gets applied, an order that stays unfunded although the buyer paid, or a
 release the provider never sees credited. These tests are about the ways a
 position can be wrong rather than about the happy path.
 
@@ -87,7 +87,7 @@ class TestResume:
         """A stored position is not trusted to the block.
 
         Blocks the last scan covered may have been reorganised since. Re-applying
-        an event is free — they are unique by transaction hash and log index —
+        an event is free, they are unique by transaction hash and log index, 
         whereas missing one is permanent.
         """
         await _save_cursor(db, chain_id=SEPOLIA, address=CONTRACT_A, block=1_000_000)
@@ -123,7 +123,7 @@ class TestIsolation:
 
         This is the expensive failure: a global cursor would carry the old
         contract's height forward, and every event the new contract emitted
-        before that height — including funding — would never be applied. The
+        before that height, including funding, would never be applied. The
         money is real and nothing would report the gap.
         """
         monkeypatch.setattr(settings, "ESCROW_DEPLOY_BLOCK", 44_527_000)

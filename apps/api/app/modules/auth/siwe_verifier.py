@@ -105,7 +105,7 @@ def verify_signature(
     """Verify a SIWE signature end to end.
 
     Returns the lowercase address and chain id that were proven. Raises
-    AuthenticationError on any failure, without disclosing which check failed —
+    AuthenticationError on any failure, without disclosing which check failed, 
     an attacker probing the endpoint learns nothing from the response.
     """
     message = parse_message(raw_message)

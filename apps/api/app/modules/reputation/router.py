@@ -38,7 +38,7 @@ async def agent_reputation(slug: str, db: DbSession) -> ReputationReport:
 
     snapshot = await service.latest_snapshot(db, agent_id=agent.id)
     if snapshot is None:
-        # Nothing computed yet — compute it now rather than reporting zeros.
+        # Nothing computed yet, compute it now rather than reporting zeros.
         snapshot = await service.recompute(db, agent_id=agent.id)
 
     note = None

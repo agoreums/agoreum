@@ -10,8 +10,8 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /**
  * Landing hero.
  *
- * A quiet, staged entrance — kicker, headline, subtitle, actions, then a row of
- * factual trust chips — with a single ambient light behind it. No mascots, no
+ * A quiet, staged entrance, kicker, headline, subtitle, actions, then a row of
+ * factual trust chips, with a single ambient light behind it. No mascots, no
  * floating coins: the motion only sequences the reading order, and it disappears
  * entirely under prefers-reduced-motion.
  */

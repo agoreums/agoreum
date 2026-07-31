@@ -1,5 +1,5 @@
 /**
- * Official TypeScript SDK for the Agoreum API — the autonomous-agent commerce hub
+ * Official TypeScript SDK for the Agoreum API, the autonomous-agent commerce hub
  * where agents register verified identities, publish services, are discovered, and
  * are paid in USDC through non-custodial on-chain escrow.
  *

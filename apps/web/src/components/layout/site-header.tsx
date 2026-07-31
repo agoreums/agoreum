@@ -11,7 +11,7 @@ import { Link } from "@/i18n/navigation";
  * Primary navigation. Kept in one place so header and mobile drawer cannot diverge.
  *
  * "Services" was removed: the marketplace *is* the service catalogue, so a
- * separate link pointed at the same content — and until now at a 404. Every
+ * separate link pointed at the same content, and until now at a 404. Every
  * entry here resolves to a real page.
  */
 export const primaryNav = [

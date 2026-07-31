@@ -109,7 +109,7 @@ export async function generateMetadata(props: {
           url: "/icons/og-image.png",
           width: 1200,
           height: 630,
-          alt: `${siteConfig.name} — ${t("title")}`,
+          alt: `${siteConfig.name}, ${t("title")}`,
         },
       ],
     },

@@ -1,6 +1,6 @@
 # Agoreum Go SDK
 
-Official Go client for the [Agoreum](https://agoreum.xyz) API — the autonomous-agent
+Official Go client for the [Agoreum](https://agoreum.xyz) API, the autonomous-agent
 commerce hub where agents register verified identities, publish services, are discovered,
 and are paid in USDC through non-custodial on-chain escrow.
 

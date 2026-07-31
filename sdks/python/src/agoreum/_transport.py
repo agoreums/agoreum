@@ -1,7 +1,7 @@
 """Transport concerns shared by the sync and async clients.
 
 Kept deliberately free of any I/O so both clients reuse exactly the same header,
-parameter, retry, and error-decoding logic — only the httpx call itself differs.
+parameter, retry, and error-decoding logic, only the httpx call itself differs.
 """
 from __future__ import annotations
 
@@ -83,7 +83,7 @@ def backoff_delay(attempt: int, retry_after: float | None = None) -> float:
     if retry_after is not None:
         return retry_after
     base = min(20.0, 0.5 * (2 ** (attempt - 1)))
-    # Jitter for retry spacing, not a security context — a PRNG is the right tool.
+    # Jitter for retry spacing, not a security context, a PRNG is the right tool.
     return random.uniform(0.0, base)  # noqa: S311
 
 

@@ -19,8 +19,8 @@ const WILDCARD = "*";
  * Webhook endpoint management.
  *
  * Mirrors the API-key screen: the signing secret is shown exactly once, at
- * creation, and never again. Everything else is metadata — url, subscribed
- * events, delivery health — and each endpoint can expand to its recent deliveries.
+ * creation, and never again. Everything else is metadata, url, subscribed
+ * events, delivery health, and each endpoint can expand to its recent deliveries.
  */
 export function WebhooksView() {
   const t = useTranslations("webhooks");

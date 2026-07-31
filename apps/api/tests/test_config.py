@@ -16,7 +16,7 @@ class TestCorsOriginParsing:
 
         pydantic-settings JSON-decodes list fields at the source layer before
         field validators run, so without NoDecode this raised a parse error and
-        the app could not boot. Local dev never caught it — it uses the default.
+        the app could not boot. Local dev never caught it, it uses the default.
         """
         s = Settings(
             _env_file=None,
@@ -52,7 +52,7 @@ class TestAbiPathResolution:
     def test_env_override_wins_over_repo_default(self, monkeypatch, tmp_path) -> None:
         """The container flattens the tree, so the repo-relative default misses.
 
-        CONTRACT_ABI_PATH must take precedence — this was why the indexer
+        CONTRACT_ABI_PATH must take precedence, this was why the indexer
         crash-looped on first deploy, unable to find the ABI.
         """
         from app.chain import escrow

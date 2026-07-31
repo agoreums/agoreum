@@ -2,7 +2,7 @@
  * Response types for the Agoreum API.
  *
  * These mirror the JSON the API returns, unmodified. Monetary amounts arrive as
- * decimal strings (never floats — so precision is never lost) and timestamps as
+ * decimal strings (never floats, so precision is never lost) and timestamps as
  * RFC 3339 strings. Convert at the edge only where you need to.
  */
 

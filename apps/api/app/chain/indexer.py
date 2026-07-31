@@ -1,7 +1,7 @@
 """Ingestion of escrow events from the chain into the database.
 
 The indexer's job is to make the database reflect what the chain has actually
-accepted — never to assert something the chain has not confirmed.
+accepted, never to assert something the chain has not confirmed.
 
 Three rules govern it:
 
@@ -216,7 +216,7 @@ async def run_once(db: AsyncSession, client: ChainClient) -> ScanResult:
     chain_id = settings.CHAIN_ID
 
     # Refuse to index against an endpoint serving a different chain than the one
-    # configured — otherwise settlement gets recorded from a chain nobody is
+    # configured, otherwise settlement gets recorded from a chain nobody is
     # watching, against addresses that mean something else there.
     await client.verify_network()
 
@@ -240,7 +240,7 @@ async def _apply_event(db: AsyncSession, event: contract.DecodedEvent) -> str:
 
     # Eager-load the relationships the apply path reads. The indexer loads each
     # order fresh in its own session, so `order.escrow` and `order.buyer` would
-    # otherwise trigger a lazy load — synchronous IO that raises MissingGreenlet
+    # otherwise trigger a lazy load, synchronous IO that raises MissingGreenlet
     # under async SQLAlchemy. This is the real event-application path in
     # production; nothing is already in the session identity map.
     order = (
@@ -354,7 +354,7 @@ async def _apply_to_escrow(
             contract_address=contract.contract_address(),
             onchain_escrow_id=event.escrow_id,
             token_address=str(event.args["token"]).lower(),
-            token_symbol="USDC",  # noqa: S106 — a token ticker, not a credential
+            token_symbol="USDC",  # noqa: S106, a token ticker, not a credential
             token_decimals=contract.TOKEN_DECIMALS,
             amount=contract.from_base_units(event.args["amount"]),
             buyer_address=str(event.args["buyer"]).lower(),

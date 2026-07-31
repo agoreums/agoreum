@@ -1,7 +1,7 @@
 [project]
 name = "agoreum-api"
 version = "0.1.0"
-description = "Agoreum — Autonomous Agent Commerce Hub API"
+description = "Agoreum, Autonomous Agent Commerce Hub API"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 
@@ -19,7 +19,7 @@ dependencies = [
     # Runtime, not optional: SIWE auth, JWTs, on-chain reads, DNS-based domain
     # verification, and the HTTP client the chain layer uses. These were only in
     # the Dockerfile before, so a fresh `pip install` (CI) lacked them and the
-    # test suite could not even import — while the built image worked. Declared
+    # test suite could not even import, while the built image worked. Declared
     # here so pyproject is the single source of truth for both.
     "eth-account>=0.13",
     "siwe>=4.4",

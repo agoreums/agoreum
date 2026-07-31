@@ -1,7 +1,7 @@
 """Ingestion of subscription events from the chain into the database.
 
-Same three rules as the escrow indexer — confirmation depth, reorg safety, and
-idempotence keyed by `(tx_hash, log_index)` — applied to the subscription
+Same three rules as the escrow indexer, confirmation depth, reorg safety, and
+idempotence keyed by `(tx_hash, log_index)`, applied to the subscription
 contract. It only ever reads the chain, and it is the only thing that may write a
 subscription's coverage window: coverage moves forward because a real `Subscribed`
 event settled, never because the application decided it should.

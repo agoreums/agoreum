@@ -37,7 +37,7 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("agoreum: %s (status=%d)", msg, e.StatusCode)
 }
 
-// ConnectionError wraps a transport failure — the request never got a response
+// ConnectionError wraps a transport failure, the request never got a response
 // (DNS, TCP, TLS, a dropped connection, or a timeout). The underlying cause is
 // available via errors.Unwrap.
 type ConnectionError struct {

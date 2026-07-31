@@ -2,8 +2,8 @@
 
 Search runs against `services.search_vector`, a tsvector maintained by a database
 trigger and backed by a GIN index. Queries are parsed with `websearch_to_tsquery`
-rather than `to_tsquery`: it accepts what people actually type — quoted phrases,
-`or`, leading `-` to exclude — and, critically, never raises on malformed input.
+rather than `to_tsquery`: it accepts what people actually type, quoted phrases,
+`or`, leading `-` to exclude, and, critically, never raises on malformed input.
 `to_tsquery` would turn a stray parenthesis into a 500.
 
 All filtering happens in SQL. Nothing is fetched and then discarded in Python,

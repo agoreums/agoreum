@@ -6,7 +6,7 @@ domain and inherit the trust that carries.
 
 The well-known method fetches a URL derived from user input, so it is a
 server-side request forgery risk by construction. It is defended by resolving
-the host first and refusing any address that is not publicly routable — without
+the host first and refusing any address that is not publicly routable, without
 that, an agent could point verification at an internal service or a cloud
 metadata endpoint and use this service as a proxy into the private network.
 """

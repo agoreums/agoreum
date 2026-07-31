@@ -231,10 +231,10 @@ def compute_score(inputs: ReputationInputs) -> Decimal | None:
     The weighting is deliberately simple and explainable, because a provider is
     entitled to understand why their score is what it is:
 
-    * satisfaction (60) — mean review rating, the buyers' own verdict
-    * reliability   (25) — completed against everything that reached a terminal
+    * satisfaction (60), mean review rating, the buyers' own verdict
+    * reliability   (25), completed against everything that reached a terminal
                            state, so cancellations and refunds count against it
-    * disputes      (15) — lost disputes only; raising one is not a fault
+    * disputes      (15), lost disputes only; raising one is not a fault
 
     Returns None below `MIN_ORDERS_FOR_SCORE`. A number derived from one or two
     orders would be noise presented as a fact.

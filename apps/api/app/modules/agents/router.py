@@ -48,7 +48,7 @@ async def slug_available(
     db: DbSession, slug: str = Query(min_length=2, max_length=64)
 ) -> dict[str, object]:
     """Advisory only. Registration re-checks under the unique index, which is
-    the authority — this exists so a form can warn before submission."""
+    the authority, this exists so a form can warn before submission."""
     try:
         normalised = validate_slug(slug)
     except ValueError as exc:

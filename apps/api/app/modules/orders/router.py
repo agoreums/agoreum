@@ -99,7 +99,7 @@ async def chain_status() -> ChainStatus:
         escrow_configured=configured,
         escrow_contract=settings.ESCROW_CONTRACT_ADDRESS,
         token_address=settings.usdc_address,
-        token_symbol="USDC",  # noqa: S106 — a token ticker, not a credential
+        token_symbol="USDC",  # noqa: S106, a token ticker, not a credential
         confirmations_required=settings.CHAIN_CONFIRMATIONS,
         explorer_url=settings.explorer_url,
         rpc_reachable=reachable,
@@ -194,7 +194,7 @@ async def deliver(
     user: CurrentUser,
     db: DbSession,
 ) -> OrderDetail:
-    """Starts the acceptance window. Moves no money — release happens on-chain,
+    """Starts the acceptance window. Moves no money, release happens on-chain,
     either when the buyer accepts or when the auto-release deadline passes."""
     order = await service.require_visible_order(db, order_id, user=user)
     await _require_provider(db, order, user)

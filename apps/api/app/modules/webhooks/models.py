@@ -2,7 +2,7 @@
 
 A *WebhookEndpoint* is a URL a user registers to receive event notifications, with
 a signing secret and a set of subscribed events. A *WebhookDelivery* is one attempt
-to send one event to one endpoint — an outbox row the delivery worker drains, so
+to send one event to one endpoint, an outbox row the delivery worker drains, so
 sending never happens in the request that raised the event and a transient failure
 is retried rather than lost.
 

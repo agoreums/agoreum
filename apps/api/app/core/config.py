@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # NoDecode stops pydantic-settings from JSON-decoding the env value before the
     # validator runs. Without it, a comma-separated string (the documented format)
     # is rejected at the source layer with a parse error, since a list field is
-    # otherwise assumed to be JSON. Only surfaces when set via the environment —
+    # otherwise assumed to be JSON. Only surfaces when set via the environment, 
     # local development uses the default and never exercises the path.
     CORS_ALLOWED_ORIGINS: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000"]
@@ -112,7 +112,7 @@ class Settings(BaseSettings):
 
     # Absolute path to the contract ABI. Defaults to the repository layout, but
     # the container image flattens the tree so the repo-relative computation
-    # lands one level off — the image sets this explicitly. Configuration rather
+    # lands one level off, the image sets this explicitly. Configuration rather
     # than a fragile parents[] count.
     CONTRACT_ABI_PATH: str | None = None
 
@@ -123,8 +123,8 @@ class Settings(BaseSettings):
 
     # Master switch for outbound email. Defaults to off so that running the
     # suite, or a developer exercising a flow locally, cannot put real messages
-    # in real inboxes. Delivery is still recorded — as suppressed, with the
-    # reason — so the intent is visible without anyone being contacted.
+    # in real inboxes. Delivery is still recorded, as suppressed, with the
+    # reason, so the intent is visible without anyone being contacted.
     EMAIL_SENDING_ENABLED: bool = False
 
     # --- Webhooks ------------------------------------------------------------

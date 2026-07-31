@@ -52,7 +52,7 @@ log "reload nginx so it re-resolves the new upstream IPs"
 $COMPOSE exec -T nginx nginx -s reload 2>/dev/null || $COMPOSE up -d --force-recreate nginx
 
 # The real test: does the public site actually serve? This traverses Cloudflare
-# and nginx back to web, so it catches exactly the 502 a stale upstream causes —
+# and nginx back to web, so it catches exactly the 502 a stale upstream causes, 
 # which an api-only health check would miss.
 log "verify the public site serves end to end"
 served=false

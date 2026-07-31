@@ -4,7 +4,7 @@
    Agoreum Design System
    -----------------------------------------------------------------------------
    Tokens are derived from the official brand mark: an indigo trinity-loop on a
-   near-black field. The system is deliberately restrained — one chromatic family
+   near-black field. The system is deliberately restrained, one chromatic family
    (indigo), a neutral ramp tuned slightly blue to sit with it, and a single warm
    accent reserved for value/settlement moments. Nothing here is decorative for its
    own sake; every token has a job.
@@ -60,14 +60,14 @@
 
   /* --- Typography --------------------------------------------------------- */
   /* Latin glyphs resolve from Inter; Arabic glyphs, absent from Inter, fall
-     through to Noto Sans Arabic per glyph — so a mixed string renders correctly
+     through to Noto Sans Arabic per glyph, so a mixed string renders correctly
      and the whole Arabic locale gets a real webfont, not a system fallback. */
   --font-sans: var(--font-inter), var(--font-noto-arabic), ui-sans-serif,
     system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo,
     Consolas, monospace;
 
-  /* Fluid type scale — clamps so the layout holds from 320px to ultrawide. */
+  /* Fluid type scale, clamps so the layout holds from 320px to ultrawide. */
   --text-display: clamp(2.75rem, 1.6rem + 5.2vw, 5.5rem);
   --text-display--line-height: 1.02;
   --text-display--letter-spacing: -0.035em;
@@ -117,7 +117,7 @@
   }
 
   /* Light tokens. Tuned so text-secondary/muted keep AA contrast on white, not
-     just the default text — every mode must stay fully legible, not only dark. */
+     just the default text, every mode must stay fully legible, not only dark. */
   :root[data-theme="light"],
   :root[data-theme="system"] {
     --surface-base: #ffffff;
@@ -171,7 +171,7 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Respect users who ask for less motion — no exceptions. */
+  /* Respect users who ask for less motion, no exceptions. */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
@@ -233,8 +233,8 @@
     border-radius: 0.5rem;
   }
 
-  /* Signature ambient light behind the hero. Two off-center pools — indigo and a
-     faint cyan — rather than one centered indigo blob, so the field reads as
+  /* Signature ambient light behind the hero. Two off-center pools, indigo and a
+     faint cyan, rather than one centered indigo blob, so the field reads as
      layered depth instead of the familiar single-gradient hero. A whisper of the
      settlement amber sits low, tying the brand's value accent into the identity. */
   .brand-glow {
@@ -441,7 +441,7 @@
 }
 
 /* =============================================================================
-   Motion — restrained, fast, and always gated on prefers-reduced-motion
+   Motion, restrained, fast, and always gated on prefers-reduced-motion
    ========================================================================== */
 @layer utilities {
   @keyframes wordmark-in {

@@ -4,8 +4,8 @@ import { defineRouting } from "next-intl/routing";
  * Supported locales.
  *
  * Adding a locale requires exactly two changes: append it here and add the
- * matching `src/messages/<locale>.json`. Everything else — routing, the locale
- * switcher, `hreflang` alternates, and the sitemap — derives from this list, so
+ * matching `src/messages/<locale>.json`. Everything else, routing, the locale
+ * switcher, `hreflang` alternates, and the sitemap, derives from this list, so
  * translations can never drift out of sync with the routes that serve them.
  */
 export const locales = ["en", "es", "fr", "de", "pt", "ja", "ko", "zh", "ar"] as const;
@@ -53,7 +53,7 @@ export const routing = defineRouting({
   // Every locale carries an explicit prefix, including the default: `/en/…`,
   // `/es/…`. The alternative ("as-needed") leaves the default locale unprefixed,
   // which means one URL shape has to be rewritten while every other is
-  // redirected — a distinction that produced a redirect loop on `/` here.
+  // redirected, a distinction that produced a redirect loop on `/` here.
   //
   // Always-prefixing costs a slightly longer English URL and buys unambiguous,
   // individually cacheable routes with no special case anywhere in the codebase.

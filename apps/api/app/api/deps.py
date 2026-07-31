@@ -59,7 +59,7 @@ async def get_current_user(
 
     # The access token is joined to its session rather than trusted on its own.
     # A JWT is valid until it expires, so without this check a token stolen and
-    # then detected as stolen would keep working for the remainder of its life —
+    # then detected as stolen would keep working for the remainder of its life, 
     # up to fifteen minutes of authenticated access after revocation. On a
     # platform that moves money that window is unacceptable, and the cost is one
     # indexed lookup that replaces the user query we were already doing.

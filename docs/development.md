@@ -114,7 +114,7 @@ apps/api/app/modules/<name>/
 ```
 
 Register models in `app/db/models.py` and the router in `app/api/v1.py`. Keep
-cross-module access to service functions — that is what makes extraction later a
+cross-module access to service functions, that is what makes extraction later a
 mechanical change.
 
 ### A migration
@@ -180,8 +180,8 @@ RATE_LIMIT_ENABLED=false     # the suite would throttle itself
 EMAIL_SENDING_ENABLED=false  # never reach a real inbox from a workstation
 ```
 
-Both switches default to the safe value in code — rate limiting **on**, email
-**off** — so a deployment that never sets them is still correct.
+Both switches default to the safe value in code, rate limiting **on**, email
+**off**, so a deployment that never sets them is still correct.
 
 ## Debugging
 

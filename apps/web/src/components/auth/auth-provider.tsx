@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // A signed-in session belongs to exactly one address. If the wallet switches
   // accounts or disconnects, the session no longer describes who is present and
-  // must end — continuing to act as the previous account would be a real
+  // must end, continuing to act as the previous account would be a real
   // authorisation flaw, not a cosmetic one.
   //
   // The wallet is an external system whose changes arrive outside React, so this

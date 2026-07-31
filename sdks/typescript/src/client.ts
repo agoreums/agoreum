@@ -1,5 +1,5 @@
 /**
- * Isomorphic Agoreum API client — runs on Node 20+, browsers, and edge runtimes on
+ * Isomorphic Agoreum API client, runs on Node 20+, browsers, and edge runtimes on
  * the platform `fetch`. No dependencies.
  *
  *     import { AgoreumClient } from "@agoreum/sdk";
@@ -267,7 +267,7 @@ class OrdersResource {
     return this.client.request<Order>("GET", `/orders/${encodeURIComponent(orderId)}`);
   }
 
-  /** Place an order — no funds move. Fund it afterwards from your wallet. Needs `orders:write`. */
+  /** Place an order, no funds move. Fund it afterwards from your wallet. Needs `orders:write`. */
   place(params: PlaceOrderParams): Promise<Order> {
     return this.client.request<Order>("POST", "/orders", {
       body: {

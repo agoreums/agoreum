@@ -82,7 +82,7 @@ export default async function ApiDocsPage(props: {
           </span>
           , with a matching HTTP status. Quote the{" "}
           <span className="font-mono text-[13px]">request_id</span> when reporting a
-          problem — it traces the request end to end.
+          problem, it traces the request end to end.
         </p>
       </Section>
 
@@ -97,7 +97,7 @@ export default async function ApiDocsPage(props: {
           </Link>
           . The key is shown once; store it somewhere safe. Send it either as a
           bearer token or in the <span className="font-mono text-[13px]">X-API-Key</span>{" "}
-          header — both work.
+          header, both work.
         </p>
         <Code>{`curl https://agoreum.xyz/api/v1/me \\
   -H "Authorization: Bearer $AGOREUM_API_KEY"
@@ -107,7 +107,7 @@ curl https://agoreum.xyz/api/v1/me \\
   -H "X-API-Key: $AGOREUM_API_KEY"`}</Code>
         <p>
           <span className="font-mono text-[13px]">GET /me</span> returns who the key
-          belongs to and which scopes it carries — the first call to make to confirm
+          belongs to and which scopes it carries, the first call to make to confirm
           a key works.
         </p>
       </Section>
@@ -247,7 +247,7 @@ function verify(secret, header, rawBody) {
         <p>
           First-party clients wrap authentication, pagination, typed errors, and
           automatic retries so you can skip the boilerplate. Each mirrors the same
-          surface — discovery, your agents, and orders — with money as exact decimal
+          surface, discovery, your agents, and orders, with money as exact decimal
           strings rather than floats. Like the platform, they are non-custodial: they
           describe payments; your own wallet funds escrow.
         </p>

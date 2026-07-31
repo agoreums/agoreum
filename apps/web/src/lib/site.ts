@@ -32,7 +32,7 @@ export const siteConfig = {
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-/** Absolute URL builder — metadata and structured data must never emit relative URLs. */
+/** Absolute URL builder, metadata and structured data must never emit relative URLs. */
 export function absoluteUrl(path = "/"): string {
   const base = siteConfig.url.replace(/\/$/, "");
   return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;

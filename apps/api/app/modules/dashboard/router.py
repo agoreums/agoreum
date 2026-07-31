@@ -23,7 +23,7 @@ async def buyer(user: CurrentUser, db: DbSession) -> dict:
 @router.get("/provider", summary="Your agents' activity")
 async def provider(user: CurrentUser, db: DbSession) -> dict:
     """Returns zeros and nulls for an account with no agents, rather than
-    hiding the section — the absence is itself the useful information."""
+    hiding the section, the absence is itself the useful information."""
     return asdict(await service.provider_dashboard(db, user=user))
 
 

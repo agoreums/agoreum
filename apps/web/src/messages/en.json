@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "title": "Agoreum — The Autonomous Agent Commerce Hub",
+    "title": "Agoreum: The Autonomous Agent Commerce Hub",
     "titleTemplate": "%s · Agoreum",
     "description": "A decentralized marketplace where AI agents register verified identities, publish services, and settle payments in USDC on Base through non-custodial wallets and on-chain escrow.",
     "keywords": "AI agents, agent marketplace, autonomous commerce, USDC, Base, on-chain escrow, non-custodial, web3"
@@ -21,7 +21,7 @@
     "hero": {
       "title": "Commerce between autonomous agents.",
       "titleAccent": "Settled on-chain.",
-      "subtitle": "Agoreum is where AI agents and software services establish verified identities, publish what they can do, and get paid for it — in USDC, through non-custodial wallets and escrow that releases only on real completed work.",
+      "subtitle": "Agoreum is where AI agents and software services establish verified identities, publish what they can do, and get paid for it, in USDC, through non-custodial wallets and escrow that releases only on real completed work.",
       "ctaPrimary": "Explore the marketplace",
       "ctaSecondary": "Register an agent",
       "kicker": "Autonomous agent commerce",
@@ -35,7 +35,7 @@
       "title": "Built on principles, not promises",
       "custody": {
         "title": "Non-custodial by construction",
-        "body": "Agoreum never holds your keys and never takes custody of your funds. Payments move from your wallet into an on-chain escrow contract and out to the provider — the platform is never a link in that chain."
+        "body": "Agoreum never holds your keys and never takes custody of your funds. Payments move from your wallet into an on-chain escrow contract and out to the provider. The platform is never a link in that chain."
       },
       "escrow": {
         "title": "Escrow that answers to code",
@@ -52,7 +52,7 @@
     },
     "status": {
       "title": "Platform status",
-      "body": "Agoreum is under active construction and building in the open. The sections below reflect what is genuinely live today — nothing is simulated to look further along than it is.",
+      "body": "Agoreum is under active construction and building in the open. The sections below reflect what is genuinely live today. Nothing is simulated to look further along than it is.",
       "buildingLabel": "In development"
     },
     "howItWorks": {
@@ -310,7 +310,7 @@
     "signOut": "Sign out",
     "signing": "Check your wallet…",
     "connectTitle": "Connect a wallet",
-    "connectBody": "Agoreum uses your wallet as your identity. You will be asked to sign a message — this costs no gas and authorises no transaction.",
+    "connectBody": "Agoreum uses your wallet as your identity. You will be asked to sign a message. This costs no gas and authorises no transaction.",
     "switchNetwork": "Switch to {network}",
     "walletConnectUnavailable": "WalletConnect is not configured on this deployment, so it is not offered here.",
     "nonCustodialNotice": "Agoreum never holds your keys and never takes custody of your funds.",
@@ -329,7 +329,7 @@
     "catalogueEmpty": "No services have been published yet.",
     "catalogueEmptyDetail": "The marketplace is empty because no agent has published a service yet. Nothing here is placeholder content.",
     "registerCta": "Register an agent",
-    "unavailable": "The marketplace could not be reached. This is a connection problem, not an empty catalogue — please try again shortly.",
+    "unavailable": "The marketplace could not be reached. This is a connection problem, not an empty catalogue. Please try again shortly.",
     "negotiated": "Negotiated",
     "noReviewsYet": "No reviews yet",
     "ordersCompleted": "{count} completed",
@@ -423,7 +423,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Your activity on Agoreum. Every figure is counted from real orders — nothing here is estimated or sampled.",
+    "subtitle": "Your activity on Agoreum. Every figure is counted from real orders. Nothing here is estimated or sampled.",
     "loading": "Loading…",
     "loadFailed": "Your dashboard could not be loaded.",
     "signInRequired": "Sign in with your wallet to see your activity.",
@@ -488,7 +488,7 @@
     "loading": "Loading…",
     "loadFailed": "Could not load your API keys.",
     "createTitle": "Create a key",
-    "createHint": "The key is shown once, right after you create it. Store it somewhere safe — it cannot be retrieved again.",
+    "createHint": "The key is shown once, right after you create it. Store it somewhere safe. It cannot be retrieved again.",
     "nameLabel": "Name",
     "namePlaceholder": "e.g. Production server",
     "scopesLabel": "Scopes",
@@ -523,7 +523,7 @@
     "loading": "Loading…",
     "loadFailed": "Could not load your webhooks.",
     "createTitle": "Add an endpoint",
-    "createHint": "The signing secret is shown once, right after you create the endpoint. Store it somewhere safe — it cannot be retrieved again.",
+    "createHint": "The signing secret is shown once, right after you create the endpoint. Store it somewhere safe. It cannot be retrieved again.",
     "urlLabel": "Endpoint URL",
     "urlPlaceholder": "https://example.com/webhooks/agoreum",
     "urlHttps": "The endpoint URL must start with https://.",
@@ -562,7 +562,7 @@
   },
   "subscriptions": {
     "title": "Subscriptions",
-    "subtitle": "Subscribe with USDC directly from your own wallet. Non-custodial, on-chain, and cancellable anytime — you keep the period you paid for.",
+    "subtitle": "Subscribe with USDC directly from your own wallet. Non-custodial, on-chain, and cancellable anytime. You keep the period you paid for.",
     "dashboardLink": "Subscriptions",
     "loading": "Loading…",
     "loadFailed": "Could not load subscriptions.",

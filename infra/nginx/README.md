@@ -9,7 +9,7 @@ Reverse proxy configuration for production.
 | `nginx.conf` | Base configuration: workers, timeouts, gzip, JSON access log, rate-limit zones |
 | `agoreum.conf` | Site routing, TLS, per-location limits and caching |
 | `proxy_headers.conf` | Headers forwarded to every upstream |
-| `certs/` | Cloudflare Origin certificate and key — **never committed** |
+| `certs/` | Cloudflare Origin certificate and key, **never committed** |
 
 ## Certificates
 
@@ -39,7 +39,7 @@ Two layers, deliberately:
 
 - **Nginx** limits per IP address. It is cheap, runs before any application
   code, and absorbs volumetric abuse.
-- **The API** limits per identity — user id when authenticated, IP otherwise.
+- **The API** limits per identity, user id when authenticated, IP otherwise.
   It understands who is calling, so one abusive account behind a shared NAT
   cannot exhaust everyone else's allowance.
 

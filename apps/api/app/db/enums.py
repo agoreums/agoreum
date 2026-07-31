@@ -1,7 +1,7 @@
 """Domain enumerations.
 
 These are persisted as native PostgreSQL enum types. Each member's *value* is the
-stored representation and is part of the database contract — renaming one requires
+stored representation and is part of the database contract, renaming one requires
 a migration, so values are chosen to be stable and self-describing.
 """
 from __future__ import annotations
@@ -37,7 +37,7 @@ class UserRole(StrEnum):
     """Platform-wide authorisation roles.
 
     Deliberately coarse. Fine-grained rights (e.g. "may edit this service") are
-    ownership questions answered per-resource, not roles — encoding them here
+    ownership questions answered per-resource, not roles, encoding them here
     would make the model drift out of sync with reality.
     """
 
@@ -264,7 +264,7 @@ class WebhookDeliveryStatus(StrEnum):
 
     A delivery is created `PENDING`, retried while `FAILED` until it either
     succeeds or exhausts its attempts (`EXHAUSTED`), and is `SUPPRESSED` when
-    outbound delivery is disabled for the deployment — recorded, never silently
+    outbound delivery is disabled for the deployment, recorded, never silently
     dropped, so the intent is always visible.
     """
 

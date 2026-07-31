@@ -1,4 +1,4 @@
-# apps/web — Agoreum Frontend
+# apps/web, Agoreum Frontend
 
 Next.js 16 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS v4 · next-intl
 
@@ -27,7 +27,7 @@ src/
 │   ├── robots.ts            Generated robots.txt
 │   └── sitemap.ts           Generated sitemap.xml with hreflang alternates
 ├── components/
-│   ├── brand/               Logo — renders the official asset, never redrawn
+│   ├── brand/               Logo, renders the official asset, never redrawn
 │   ├── layout/              Header, footer, mobile nav, locale switcher
 │   └── seo/                 JSON-LD structured data
 ├── i18n/                    Locale config, request config, navigation helpers
@@ -41,7 +41,7 @@ src/
 
 Eight locales ship today: `en`, `es`, `fr`, `de`, `pt`, `ja`, `ko`, `zh`.
 
-Adding a locale requires two changes — append it to `locales` in
+Adding a locale requires two changes, append it to `locales` in
 [`src/i18n/routing.ts`](src/i18n/routing.ts) and add `src/messages/<locale>.json`.
 Routing, the locale switcher, `hreflang` alternates, and the sitemap all derive
 from that list. A test asserts every catalogue has exactly the same key set as the
@@ -50,7 +50,7 @@ English source, so a missing translation fails CI rather than reaching a user.
 The default locale is served unprefixed (`/`); others are prefixed (`/es`).
 
 **Always import `Link`, `redirect`, `usePathname`, and `useRouter` from
-`@/i18n/navigation`**, never from `next/link` or `next/navigation` — the locale is
+`@/i18n/navigation`**, never from `next/link` or `next/navigation`, the locale is
 silently lost otherwise. ESLint enforces this.
 
 ## Design system
@@ -66,7 +66,7 @@ defined once for the whole product.
 ## Brand assets
 
 `public/icons/` holds the generated production icon set; `brand/` at the repository
-root holds the canonical source artwork. The mark is final — components render the
+root holds the canonical source artwork. The mark is final, components render the
 real asset rather than reproducing its geometry as hand-authored SVG.
 
 ## Not yet built

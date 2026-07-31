@@ -1,6 +1,6 @@
 """Integration tests against a real PostgreSQL database.
 
-These exercise behaviour that only exists in the database — CHECK constraints,
+These exercise behaviour that only exists in the database, CHECK constraints,
 partial unique indexes, native enum labels, and the full-text search trigger.
 Asserting them against SQLAlchemy metadata alone would prove nothing about what
 PostgreSQL actually enforces at runtime.

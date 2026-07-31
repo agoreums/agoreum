@@ -1,4 +1,4 @@
-# contracts — Agoreum Smart Contracts
+# contracts, Agoreum Smart Contracts
 
 Solidity 0.8.28 · Foundry · OpenZeppelin 5.1.0 · target: Base
 
@@ -15,8 +15,8 @@ releases it only under defined settlement conditions.
    transfer. This is the same invariant the database enforces, restated where it
    is actually authoritative.
 2. **State is written before value moves.** Checks-effects-interactions
-   throughout, plus a reentrancy guard. The guard is defence in depth — correct
-   ordering already prevents reentrancy — because escrow balances warrant both.
+   throughout, plus a reentrancy guard. The guard is defence in depth, correct
+   ordering already prevents reentrancy, because escrow balances warrant both.
 3. **Money is never trapped.** Every funded escrow always has a terminal path
    available. If a provider never delivers, the buyer reclaims after the
    deadline without needing anyone's cooperation, including the platform's. If a
@@ -66,17 +66,17 @@ FOUNDRY_PROFILE=deep forge test   # 50k fuzz runs, 2k invariant runs
 
 Beyond the happy path, the suite specifically exercises the ways money is lost:
 
-- **Reentrancy** — a hook-bearing token that calls back into `release`, `refund`,
+- **Reentrancy**, a hook-bearing token that calls back into `release`, `refund`,
   and cross-function (`refund` from inside `release`); a contract recipient that
   re-enters on receipt.
-- **Double spend** — double release, double refund, double settlement,
+- **Double spend**, double release, double refund, double settlement,
   refund-after-release, release-after-refund, and the same settlement transaction
   submitted twice (a normal operational retry, which must be inert).
-- **Arithmetic boundaries** — 1 base unit where the fee rounds to zero, amounts
+- **Arithmetic boundaries**, 1 base unit where the fee rounds to zero, amounts
   where the fee truncates, and `type(uint128).max`.
-- **Token misbehaviour** — a token that silently returns `false` must revert the
+- **Token misbehaviour**, a token that silently returns `false` must revert the
   whole release rather than record a payout that never happened.
-- **Authorisation** — fuzzed over arbitrary caller addresses.
+- **Authorisation**, fuzzed over arbitrary caller addresses.
 
 ### Property and invariant testing
 
@@ -84,8 +84,8 @@ Beyond the happy path, the suite specifically exercises the ways money is lost:
 release never overpays, refunds are always whole, settlements never exceed the
 deposit, and rounding always favours the provider over the platform.
 
-6 stateful invariants run 512 sequences of 64 random calls each — **32,768 calls
-per invariant** — asserting after every step that no escrow overpays, the
+6 stateful invariants run 512 sequences of 64 random calls each, **32,768 calls
+per invariant**, asserting after every step that no escrow overpays, the
 contract holds at least what it owes, value is conserved end to end, terminal
 escrows strand nothing, and active escrows have paid nothing.
 

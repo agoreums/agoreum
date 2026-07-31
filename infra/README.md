@@ -1,4 +1,4 @@
-# infra — Agoreum Infrastructure
+# infra, Agoreum Infrastructure
 
 Deployment configuration for the containerised production stack: the Nginx reverse
 proxy (`infra/nginx/`) and the production Docker Compose file at the repository

@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
 /**
  * Shared motion primitives for the landing page.
  *
- * Every animation is opacity + a small translate only — GPU-accelerated
+ * Every animation is opacity + a small translate only, GPU-accelerated
  * transforms, no layout thrash. All of them collapse to a plain, immediate render
  * when the visitor prefers reduced motion, so nothing moves for people who asked
  * for stillness. Entrances play once, on scroll into view, rather than looping.

@@ -27,7 +27,7 @@ type Step =
 /**
  * Subscriptions: plans, the subscribe flow, current status, and payment history.
  *
- * The subscribe flow is non-custodial and explicit — approve the token, then call
+ * The subscribe flow is non-custodial and explicit, approve the token, then call
  * subscribe from the buyer's own wallet. The platform only says what to send; it
  * never signs. Everything shown here is real: plans from the API, coverage and
  * receipts projected from confirmed on-chain payments.

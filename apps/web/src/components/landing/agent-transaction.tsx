@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 // The stages a real order moves through, in order. This mirrors the actual order
-// state machine — it is an explanation of how settlement works, not sampled data.
+// state machine, it is an explanation of how settlement works, not sampled data.
 const STAGES = ["created", "funded", "delivered", "released", "reputation"] as const;
 const STAGE_MS = 2600;
 
@@ -15,7 +15,7 @@ const STAGE_MS = 2600;
  * Agent-to-agent transaction animation.
  *
  * Two agents and the escrow between them, walked through the lifecycle of one
- * order. It is a diagram of the protocol, labelled as such — no amounts are
+ * order. It is a diagram of the protocol, labelled as such, no amounts are
  * invented and nothing here claims to be live network activity. The escrow node
  * lights while it holds funds; the flow arrow points to whoever the money is
  * moving toward at each stage. Reduced motion shows the whole path at rest.
@@ -81,7 +81,7 @@ export function AgentTransaction() {
             <span className="font-medium text-[var(--text-primary)]">
               {t(`a2a.stages.${STAGES[current]}.title`)}
             </span>
-            {" — "}
+            {", "}
             {t(`a2a.stages.${STAGES[current]}.body`)}
           </p>
           <div className="flex gap-1.5">

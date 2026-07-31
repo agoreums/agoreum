@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
  * Read a value from localStorage as an external store.
  *
  * `useSyncExternalStore` is the sanctioned way to subscribe React to a store
- * that lives outside it — localStorage here. It reads the server snapshot during
+ * that lives outside it, localStorage here. It reads the server snapshot during
  * SSR and the real value after hydration without a `setState` inside an effect
  * (which schedules an extra render and is what the react-hooks lint flags), and
  * without a hydration mismatch: the hook is built to reconcile differing server

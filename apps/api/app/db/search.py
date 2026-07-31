@@ -1,8 +1,8 @@
 """Full-text search support for the service catalogue.
 
 The `services.search_vector` column is maintained by a database trigger rather than
-by application code. That choice is deliberate: any write path — an API handler, a
-migration, a manual correction in psql — keeps search correct, and the vector can
+by application code. That choice is deliberate: any write path, an API handler, a
+migration, a manual correction in psql, keeps search correct, and the vector can
 never drift from the row it describes.
 
 Weights follow relevance: a term in the title should outrank the same term buried

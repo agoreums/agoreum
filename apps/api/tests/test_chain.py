@@ -1,7 +1,7 @@
 """Chain client, ABI binding, and indexer tests.
 
 Tests marked `anvil` run against a local Anvil node with a genuinely deployed
-AgoreumEscrow. They exercise real EVM execution and real logs — nothing about
+AgoreumEscrow. They exercise real EVM execution and real logs, nothing about
 the chain is mocked, because a mocked chain would prove nothing about whether
 the platform can read the one it actually settles on.
 
@@ -208,7 +208,7 @@ class TestEventDecoding:
     async def test_decodes_real_release_log_with_exact_fee_split(
         self, client: ChainClient, deployment: dict
     ) -> None:
-        """The amounts must reconcile to the deposit exactly — no value created
+        """The amounts must reconcile to the deposit exactly, no value created
         or destroyed by the decoding path."""
         logs = await client.get_logs(address=deployment["escrow"], from_block=0)
         events = [contract.decode_log(log) for log in logs]

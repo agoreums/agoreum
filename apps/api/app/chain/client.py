@@ -3,7 +3,7 @@
 This module never signs anything. It has no access to a private key and no code
 path that could acquire one: the platform is non-custodial, so every transaction
 that moves value is signed in the user's own wallet. What happens here is
-strictly observation — reading blocks, receipts and logs to learn what the chain
+strictly observation, reading blocks, receipts and logs to learn what the chain
 has already accepted.
 
 All calls go through a single client so retry behaviour, timeouts and error

@@ -1,12 +1,12 @@
 # Deployment
 
 How Agoreum runs in production, at the level a contributor needs. This describes
-the deployment *model*, not a specific provider, host, or region — the stack is
+the deployment *model*, not a specific provider, host, or region, the stack is
 containerised and runs anywhere Docker does.
 
 > **Chain state is testnet only.** The escrow contract is deployed to Base Sepolia
 > and nothing is on mainnet. Any mainnet action is gated on an explicit decision,
-> a real audit, and separated key-holding addresses — see [contracts.md](contracts.md).
+> a real audit, and separated key-holding addresses, see [contracts.md](contracts.md).
 
 ## Topology
 
@@ -32,7 +32,7 @@ container whose host could be rebuilt out from under the data.
 - [ ] An origin TLS certificate installed at `infra/nginx/certs/`
 - [ ] `.env` present on the host with production values (never in the image, never in git)
 - [ ] Escrow contract deployed and `ESCROW_CONTRACT_ADDRESS` set
-- [ ] `JWT_SECRET` generated fresh — never reused from any other environment
+- [ ] `JWT_SECRET` generated fresh, never reused from any other environment
 
 ## Host preparation
 
@@ -109,7 +109,7 @@ docker compose -f docker-compose.prod.yml ps
 ```
 
 Readiness returns 503 if Postgres or Redis is unreachable. The chain is reported
-but excluded from the verdict — an RPC outage should degrade the platform, not
+but excluded from the verdict, an RPC outage should degrade the platform, not
 take the site out of rotation over a third party.
 
 ## Continuous deployment
@@ -121,7 +121,7 @@ serves before reporting success. If the site does not come back, the job fails
 loudly rather than leaving a half-deployed stack looking green.
 
 The runner reaches the host through a deploy key scoped to exactly that action,
-not a general-purpose credential — giving a CI runner access to production is a
+not a general-purpose credential, giving a CI runner access to production is a
 real security decision and is kept deliberately narrow.
 
 ### Rolling back
@@ -139,8 +139,8 @@ docker compose -f docker-compose.prod.yml exec api alembic downgrade -1
 ```
 
 CI verifies every migration reverses, so this path is tested rather than hoped
-for. Migrations must be backwards compatible with the running version — add
-columns before using them, drop them a release later — because there is a brief
+for. Migrations must be backwards compatible with the running version, add
+columns before using them, drop them a release later, because there is a brief
 window during a deploy where both the old and new code may serve.
 
 ## TLS
@@ -160,7 +160,7 @@ accept an invalid origin certificate, defeating the point. See
 | Network | Base Sepolia (chain 84532) |
 | Address | [`0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D`](https://sepolia.basescan.org/address/0x13c90ba1441bd02d55801cb2f8bda3515020a16d) (verified) |
 | Deploy block | 44531775 |
-| Roles | admin, arbiter, and fee recipient all set to the deployer — **testnet only** |
+| Roles | admin, arbiter, and fee recipient all set to the deployer, **testnet only** |
 | Fee | 250 bps (2.5%), cap 1000 bps |
 
 Mainnet must use three genuinely separate addresses, with admin and fee recipient
@@ -185,7 +185,7 @@ ESCROW_DEPLOY_BLOCK=<block the deployment landed in>
 
 The address is configuration everywhere, so nothing else needs changing. The
 deploy block is what the indexer starts from the first time it runs against this
-contract — there is nothing to find before it, and without it the only safe
+contract, there is nothing to find before it, and without it the only safe
 default is genesis, which is not a viable scan on a live chain.
 
 ## Running the indexer
@@ -201,8 +201,8 @@ Two reasons it is separate rather than a background task inside the API: indexin
 must not stop while the API is being redeployed, and two API replicas would
 otherwise both index the same range concurrently.
 
-Concurrency is nonetheless safe — events are keyed by `(tx_hash, log_index)`, so a
-duplicate scan applies nothing twice — but doing it by accident wastes an RPC
+Concurrency is nonetheless safe, events are keyed by `(tx_hash, log_index)`, so a
+duplicate scan applies nothing twice, but doing it by accident wastes an RPC
 allowance.
 
 Position is stored in `indexer_cursors`, keyed by chain id **and** contract
@@ -233,7 +233,7 @@ Worth alerting on:
 | `/health/ready` non-200 | A required dependency is down |
 | `rate_limit_unavailable` | Redis is unreachable; limits are failing open |
 | `reorg_detected` | A chain reorganisation touched a recorded transaction |
-| `orphan_escrow_event` | On-chain escrow with no matching order — funds need a human |
+| `orphan_escrow_event` | On-chain escrow with no matching order, funds need a human |
 | `order_chain_divergence` | Database disagrees with the chain |
 | `email_send_failed` | Notifications are not arriving |
 | `chain_scan_complete` **absent** | The indexer has stopped; paid orders are not being credited |
@@ -250,7 +250,7 @@ exactly like a quiet marketplace.
 
 The managed database handles automated backups and point-in-time recovery. Verify
 the retention window matches what you would need, and **restore into a scratch
-database occasionally** — an unverified backup is a hypothesis. Redis holds only
+database occasionally**, an unverified backup is a hypothesis. Redis holds only
 cache and rate-limit counters; losing it costs a cold cache.
 
 ## Resources

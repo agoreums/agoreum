@@ -38,7 +38,7 @@ func (o *Orders) Get(ctx context.Context, orderID string) (Order, error) {
 	return doJSON[Order](ctx, o.client, http.MethodGet, "/orders/"+url.PathEscape(orderID), nil, nil)
 }
 
-// Place places an order. No funds move — fund it afterwards from your own wallet
+// Place places an order. No funds move, fund it afterwards from your own wallet
 // using PaymentInstructions. Needs the orders:write scope.
 func (o *Orders) Place(ctx context.Context, p PlaceOrderParams) (Order, error) {
 	quantity := p.Quantity

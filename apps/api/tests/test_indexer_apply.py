@@ -2,7 +2,7 @@
 
 This is the path that runs in production: the indexer is its own process, so it
 loads each order in a new session with nothing in the identity map. The apply
-code reads `order.escrow` and `order.buyer`, which are lazy relationships — if
+code reads `order.escrow` and `order.buyer`, which are lazy relationships, if
 the query does not eager-load them, the access is synchronous IO inside async
 SQLAlchemy and raises MissingGreenlet on the very first real event.
 
@@ -46,7 +46,7 @@ def _configure_escrow(monkeypatch):
 
     Applying an EscrowCreated event writes `contract.contract_address()` onto the
     new Escrow row, and that raises EscrowNotConfiguredError when
-    ESCROW_CONTRACT_ADDRESS is unset — which it is in CI, where no contract is
+    ESCROW_CONTRACT_ADDRESS is unset, which it is in CI, where no contract is
     deployed. The test is about the database apply logic, not any specific
     deployment, so it configures a deterministic address itself rather than
     depending on the environment. No chain call is made; contract_address() only
@@ -76,7 +76,7 @@ async def sessionmaker(engine):
 async def _make_committed_order(sm) -> uuid.UUID:
     """Create a full order graph and commit it, then forget it.
 
-    Returns only the id, so the caller must reload it — which is the whole point.
+    Returns only the id, so the caller must reload it, which is the whole point.
     """
     async with sm() as s:
         buyer = User(primary_address=BUYER)
@@ -165,7 +165,7 @@ class TestApplyToFreshOrder:
         """The regression: this raised MissingGreenlet before the eager-load fix.
 
         The order is created and committed in one session, then the event is
-        applied in a completely separate one — so `order.escrow` (None here) and
+        applied in a completely separate one, so `order.escrow` (None here) and
         `order.buyer.primary_address` are cold and must be eager-loaded, not
         lazily fetched.
         """

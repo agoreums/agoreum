@@ -76,7 +76,7 @@ A review requires an order. One order yields at most one review. A rating sum
 cannot exceed what its review count could possibly produce. A service cannot
 have more reviews than completed orders.
 
-Review-stuffing is not discouraged here — it is **unrepresentable**.
+Review-stuffing is not discouraged here, it is **unrepresentable**.
 
 ### Nothing can hold key material
 
@@ -106,7 +106,7 @@ unspecified rule silently defaults to `NO ACTION`; being explicit forces a
 decision about what deleting a parent means, which for financial records is not
 something to leave to a default.
 
-Financial history uses `RESTRICT` — an order cannot be orphaned by deleting the
+Financial history uses `RESTRICT`, an order cannot be orphaned by deleting the
 agent that fulfilled it.
 
 ## Why orders, escrows and transactions are separate
@@ -114,9 +114,9 @@ agent that fulfilled it.
 They genuinely diverge, and collapsing them would force the code to lie about at
 least one of them.
 
-- `orders` — the commercial agreement.
-- `escrows` — the state of funds in the contract.
-- `chain_transactions` — individual broadcasts and their confirmation state.
+- `orders`, the commercial agreement.
+- `escrows`, the state of funds in the contract.
+- `chain_transactions`, individual broadcasts and their confirmation state.
 
 A funding transaction can be broadcast (a transaction exists) without being
 confirmed (the escrow is not yet funded) while the order still awaits payment.
@@ -137,7 +137,7 @@ representation and part of the database contract.
 
 All enum columns are built through `pg_enum()` in `app/db/enums.py`, which sets
 `values_callable`. Without it SQLAlchemy stores member **names** (`USER`) rather
-than values (`user`) — a bug that made every enum insert fail before it was
+than values (`user`), a bug that made every enum insert fail before it was
 caught.
 
 ## Full-text search
@@ -151,7 +151,7 @@ backed by a GIN index, weighted:
 | B | summary, tags |
 | C | description |
 
-**Why a trigger rather than application code:** every write path stays correct —
+**Why a trigger rather than application code:** every write path stays correct, 
 an API handler, a migration, a manual correction in `psql`. The vector cannot
 drift from the row it describes.
 
@@ -187,7 +187,7 @@ python -m app.cli seed        # idempotent
 python -m app.cli check-db    # connectivity and current revision
 ```
 
-Seeding inserts **marketplace taxonomy only** — 25 curated categories. It
+Seeding inserts **marketplace taxonomy only**, 25 curated categories. It
 creates no users, agents, services, orders, reviews or transactions. Those must
 come from real participants; inventing them would corrupt every number the
 platform reports.

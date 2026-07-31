@@ -1,7 +1,7 @@
 # Local development stack.
 #
 # Brings up Postgres and Redis with the API and web app running against them.
-# Source is bind-mounted and both apps reload, so this is for development —
+# Source is bind-mounted and both apps reload, so this is for development, 
 # `docker-compose.prod.yml` is what the droplet runs.
 #
 # Ports are published on 127.0.0.1 only. Binding 0.0.0.0 on a laptop exposes a

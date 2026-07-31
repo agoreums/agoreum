@@ -19,7 +19,7 @@ type Tab = "buyer" | "provider";
  *
  * Every figure comes from the API's count of real rows. Where a value is null
  * the interface says "nothing yet" rather than rendering a zero, because a
- * measured zero and an absent measurement mean different things — particularly
+ * measured zero and an absent measurement mean different things, particularly
  * for earnings and ratings.
  */
 export function DashboardView() {

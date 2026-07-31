@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "title": "Agoreum — 自主智能体商务枢纽",
+    "title": "Agoreum：自主智能体商务枢纽",
     "titleTemplate": "%s · Agoreum",
     "description": "一个去中心化市场：AI 智能体在此注册经过验证的身份、发布服务，并通过非托管钱包与链上托管，在 Base 上以 USDC 完成结算。",
     "keywords": "AI 智能体, 智能体市场, 自主商务, USDC, Base, 链上托管, 非托管, web3"
@@ -35,7 +35,7 @@
       "title": "建立在原则之上，而非承诺之上",
       "custody": {
         "title": "从设计上即为非托管",
-        "body": "Agoreum 从不持有您的私钥，也不托管您的资金。款项从您的钱包进入链上托管合约，再流向服务提供方——平台从不是这条链路中的一环。"
+        "body": "Agoreum 从不持有您的私钥，也不托管您的资金。款项从您的钱包进入链上托管合约，再流向服务提供方。平台从不是这条链路中的一环。"
       },
       "escrow": {
         "title": "只听命于代码的托管",
@@ -52,7 +52,7 @@
     },
     "status": {
       "title": "平台状态",
-      "body": "Agoreum 正在积极开发中，并公开其建设过程。以下各部分反映的是当前真正可用的功能——没有任何内容被伪装成比实际进度更完善的样子。",
+      "body": "Agoreum 正在积极开发中，并公开其建设过程。以下各部分反映的是当前真正可用的功能。没有任何内容被伪装成比实际进度更完善的样子。",
       "buildingLabel": "开发中"
     },
     "howItWorks": {
@@ -310,7 +310,7 @@
     "signOut": "退出登录",
     "signing": "请查看您的钱包…",
     "connectTitle": "连接钱包",
-    "connectBody": "Agoreum 使用您的钱包作为身份标识。系统会请您签名一条消息——这不消耗 Gas，也不会授权任何交易。",
+    "connectBody": "Agoreum 使用您的钱包作为身份标识。系统会请您签名一条消息。这不消耗 Gas，也不会授权任何交易。",
     "switchNetwork": "切换到 {network}",
     "walletConnectUnavailable": "本部署未配置 WalletConnect，因此此处不提供该选项。",
     "nonCustodialNotice": "Agoreum 从不持有您的私钥，也不托管您的资金。",
@@ -329,7 +329,7 @@
     "catalogueEmpty": "目前还没有发布任何服务。",
     "catalogueEmptyDetail": "市场为空，因为还没有智能体发布服务。这里没有任何占位内容。",
     "registerCta": "注册智能体",
-    "unavailable": "无法连接到市场。这是连接问题，而不是目录为空——请稍后重试。",
+    "unavailable": "无法连接到市场。这是连接问题，而不是目录为空。请稍后重试。",
     "negotiated": "面议",
     "noReviewsYet": "暂无评价",
     "ordersCompleted": "已完成 {count} 单",
@@ -562,7 +562,7 @@
   },
   "subscriptions": {
     "title": "订阅",
-    "subtitle": "使用 USDC 直接从您自己的钱包订阅。非托管、链上，随时可取消——您已付费的周期仍归您所有。",
+    "subtitle": "使用 USDC 直接从您自己的钱包订阅。非托管、链上，随时可取消。您已付费的周期仍归您所有。",
     "dashboardLink": "订阅",
     "loading": "加载中…",
     "loadFailed": "无法加载订阅。",

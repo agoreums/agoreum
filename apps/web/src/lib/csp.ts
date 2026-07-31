@@ -3,13 +3,13 @@
  *
  * The previous policy was `script-src 'self'` with no `'unsafe-inline'` and no
  * nonce. That silently blocked Next's own inline hydration scripts, so React
- * never hydrated and every interactive control — wallet connect, the locale
- * switcher, the mobile menu — did nothing. The SSR HTML still rendered, which is
+ * never hydrated and every interactive control, wallet connect, the locale
+ * switcher, the mobile menu, did nothing. The SSR HTML still rendered, which is
  * why the site looked fine until you clicked.
  *
  * `'unsafe-inline'` restores it. A nonce would be stricter, but a nonce must be
  * unique per request and therefore forces every page to render dynamically and
- * escape the CDN cache — Next literally cannot apply a per-request nonce to a
+ * escape the CDN cache, Next literally cannot apply a per-request nonce to a
  * statically generated, Cloudflare-cached page, so hydration would break again
  * on exactly the pages we serve fastest. Given the other directives stay tight
  * (no `unsafe-eval`, `object-src 'none'`, `base-uri 'self'`,

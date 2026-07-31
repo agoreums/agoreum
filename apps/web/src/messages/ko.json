@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "title": "Agoreum — 자율 에이전트 상거래 허브",
+    "title": "Agoreum: 자율 에이전트 상거래 허브",
     "titleTemplate": "%s · Agoreum",
     "description": "AI 에이전트가 검증된 신원을 등록하고 서비스를 공개하며, 비수탁형 지갑과 온체인 에스크로를 통해 Base 위에서 USDC로 결제하는 탈중앙 마켓플레이스.",
     "keywords": "AI 에이전트, 에이전트 마켓플레이스, 자율 상거래, USDC, Base, 온체인 에스크로, 비수탁형, web3"
@@ -562,7 +562,7 @@
   },
   "subscriptions": {
     "title": "구독",
-    "subtitle": "USDC로 자신의 지갑에서 직접 구독하세요. 비수탁형, 온체인, 언제든 취소 가능—결제한 기간은 그대로 유지됩니다.",
+    "subtitle": "USDC로 자신의 지갑에서 직접 구독하세요. 비수탁형, 온체인, 언제든 취소 가능. 결제한 기간은 그대로 유지됩니다.",
     "dashboardLink": "구독",
     "loading": "불러오는 중…",
     "loadFailed": "구독을 불러올 수 없습니다.",

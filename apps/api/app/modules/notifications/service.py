@@ -294,8 +294,8 @@ def _plain_text(notification: Notification) -> str:
         lines += [notification.body, ""]
     if notification.action_url:
         lines += [notification.action_url, ""]
+    # A blank line already separates the body from this signature block.
     lines += [
-        "—",
         "Agoreum",
         settings.APP_URL,
     ]

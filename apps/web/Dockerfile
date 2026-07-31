@@ -27,7 +27,7 @@ COPY apps/web ./
 
 # NEXT_PUBLIC_* values are inlined into the client bundle at build time, so they
 # must be present now rather than at container start. They are public by
-# definition — an API URL and a WalletConnect project id — and no secret is
+# definition, an API URL and a WalletConnect project id, and no secret is
 # passed in as a build argument.
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_API_URL

@@ -19,7 +19,7 @@ from app.core.config import settings
 #
 # Both surface as an opaque connection error rather than a clean downgrade. RESP2
 # is pinned and the SETINFO handshake disabled, which costs nothing this platform
-# uses — caching, rate limiting and job queues are all RESP2-compatible — and
+# uses, caching, rate limiting and job queues are all RESP2-compatible, and
 # keeps one client working against every server version we might meet, from a
 # developer's local install to DigitalOcean's managed Redis.
 _COMPATIBILITY_KWARGS: dict[str, Any] = {

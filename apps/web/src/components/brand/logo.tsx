@@ -7,7 +7,7 @@ import { siteConfig } from "@/lib/site";
  *
  * This renders the official brand asset generated from `brand/logo.png`. The mark
  * is final artwork and is deliberately *not* reproduced as hand-authored SVG paths
- * anywhere in the codebase — redrawing it would let the rendered logo drift away
+ * anywhere in the codebase, redrawing it would let the rendered logo drift away
  * from the canonical source file.
  */
 export function LogoMark({

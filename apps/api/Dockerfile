@@ -18,7 +18,7 @@ WORKDIR /build
 
 # Copied alone so the dependency layer is only rebuilt when dependencies change,
 # not on every source edit. A stub `app` package satisfies setuptools so the
-# real dependencies install from pyproject — the single source of truth shared
+# real dependencies install from pyproject, the single source of truth shared
 # with CI, rather than a hand-maintained list that silently drifts from it.
 COPY apps/api/pyproject.toml ./
 RUN mkdir -p app && touch app/__init__.py

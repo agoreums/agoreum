@@ -117,7 +117,7 @@ async def authenticate(db: AsyncSession, *, token: str) -> tuple[User, ApiKey]:
     """Resolve a plaintext key to its owner, or raise.
 
     Rejects anything not shaped like a key before touching the database, then loads
-    by hash and enforces revocation, expiry, and the owner's account status — a
+    by hash and enforces revocation, expiry, and the owner's account status, a
     valid key over a suspended account must not grant access.
     """
     from app.core.errors import AuthenticationError, PermissionDeniedError

@@ -1,7 +1,7 @@
 """Shared column types and domain primitives.
 
-These exist so that concepts with strict on-chain semantics — EVM addresses,
-token amounts, transaction hashes — are represented one way across every table
+These exist so that concepts with strict on-chain semantics, EVM addresses,
+token amounts, transaction hashes, are represented one way across every table
 rather than being re-invented per module.
 """
 from __future__ import annotations
@@ -35,7 +35,7 @@ class EthereumAddress(TypeDecorator[str]):
 
     Addresses are case-insensitive on-chain but EIP-55 checksums vary by source.
     Storing one canonical casing is what makes uniqueness constraints and lookups
-    correct — otherwise the same wallet could register twice under different casing.
+    correct, otherwise the same wallet could register twice under different casing.
     """
 
     impl = CHAR(EVM_ADDRESS_LENGTH)

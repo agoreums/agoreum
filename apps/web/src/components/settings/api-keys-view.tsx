@@ -16,7 +16,7 @@ import {
  * API key management.
  *
  * The plaintext key is shown exactly once, right after creation, in a panel the
- * user must dismiss — the API never returns it again. Everything else here is
+ * user must dismiss, the API never returns it again. Everything else here is
  * metadata: prefix, scopes, and lifecycle timestamps, never the secret.
  */
 export function ApiKeysView() {
@@ -28,7 +28,7 @@ export function ApiKeysView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Bumped after a create or revoke to re-run the loader. Keeping the fetch inside
-  // the effect — rather than in a callback the effect calls — is what lets the
+  // the effect, rather than in a callback the effect calls, is what lets the
   // linter see that state is only ever set after an await, never on the render path.
   const [reload, setReload] = useState(0);
   const refresh = () => setReload((n) => n + 1);

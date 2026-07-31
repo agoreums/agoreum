@@ -80,7 +80,7 @@ and an operational surface a single host cannot support.
 service layer and router. Cross-module access goes through a module's service
 functions, never by reaching into its internals. The one deliberate exception is
 the model registry (`db/models.py`), which imports everything so SQLAlchemy can
-resolve relationships — a framework requirement, not a design position.
+resolve relationships, a framework requirement, not a design position.
 
 When a module does need extracting, the work is replacing its service-function
 calls with HTTP calls, not untangling it from everything else.
@@ -107,13 +107,13 @@ sufficiently confirmed chain events, may mark an order funded or completed.
 
 Middleware runs outermost-first:
 
-1. **RequestContext** — assigns a request id (validating any inbound one as a
+1. **RequestContext**, assigns a request id (validating any inbound one as a
    UUID, so it cannot inject into logs), times the request, logs the outcome.
-2. **BodySizeLimit** — rejects oversized bodies before a validator sees them.
-3. **TrustedHost** (production only) — refuses unexpected `Host` headers.
-4. **CORS** — an explicit origin allowlist.
-5. **RateLimitHeaders** — publishes remaining quota on the way out.
-6. **SecurityHeaders** — CSP, HSTS, frame and referrer policy.
+2. **BodySizeLimit**, rejects oversized bodies before a validator sees them.
+3. **TrustedHost** (production only), refuses unexpected `Host` headers.
+4. **CORS**, an explicit origin allowlist.
+5. **RateLimitHeaders**, publishes remaining quota on the way out.
+6. **SecurityHeaders**, CSP, HSTS, frame and referrer policy.
 
 Then routing, per-endpoint rate limiting, authentication, and the handler.
 
@@ -152,7 +152,7 @@ Three decisions worth stating:
 
 Refresh tokens are opaque, stored only as SHA-256 hashes, and rotated on every
 use. Presenting a spent one means it leaked, so every session for that user is
-revoked — and that revocation is committed before the error is raised, because
+revoked, and that revocation is committed before the error is raised, because
 the request-scoped transaction would otherwise roll it back.
 
 Smart-contract wallets are supported via EIP-1271 when an RPC endpoint is
@@ -192,7 +192,7 @@ Because those two steps are the only way an order becomes funded or completed,
 **an unattended indexer means buyers pay and nothing moves.** It is the process
 to alert on first.
 
-An on-chain escrow with no matching order is logged and skipped — never
+An on-chain escrow with no matching order is logged and skipped, never
 invented. The funds are real and a person needs to look at it.
 
 ## Reputation
@@ -217,7 +217,7 @@ Search and filter state lives in the URL, so every result set is linkable and
 the back button behaves.
 
 Eight locales ship, and a test asserts every catalogue has exactly the same key
-set as English — a missing translation fails CI rather than reaching a user.
+set as English, a missing translation fails CI rather than reaching a user.
 
 ## Deliberate absences
 
@@ -226,14 +226,14 @@ Things that do not exist yet, and why:
 - **An admin UI.** The endpoint exists and is role-gated, but there is no way to
   *become* an admin yet. A UI nobody can reach would be theatre.
 - **Notification triggers.** Delivery is built and tested, but nothing emits
-  order events yet — that belongs with the indexer once a real chain feeds it.
+  order events yet, that belongs with the indexer once a real chain feeds it.
 - **A deployed contract.** `ESCROW_CONTRACT_ADDRESS` is unset, and every payment
   surface reports that plainly rather than offering a button that cannot work.
 
 ## Related documents
 
-- [database.md](database.md) — schema and the invariants it enforces
-- [contracts.md](contracts.md) — the escrow contract and its guarantees
-- [api.md](api.md) — endpoint reference
-- [security.md](security.md) — threat model and controls
-- [deployment.md](deployment.md) — deploying to production
+- [database.md](database.md), schema and the invariants it enforces
+- [contracts.md](contracts.md), the escrow contract and its guarantees
+- [api.md](api.md), endpoint reference
+- [security.md](security.md), threat model and controls
+- [deployment.md](deployment.md), deploying to production

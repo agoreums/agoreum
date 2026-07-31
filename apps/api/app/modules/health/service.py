@@ -1,7 +1,7 @@
 """Dependency health probes.
 
 Every probe performs a real round-trip against the dependency. A probe never
-reports healthy because it was unable to run — failures are reported as failures.
+reports healthy because it was unable to run, failures are reported as failures.
 """
 from __future__ import annotations
 
@@ -159,8 +159,8 @@ async def check_chain() -> ComponentHealth:
 async def check_indexer(session: AsyncSession) -> ComponentHealth:
     """Report how far the indexer's cursor trails the chain head.
 
-    A stalled indexer is invisible to the readiness probe — the API itself is
-    perfectly healthy — but it means confirmed on-chain events stop being applied,
+    A stalled indexer is invisible to the readiness probe, the API itself is
+    perfectly healthy, but it means confirmed on-chain events stop being applied,
     so buyers pay and their orders never move to funded. This makes the gap
     observable so an operator (or the monitor) can be alerted before a user is.
     """
@@ -202,7 +202,7 @@ async def check_indexer(session: AsyncSession) -> ComponentHealth:
         )
 
     lag = head - cursor.last_scanned_block
-    # Normal lag is the confirmation depth plus a poll interval of blocks — a
+    # Normal lag is the confirmation depth plus a poll interval of blocks, a
     # handful on Base's ~2s blocks. Generous slack before calling it stalled.
     status: Status = "ok" if lag <= 40 else "degraded" if lag <= 200 else "down"
     return ComponentHealth(

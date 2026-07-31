@@ -8,7 +8,7 @@ export const dynamic = "force-static";
 /**
  * Static routes that exist today.
  *
- * Dynamic entries — agent profiles, service pages, category listings — are added
+ * Dynamic entries, agent profiles, service pages, category listings, are added
  * in the stage that makes those routes real. Listing URLs that 404 would actively
  * harm indexing, so this file only ever contains pages that actually render.
  */

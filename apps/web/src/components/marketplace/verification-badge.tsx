@@ -6,7 +6,7 @@ type Tier = "unverified" | "domain_verified" | "organization_verified";
  * Indicates what has actually been proven about a provider.
  *
  * Renders nothing for an unverified agent. A neutral "unverified" chip would
- * be visual noise on the majority of listings, and — more importantly — the
+ * be visual noise on the majority of listings, and, more importantly, the
  * absence of a badge is already the honest signal.
  */
 export async function VerificationBadge({

@@ -52,7 +52,7 @@ async def _check_db() -> int:
     await dispose_engine()
 
     print(f"server   : {version.split(',')[0]}")
-    print(f"revision : {revision or 'NONE — run alembic upgrade head'}")
+    print(f"revision : {revision or 'NONE, run alembic upgrade head'}")
     print(f"tables   : {tables}")
     return 0 if revision else 1
 

@@ -1,7 +1,7 @@
 """Webhook registration, event dispatch, and delivery.
 
 Dispatch is called wherever the platform raises an event (via notifications), and
-only writes outbox rows — it never makes an HTTP call on the request path. A
+only writes outbox rows, it never makes an HTTP call on the request path. A
 separate worker drains the outbox, signs each payload, POSTs it, and retries
 failures with exponential backoff. Outbound HTTP is gated behind
 `WEBHOOK_DELIVERY_ENABLED`: with it off, deliveries are recorded as suppressed
@@ -163,7 +163,7 @@ async def dispatch(
 ) -> int:
     """Queue this event for every active endpoint of the user subscribed to it.
 
-    Writes outbox rows only — no HTTP here. Returns how many were queued. Never
+    Writes outbox rows only, no HTTP here. Returns how many were queued. Never
     raises into the caller: a webhook problem must not fail the action that
     triggered the event.
     """
@@ -221,7 +221,7 @@ async def claim_due(db: AsyncSession, *, limit: int) -> list[WebhookDelivery]:
 
     The worker runs single-instance (like the indexer), so this does not lock rows;
     `deliver_one` commits each attempt as it goes. If the worker dies mid-batch, the
-    unfinished rows keep their due time and are simply picked up next pass —
+    unfinished rows keep their due time and are simply picked up next pass, 
     at-least-once delivery, which is why every delivery carries a stable id for the
     receiver to deduplicate on.
     """

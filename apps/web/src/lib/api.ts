@@ -455,7 +455,7 @@ export type ProviderDashboard = {
   published_services: number;
   active_orders: number;
   completed_orders: number;
-  /** Null until something has actually settled — not a measured zero. */
+  /** Null until something has actually settled, not a measured zero. */
   total_earned: string | null;
   currency: string;
   average_rating: number | null;

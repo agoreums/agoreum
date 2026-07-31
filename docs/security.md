@@ -3,7 +3,7 @@
 What Agoreum defends against, how, and what is still open.
 
 > **No independent audit has been performed. Only the escrow is deployed, and
-> only to Base Sepolia testnet — nothing is on mainnet.**
+> only to Base Sepolia testnet, nothing is on mainnet.**
 > This document describes implemented controls, not a clean bill of health.
 
 ## Reporting a vulnerability
@@ -18,7 +18,7 @@ fix an issue before disclosing it publicly.
 ## The threat model
 
 Agoreum moves money between strangers, so the attacker worth designing against
-is a motivated one with an economic incentive — not a curious passer-by.
+is a motivated one with an economic incentive, not a curious passer-by.
 
 The assets, in order of what an attacker would want:
 
@@ -29,7 +29,7 @@ The assets, in order of what an attacker would want:
 5. **Personal data.** Emails, order history, trading relationships.
 
 The single most valuable attack is payout redirection: quiet, and it steals
-future money rather than a single payment. It is treated accordingly — a payout
+future money rather than a single payment. It is treated accordingly, a payout
 wallet must be verified, must belong to the caller, and an attempt to use
 someone else's returns 404.
 
@@ -39,7 +39,7 @@ someone else's returns 404.
 
 - No private key exists in any application configuration.
 - No code path signs or broadcasts a transaction.
-- No database column can hold key material — asserted by a test over the whole
+- No database column can hold key material, asserted by a test over the whole
   schema, so adding one fails the build.
 - Sessions store only a SHA-256 hash of the refresh token.
 
@@ -59,7 +59,7 @@ Sign-In With Ethereum (EIP-4361). No passwords exist anywhere.
 | Domain checked against this deployment | A signature harvested by a phishing site is useless here |
 | Chain id checked | Wrong-network signatures refused |
 
-Nonces are alphanumeric because EIP-4361 requires it — an earlier URL-safe
+Nonces are alphanumeric because EIP-4361 requires it, an earlier URL-safe
 implementation emitted `-` and `_`, which would have made roughly half of all
 sign-ins fail unpredictably.
 
@@ -74,7 +74,7 @@ working for up to fifteen minutes. On a platform that moves money that window is
 unacceptable, so the session is checked on every request.
 
 Refresh tokens are opaque, stored only as hashes, and rotated on every use.
-**Presenting a spent one revokes every session for that user** — reuse means it
+**Presenting a spent one revokes every session for that user**, reuse means it
 leaked, and losing a legitimate session is far better than leaving a stolen one
 alive. That revocation is committed *before* the error is raised, because the
 request-scoped transaction would otherwise roll it back. It has a test.
@@ -92,7 +92,7 @@ request-scoped transaction would otherwise roll it back. It has a test.
 
 **SQL.** Everything goes through SQLAlchemy with bound parameters. No string
 interpolation reaches a query. Search uses `websearch_to_tsquery`, which never
-raises on malformed input — where `to_tsquery` would turn a stray parenthesis
+raises on malformed input, where `to_tsquery` would turn a stray parenthesis
 into a 500. A test fires a `DROP TABLE` attempt at search and confirms it is
 inert.
 
@@ -107,8 +107,8 @@ an explicit allowlist.
 
 **SSRF.** Domain verification fetches a user-supplied URL, which is an SSRF
 primitive by construction. It resolves the host first and refuses any
-non-publicly-routable address — checking **every** resolved address, not just
-the first — and does not follow redirects, since a redirect could reach an
+non-publicly-routable address, checking **every** resolved address, not just
+the first, and does not follow redirects, since a redirect could reach an
 internal address the pre-flight never saw. Without this, an agent could point
 verification at cloud metadata and use Agoreum as a proxy into the private
 network.
@@ -125,7 +125,7 @@ Two independent layers:
 Per-identity counting matters: one abusive account behind a shared NAT must not
 exhaust everyone else's allowance.
 
-Counters live in Redis, not in process memory — behind a load balancer an
+Counters live in Redis, not in process memory, behind a load balancer an
 in-memory limiter gives an attacker one full allowance per replica and resets
 every deploy.
 
@@ -133,7 +133,7 @@ every deploy.
 are allowed and the failure is logged loudly. Failing closed would turn a cache
 outage into a total outage in which nobody could sign in and no provider could
 be paid. Rate limiting is a shield against abuse; it is not what prevents
-unauthorised access — the signature check is, and it is unaffected. There is a
+unauthorised access, the signature check is, and it is unaffected. There is a
 test so this stays a decision rather than drifting into an accident.
 
 ## Transport and headers
@@ -150,7 +150,7 @@ at the proxy.
 
 ## Input and resource limits
 
-Request bodies are capped at 1 MiB in the application and again at the edge — a
+Request bodies are capped at 1 MiB in the application and again at the edge, a
 declared multi-gigabyte body can exhaust memory before any validator sees it.
 Every payload is validated by Pydantic with explicit bounds; pagination is
 capped; timeouts bound slow-request attacks.
@@ -164,7 +164,7 @@ and pausing cannot strand committed funds.
 
 Off chain, the indexer only applies events past the confirmation frontier, is
 idempotent by transaction hash, detects reorgs by changed block hash, and
-**never invents an order** for an escrow it does not recognise — it logs and
+**never invents an order** for an escrow it does not recognise, it logs and
 skips, because the funds are real and a person needs to look at it.
 
 `verify_network()` refuses an RPC endpoint serving a different chain than
@@ -178,7 +178,7 @@ it is not watching.
 - No secret is baked into a container image; everything arrives from the
   environment at run time.
 - TLS private keys are gitignored.
-- CI runs gitleaks over the **full history** — a secret removed later is still
+- CI runs gitleaks over the **full history**, a secret removed later is still
   exposed in the commit that introduced it.
 
 If a credential is ever committed, rotate it. Removing the commit does not
@@ -209,7 +209,7 @@ Stated plainly rather than omitted.
 | No 2FA | Wallet compromise is total account compromise | Inherent to wallet-based identity |
 | Single arbiter key | Compromise allows unfair dispute settlement | Multisig planned |
 | No automated dependency scanning | A vulnerable dependency could go unnoticed | Dependabot planned |
-| No admin role-granting path | No way to become admin | Deliberate — see [architecture.md](architecture.md) |
+| No admin role-granting path | No way to become admin | Deliberate, see [architecture.md](architecture.md) |
 
 ## Verification
 

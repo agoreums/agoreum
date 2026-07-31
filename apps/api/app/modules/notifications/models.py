@@ -130,7 +130,7 @@ class NotificationDelivery(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         server_default=NotificationDeliveryStatus.PENDING.value,
     )
 
-    # Where it went — an email address for the email channel. NULL for in-app.
+    # Where it went, an email address for the email channel. NULL for in-app.
     destination: Mapped[str | None] = mapped_column(String(320), nullable=True)
     # Provider-side id (e.g. the Resend message id) for reconciling with webhooks.
     provider_message_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -190,7 +190,7 @@ class NotificationPreference(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """Per-user, per-category, per-channel delivery preference.
 
     Absence of a row means the platform default applies. Security notifications are
-    deliberately not suppressible — that is enforced in the service layer, since a
+    deliberately not suppressible, that is enforced in the service layer, since a
     user must always learn about a new sign-in or a payout address change.
     """
 

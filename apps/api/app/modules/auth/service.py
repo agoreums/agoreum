@@ -187,7 +187,7 @@ async def _ensure_wallet_record(
     message: str,
     provider: WalletProvider,
 ) -> Wallet:
-    """Record the wallet as verified — the signature just proved control of it."""
+    """Record the wallet as verified, the signature just proved control of it."""
     wallet = (
         await db.execute(
             select(Wallet).where(
@@ -310,7 +310,7 @@ async def refresh_session(
                 db, user_id=session.user_id, reason="reuse_detected"
             )
             # Commit before raising. The request-scoped session rolls back on any
-            # exception, which would otherwise undo the revocation we just made —
+            # exception, which would otherwise undo the revocation we just made, 
             # leaving the stolen token's whole session family alive. The security
             # response has to outlive the failed request that triggered it.
             await db.commit()

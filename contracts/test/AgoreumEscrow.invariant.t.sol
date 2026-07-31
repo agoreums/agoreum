@@ -12,7 +12,7 @@ import {MockUSDC} from "./mocks/Mocks.sol";
 /// @dev The fuzzer calls these functions in arbitrary order with arbitrary
 ///      arguments. Calls that are not currently legal simply revert and are
 ///      skipped, so what survives is a realistic mix of valid and invalid
-///      traffic — which is exactly the traffic a live contract sees.
+///      traffic, which is exactly the traffic a live contract sees.
 contract EscrowHandler is Test {
     AgoreumEscrow public immutable escrow;
     MockUSDC public immutable usdc;
@@ -188,7 +188,7 @@ contract AgoreumEscrowInvariantTest is StdInvariant, Test {
     }
 
     /// @notice The contract always holds at least what it still owes.
-    /// @dev If this fails, some escrow is unpayable — the funds backing it are
+    /// @dev If this fails, some escrow is unpayable, the funds backing it are
     ///      already gone. This is the property that would catch a drain.
     function invariant_contractIsSolvent() public view {
         uint256 outstanding;

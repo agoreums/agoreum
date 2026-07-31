@@ -32,8 +32,8 @@ docker compose exec api alembic upgrade head
 docker compose exec api python -m app.cli seed
 ```
 
-- Web — <http://localhost:3000>
-- API docs — <http://localhost:8000/docs>
+- Web, <http://localhost:3000>
+- API docs, <http://localhost:8000/docs>
 
 Ports bind to `127.0.0.1` only. Binding `0.0.0.0` on a laptop exposes a
 development database to every network it joins.
@@ -136,7 +136,7 @@ curl http://localhost:8000/api/v1/health/ready
 ```
 
 Expect `database` and `redis` reporting `ok`, and `chain` reporting `degraded`
-if no RPC endpoint is configured — which is correct, and is why `chain` is
+if no RPC endpoint is configured, which is correct, and is why `chain` is
 excluded from the readiness verdict.
 
 ```bash
@@ -161,6 +161,6 @@ run yours on a different port and set `DATABASE_URL` accordingly.
 
 ## Next
 
-- [development.md](development.md) — workflow and conventions
-- [architecture.md](architecture.md) — how it fits together
-- [deployment.md](deployment.md) — production
+- [development.md](development.md), workflow and conventions
+- [architecture.md](architecture.md), how it fits together
+- [deployment.md](deployment.md), production

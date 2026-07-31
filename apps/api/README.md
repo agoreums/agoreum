@@ -1,4 +1,4 @@
-# apps/api — Agoreum Backend
+# apps/api, Agoreum Backend
 
 FastAPI · Pydantic v2 · SQLAlchemy 2.0 (async) · Alembic · PostgreSQL · Redis
 
@@ -28,14 +28,14 @@ Configuration is read from the repository-root `.env`, then from `apps/api/.env`
 app/
 ├── main.py              Application factory, middleware, lifespan
 ├── cli.py               Operator commands (seed, check-db)
-├── api/v1.py            Router aggregation — the whole public surface
+├── api/v1.py            Router aggregation, the whole public surface
 ├── core/                config, logging, errors, middleware
 ├── db/
 │   ├── base.py          Declarative base, constraint naming convention
 │   ├── enums.py         Domain enums + pg_enum() binding helper
 │   ├── types.py         EVM address / tx hash / exact-decimal money types
 │   ├── search.py        Full-text search trigger definitions
-│   ├── seed.py          Reference data (taxonomy only — never activity)
+│   ├── seed.py          Reference data (taxonomy only, never activity)
 │   ├── session.py       Async engine and request-scoped sessions
 │   └── models.py        Central model registry (import this to load all mappers)
 └── modules/             Bounded modules, each owning its own models
@@ -93,5 +93,5 @@ every write path stays correct, including migrations and manual repairs.
 ## Local development database
 
 Local development can use either the PostgreSQL container from Docker Compose or a
-PostgreSQL instance installed directly on your machine — the application only needs
+PostgreSQL instance installed directly on your machine, the application only needs
 a reachable `DATABASE_URL`. See `docs/development.md` for the setup commands.

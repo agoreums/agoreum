@@ -23,7 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-    # Rate-limit counters and cache entries only — nothing here needs to survive
+    # Rate-limit counters and cache entries only, nothing here needs to survive
     # a restart, and persistence would only add disk churn.
     command: >
       redis-server
@@ -70,7 +70,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       RATE_LIMIT_ENABLED: "true"
       # The image flattens the source tree, so the repo-relative ABI path does
-      # not hold here — point at where the Dockerfile actually places it.
+      # not hold here, point at where the Dockerfile actually places it.
       CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
     expose:
       - "8000"
@@ -98,7 +98,7 @@ services:
   # must keep running while the API is being redeployed, and the API runs two
   # workers, which would otherwise both scan the same range.
   #
-  # It reuses the API image — same code, different entrypoint — so there is no
+  # It reuses the API image, same code, different entrypoint, so there is no
   # second build and no chance of the two drifting apart.
   #
   # If this container is not running, buyers can fund escrows and nothing will
@@ -221,7 +221,7 @@ services:
       # CA is self-signed in-chain, which Prisma rejects by default (the API's
       # asyncpg client only encrypts, it does not verify, so it connects fine).
       # The database is reachable only from this droplet over the private VPC, so
-      # matching that posture here — TLS on, chain not verified — is the right
+      # matching that posture here, TLS on, chain not verified, is the right
       # trade rather than the connection failing outright.
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
     expose:

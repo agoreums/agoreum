@@ -16,7 +16,7 @@ import {
 } from "@/lib/wagmi";
 
 // Initialise AppKit once, at module load in this client boundary. Wallet-only:
-// no email login, no social login, and Reown's own analytics are off — the site
+// no email login, no social login, and Reown's own analytics are off, the site
 // runs its own cookieless analytics and does not need a second tracker.
 createAppKit({
   adapters: [wagmiAdapter],
@@ -41,7 +41,7 @@ createAppKit({
  * Client-side provider stack.
  *
  * The QueryClient is created inside state rather than at module scope so that a
- * server render never shares a cache between requests — that would leak one
+ * server render never shares a cache between requests, that would leak one
  * user's data into another's page.
  */
 export function Providers({ children }: { children: ReactNode }) {

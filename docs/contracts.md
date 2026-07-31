@@ -40,7 +40,7 @@ balances warrant both.
 Every funded escrow always has a terminal path available:
 
 - If the provider never delivers, the buyer reclaims after the delivery
-  deadline, without needing anyone's cooperation — including the platform's.
+  deadline, without needing anyone's cooperation, including the platform's.
 - If the buyer disappears, the provider is paid after the auto-release deadline
   by a **permissionless** call. Anyone can trigger it.
 
@@ -49,7 +49,7 @@ Every funded escrow always has a terminal path available:
 The operator can resolve disputes and set the fee for *future* escrows. It has
 no function that moves funds to itself beyond the fee frozen at creation, and
 cannot reprice an escrow that already exists. `MAX_FEE_BPS` is 10% in immutable
-code, so no operator — including a compromised one — can set a confiscatory
+code, so no operator, including a compromised one, can set a confiscatory
 rate.
 
 ### Lifecycle
@@ -94,7 +94,7 @@ if (received != amount) revert UnsupportedToken(amount, received);
 
 The contract measures what actually arrived rather than trusting the requested
 figure. Supporting such tokens silently would make the accounting invariant
-unprovable — the contract would promise more than it holds.
+unprovable, the contract would promise more than it holds.
 
 ### Roles
 
@@ -114,7 +114,7 @@ would hand over the contract.
 88.00% of branches, 100% of functions.**
 
 The uncovered branches are defensive checks that the other invariants make
-unreachable — they are kept because "unreachable" is a property of today's
+unreachable, they are kept because "unreachable" is a property of today's
 code, not a guarantee about tomorrow's.
 
 ```bash
@@ -129,17 +129,17 @@ The suite is built around the ways money is actually lost, not the happy path.
 
 ### Adversarial cases
 
-- **Reentrancy** — a hook-bearing token that calls back into `release`, into
+- **Reentrancy**, a hook-bearing token that calls back into `release`, into
   `refund`, and *cross-function* (`refund` from inside `release`); plus a
   contract recipient that re-enters on receipt. Each test asserts the reentrancy
   actually fired, so it cannot pass by the vector never triggering.
-- **Double spend** — double release, double refund, double settlement,
+- **Double spend**, double release, double refund, double settlement,
   refund-after-release, release-after-refund, and **the same settlement
   submitted twice** (a normal operational retry, which must be inert rather than
   paying twice).
-- **Arithmetic boundaries** — 1 base unit where the fee rounds to zero, 399
+- **Arithmetic boundaries**, 1 base unit where the fee rounds to zero, 399
   units where it truncates, and `type(uint128).max`.
-- **Silent token failure** — a token returning `false` must revert the whole
+- **Silent token failure**, a token returning `false` must revert the whole
   release, not record a payout that never happened.
 
 ### Property tests

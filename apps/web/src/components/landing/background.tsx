@@ -1,7 +1,7 @@
 /**
  * Ambient landing background.
  *
- * A fixed, full-viewport aurora — three slowly drifting light pools in the brand
+ * A fixed, full-viewport aurora, three slowly drifting light pools in the brand
  * triad over a fine engineered grid. Pure CSS (transform/opacity keyframes defined
  * in globals.css), so it costs almost nothing and freezes cleanly under
  * prefers-reduced-motion via the global motion guard. It is purely decorative, so

@@ -4,8 +4,8 @@ Every figure here is counted from real rows. There is no sample data, no
 projection, and no placeholder: a new account sees zeros because it has done
 nothing yet, which is the truth and is more useful than an invented number.
 
-Where a figure cannot be known — a rating with no reviews, a settled volume with
-no settled orders — it is `None` rather than `0`, so the interface can say
+Where a figure cannot be known, a rating with no reviews, a settled volume with
+no settled orders, it is `None` rather than `0`, so the interface can say
 "nothing yet" instead of implying a measured result.
 """
 from __future__ import annotations

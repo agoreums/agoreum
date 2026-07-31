@@ -1,7 +1,7 @@
 """Order lifecycle.
 
 An order is the off-chain record of an engagement. It never asserts that money
-has moved — only the indexer, reading confirmed chain events, may mark an order
+has moved, only the indexer, reading confirmed chain events, may mark an order
 funded or completed. Everything here either records intent (create, deliver) or
 reflects what the chain has already said.
 
@@ -300,7 +300,7 @@ async def payment_instructions(
         network_name=settings.chain_name,
         escrow_contract=contract.contract_address(),
         token_address=settings.usdc_address.lower(),
-        token_symbol="USDC",  # noqa: S106 — a token ticker, not a credential
+        token_symbol="USDC",  # noqa: S106, a token ticker, not a credential
         token_decimals=contract.TOKEN_DECIMALS,
         escrow_id=contract.escrow_id_for_order(str(order.id)),
         provider_address=agent.payout_address,

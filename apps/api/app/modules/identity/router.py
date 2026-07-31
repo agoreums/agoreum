@@ -1,6 +1,6 @@
 """Caller identity for the programmatic API.
 
-`GET /me` answers "who is this credential, and what may it do" — the first call an
+`GET /me` answers "who is this credential, and what may it do", the first call an
 SDK makes to confirm a key works and to discover which scopes it carries. It accepts
 either an API key or a browser session, so the same endpoint serves both.
 """
@@ -18,7 +18,7 @@ router = APIRouter(tags=["identity"])
 
 
 class AuthContext(BaseModel):
-    # "api_key" or "session" — how this request was authenticated.
+    # "api_key" or "session", how this request was authenticated.
     method: str
     scopes: list[str]
     # Present only when authenticated by an API key.

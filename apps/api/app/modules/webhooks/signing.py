@@ -7,7 +7,7 @@ delivery by checking the timestamp is recent, and signing the exact body lets th
 confirm it was not altered in transit.
 
 A receiver verifies by recomputing the HMAC with their copy of the secret and
-comparing in constant time — the same computation `sign()` performs here.
+comparing in constant time, the same computation `sign()` performs here.
 """
 from __future__ import annotations
 

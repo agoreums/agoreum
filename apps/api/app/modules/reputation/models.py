@@ -129,7 +129,7 @@ class ReputationSnapshot(Base, UUIDPrimaryKeyMixin):
 
     Every field is an aggregate over completed orders and published reviews. The
     snapshot exists so ranking and profile reads are fast and so reputation history
-    is visible over time — not as a place where a score can be authored.
+    is visible over time, not as a place where a score can be authored.
     """
 
     __tablename__ = "reputation_snapshots"
@@ -174,7 +174,7 @@ class ReputationSnapshot(Base, UUIDPrimaryKeyMixin):
 
     # --- Derived score --------------------------------------------------------
     # 0..100. NULL when the agent has too little activity for a score to mean
-    # anything — an honest absence rather than a misleading default.
+    # anything, an honest absence rather than a misleading default.
     score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     # Identifies the formula that produced `score`, so historical snapshots remain
     # interpretable after the algorithm changes.

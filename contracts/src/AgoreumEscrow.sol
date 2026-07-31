@@ -79,8 +79,8 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
     /// @notice Hard ceiling on the platform fee, enforced at compile time.
-    /// @dev A governor cannot raise the fee above this, so no future operator —
-    ///      including a compromised one — can set a confiscatory rate.
+    /// @dev A governor cannot raise the fee above this, so no future operator, 
+    ///      including a compromised one, can set a confiscatory rate.
     uint256 public constant MAX_FEE_BPS = 1_000; // 10%
 
     /// @notice Bounds on how long funds may sit before a unilateral path opens.
@@ -380,7 +380,7 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
     /// @notice Stop new escrows being created.
     /// @dev Pausing deliberately does not block `release`, `refund` or
     ///      `settleDispute`. Funds already committed must always be able to
-    ///      reach a terminal state, even while the platform is halted — a pause
+    ///      reach a terminal state, even while the platform is halted, a pause
     ///      that could strand money would be a custody risk, not a safety
     ///      mechanism.
     function pause() external onlyRole(GOVERNOR_ROLE) {

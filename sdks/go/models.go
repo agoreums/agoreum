@@ -108,7 +108,7 @@ func (p Page[T]) HasMore() bool {
 }
 
 // PaymentInstructions is everything a wallet needs to fund an order itself. The
-// platform never holds funds or signs — it describes the transaction; the buyer's
+// platform never holds funds or signs, it describes the transaction; the buyer's
 // own wallet builds, signs, and broadcasts it.
 type PaymentInstructions struct {
 	OrderID       string `json:"order_id"`

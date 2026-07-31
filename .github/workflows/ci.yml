@@ -334,7 +334,7 @@ jobs:
 
   # Continuous deployment. Runs only on a real merge to main, and only once every
   # job that could catch a problem has passed. The droplet's authorized key forces
-  # this connection to pull main and run scripts/deploy.sh — nothing else — so a
+  # this connection to pull main and run scripts/deploy.sh, nothing else, so a
   # leaked CI key cannot be used for arbitrary shell access. The deploy script
   # verifies the API comes back healthy and exits non-zero otherwise, so a broken
   # release fails the pipeline rather than silently going live.

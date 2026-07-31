@@ -128,14 +128,14 @@ def main():
     transparent_square(mark, 16, 0.04).save(ICONS / "favicon-16x16.png")
     transparent_square(mark, 32, 0.04).save(ICONS / "favicon-32x32.png")
 
-    # Apple touch icon — Apple ignores transparency, needs solid bg
+    # Apple touch icon, Apple ignores transparency, needs solid bg
     square_canvas(mark, 180, BG_DARK, 0.14).save(ICONS / "apple-touch-icon.png")
 
     # Android chrome (transparent-friendly PWA icons)
     square_canvas(mark, 192, BG_DARK, 0.12).save(ICONS / "android-chrome-192x192.png")
     square_canvas(mark, 512, BG_DARK, 0.12).save(ICONS / "android-chrome-512x512.png")
 
-    # Maskable icon — extra safe-zone padding (mark within center ~60%)
+    # Maskable icon, extra safe-zone padding (mark within center ~60%)
     square_canvas(mark, 512, BG_DARK, 0.22).save(ICONS / "maskable-512x512.png")
 
     # Multi-size ICO

@@ -1,6 +1,6 @@
 """Indexer progress state.
 
-The indexer is idempotent, so a cursor is not what makes it *correct* — it is
+The indexer is idempotent, so a cursor is not what makes it *correct*, it is
 what makes it *affordable*. Without a persisted position every run would have
 to rescan from the contract's deployment block, which on a chain 44 million
 blocks deep is thousands of `eth_getLogs` calls to rediscover events already
@@ -10,8 +10,8 @@ The cursor is keyed by `(chain_id, contract_address)` rather than being a
 single global row. Two situations make that necessary:
 
 * Redeploying the contract produces a new address. A global cursor would carry
-  the old contract's height forward and the new contract's early events —
-  including funding — would be skipped entirely, silently.
+  the old contract's height forward and the new contract's early events, 
+  including funding, would be skipped entirely, silently.
 * The same database restored against a different network must not inherit a
   height that means nothing there.
 

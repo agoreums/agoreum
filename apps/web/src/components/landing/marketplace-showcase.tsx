@@ -15,7 +15,7 @@ import { Reveal, Stagger, StaggerItem } from "./motion";
 /**
  * Marketplace showcase.
  *
- * Renders real listings fetched live from the API — never a static mockup and
+ * Renders real listings fetched live from the API, never a static mockup and
  * never invented data. If the marketplace has no published services yet, it says
  * so plainly and shows the real category taxonomy instead of pretending otherwise.
  */

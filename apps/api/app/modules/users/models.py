@@ -186,7 +186,7 @@ class Wallet(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     __table_args__ = (
         # The same address may exist on different chains, but only once per chain
-        # across the whole platform — two accounts cannot claim one wallet.
+        # across the whole platform, two accounts cannot claim one wallet.
         UniqueConstraint("address", "chain_id", name="address_chain"),
         # A payout wallet must be verified; otherwise funds could be directed to
         # an address nobody has proven they control.

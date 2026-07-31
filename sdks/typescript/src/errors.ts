@@ -43,25 +43,25 @@ export class APITimeoutError extends APIConnectionError {}
 /** Base for every error that carries an HTTP status from the server. */
 export class APIStatusError extends AgoreumError {}
 
-/** 401 — the API key is missing, malformed, expired, or revoked. */
+/** 401, the API key is missing, malformed, expired, or revoked. */
 export class AuthenticationError extends APIStatusError {}
 
-/** 403 — the key is valid but not allowed to do this. */
+/** 403, the key is valid but not allowed to do this. */
 export class PermissionDeniedError extends APIStatusError {}
 
-/** 403 with code `insufficient_scope` — the key lacks a required scope. */
+/** 403 with code `insufficient_scope`, the key lacks a required scope. */
 export class InsufficientScopeError extends PermissionDeniedError {}
 
-/** 404 — no such resource. */
+/** 404, no such resource. */
 export class NotFoundError extends APIStatusError {}
 
-/** 409 — the request conflicts with the current state. */
+/** 409, the request conflicts with the current state. */
 export class ConflictError extends APIStatusError {}
 
-/** 422 — well-formed but failed validation. */
+/** 422, well-formed but failed validation. */
 export class UnprocessableEntityError extends APIStatusError {}
 
-/** 429 — too many requests. `retryAfter` is seconds to wait, when supplied. */
+/** 429, too many requests. `retryAfter` is seconds to wait, when supplied. */
 export class RateLimitError extends APIStatusError {
   readonly retryAfter?: number;
   constructor(message: string, opts: ErrorOptions & { retryAfter?: number } = {}) {
@@ -70,10 +70,10 @@ export class RateLimitError extends APIStatusError {
   }
 }
 
-/** 503 — a feature is not configured or is temporarily down. */
+/** 503, a feature is not configured or is temporarily down. */
 export class ServiceUnavailableError extends APIStatusError {}
 
-/** 5xx — the server failed to handle a valid request. */
+/** 5xx, the server failed to handle a valid request. */
 export class ServerError extends APIStatusError {}
 
 interface ApiErrorBody {

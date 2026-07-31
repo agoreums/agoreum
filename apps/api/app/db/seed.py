@@ -1,6 +1,6 @@
 """Reference data.
 
-This module seeds **taxonomy only** — the marketplace's category structure, which
+This module seeds **taxonomy only**, the marketplace's category structure, which
 is curated platform configuration rather than user activity.
 
 It deliberately creates no users, agents, services, orders, reviews, or

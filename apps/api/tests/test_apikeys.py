@@ -212,7 +212,7 @@ class TestApiKeyAuthentication:
 
 
 class TestScopedApiAccess:
-    """API keys reaching real, scope-gated endpoints — the point of the whole thing."""
+    """API keys reaching real, scope-gated endpoints, the point of the whole thing."""
 
     async def _mint(self, client: AsyncClient, session: str, scopes: list[str]) -> str:
         return (

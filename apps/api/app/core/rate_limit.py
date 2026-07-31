@@ -12,7 +12,7 @@ matter for the abuse this is defending against.
 
 **Failure policy is fail-open, deliberately.** If Redis is unreachable, requests
 are allowed and the failure is logged loudly. Failing closed would turn a cache
-outage into a total outage — nobody could sign in, and no provider could be
+outage into a total outage, nobody could sign in, and no provider could be
 paid. Rate limiting is a shield against abuse, not the thing preventing
 unauthorised access: that is the signature check, which is unaffected. The
 tradeoff is stated here so it is a decision rather than an accident.
@@ -154,7 +154,7 @@ def client_identity(request: Request) -> str:
     """Who to count against.
 
     An authenticated caller is counted by user id, so one abusive account cannot
-    exhaust the quota of everyone sharing an IP — a real problem behind
+    exhaust the quota of everyone sharing an IP, a real problem behind
     corporate NAT or a mobile carrier. Anonymous callers fall back to the
     client IP as resolved by `client_ip`, which trusts only Cloudflare's header.
     """

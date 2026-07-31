@@ -1,7 +1,7 @@
 """Subscription tests.
 
-The event decoder is unit-tested. The indexer apply path — the only thing that may
-activate a subscription — runs against the real database with synthesised but
+The event decoder is unit-tested. The indexer apply path, the only thing that may
+activate a subscription, runs against the real database with synthesised but
 correctly-encoded on-chain events, so the never-fabricate rule is exercised
 directly: no event, no subscription.
 """

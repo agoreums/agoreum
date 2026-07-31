@@ -45,7 +45,7 @@ async def create_endpoint(
     payload: WebhookEndpointCreate, user: CurrentUser, db: DbSession
 ) -> WebhookEndpointCreated:
     """Register an endpoint. The signing secret is in the response and shown only
-    here — store it to verify delivery signatures."""
+    here, store it to verify delivery signatures."""
     endpoint, secret = await service.create_endpoint(
         db,
         user=user,

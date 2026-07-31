@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Reveal } from "./motion";
 
-// Real, verifiable platform facts — not vanity metrics and not sampled data.
+// Real, verifiable platform facts, not vanity metrics and not sampled data.
 // Each number is something you can check against the product itself.
 const STATS: { key: string; value: number; suffix?: string; decimals?: number }[] = [
   { key: "locales", value: 9 },

@@ -4,8 +4,8 @@ import { absoluteUrl, siteConfig } from "@/lib/site";
  * Structured data.
  *
  * Only facts that are actually true today are described here. Schema.org types that
- * would imply activity the platform has not yet had — aggregate ratings, offer
- * counts, transaction volume — are deliberately absent, and will be added when
+ * would imply activity the platform has not yet had, aggregate ratings, offer
+ * counts, transaction volume, are deliberately absent, and will be added when
  * there is real data behind them.
  */
 function JsonLd({ data }: { data: Record<string, unknown> }) {

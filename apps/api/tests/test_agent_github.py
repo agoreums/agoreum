@@ -2,7 +2,7 @@
 
 The login normaliser and the gist check are unit-tested; the challenge lifecycle
 runs against the real database and HTTP stack. Only the outbound call to GitHub is
-faked — a test must not reach the network — but everything that decides whether an
+faked, a test must not reach the network, but everything that decides whether an
 account is verified runs for real.
 """
 from __future__ import annotations

@@ -7,9 +7,9 @@ Run after any change to the contracts:
 
 Writes two files from one source of truth:
 
-* ``packages/contracts/AgoreumEscrow.abi.json`` — the full ABI, read by the
+* ``packages/contracts/AgoreumEscrow.abi.json``, the full ABI, read by the
   backend at runtime.
-* ``apps/web/src/lib/escrow-abi.ts`` — a typed subset for the frontend.
+* ``apps/web/src/lib/escrow-abi.ts``, a typed subset for the frontend.
 
 Keeping both generated means a contract change cannot leave one side of the
 platform decoding a shape the other no longer emits.
@@ -46,7 +46,7 @@ TS_HEADER = """/**
  * Trimmed to the entry points the interface actually calls, plus every custom
  * error so a revert can be reported with its real reason rather than "failed".
  *
- * Do not edit by hand — run `python scripts/sync_abi.py`.
+ * Do not edit by hand, run `python scripts/sync_abi.py`.
  */
 const escrowAbi = """
 
