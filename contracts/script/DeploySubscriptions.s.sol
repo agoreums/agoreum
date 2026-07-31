@@ -7,25 +7,38 @@ import {console} from "forge-std/console.sol";
 import {AgoreumSubscriptions} from "../src/AgoreumSubscriptions.sol";
 
 /// @notice Deploys AgoreumSubscriptions.
-/// @dev Refuses to run against Base mainnet, exactly like the escrow deploy.
-///      Mainnet deployment of a payment surface is an explicit human decision to
-///      be taken after reviewing testnet results and an audit; the script will
-///      not perform it even if handed mainnet credentials by accident. Removing
-///      this guard is itself a reviewable change, not a flag set under pressure.
+/// @dev Mainnet deployment of a payment surface is an explicit human decision to be
+///      taken after reviewing testnet results and an audit. On Base mainnet the
+///      script therefore refuses to run unless `ALLOW_MAINNET_DEPLOY=true` is set
+///      deliberately, and even then it enforces separation of duties: the governor
+///      admin must not also be the treasury that receives revenue. On any test
+///      network it deploys freely. The opt-in flag is a deliberate act at the
+///      command line, never a default.
 contract DeploySubscriptions is Script {
     uint256 internal constant BASE_MAINNET = 8453;
 
     error MainnetDeploymentNotAuthorized(uint256 chainId);
     error MissingConfiguration(string name);
+    error RolesNotSeparated(string roleA, string roleB);
 
     function run() external returns (AgoreumSubscriptions subscriptions) {
         uint256 chainId = block.chainid;
-        if (chainId == BASE_MAINNET) {
-            revert MainnetDeploymentNotAuthorized(chainId);
-        }
 
         address admin = _requireAddress("SUBSCRIPTIONS_ADMIN_ADDRESS");
         address treasury = _requireAddress("SUBSCRIPTIONS_TREASURY_ADDRESS");
+
+        if (chainId == BASE_MAINNET) {
+            if (!_mainnetDeploymentAllowed()) {
+                revert MainnetDeploymentNotAuthorized(chainId);
+            }
+            // Separation of duties: whoever governs the contract must not also be
+            // the address that collects subscription revenue.
+            if (admin == treasury) {
+                revert RolesNotSeparated(
+                    "SUBSCRIPTIONS_ADMIN_ADDRESS", "SUBSCRIPTIONS_TREASURY_ADDRESS"
+                );
+            }
+        }
 
         console.log("chain id :", chainId);
         console.log("admin    :", admin);
@@ -51,5 +64,13 @@ contract DeploySubscriptions is Script {
     function _requireAddress(string memory name) internal view returns (address value) {
         value = vm.envOr(name, address(0));
         if (value == address(0)) revert MissingConfiguration(name);
+    }
+
+    /// @dev Whether a Base mainnet deployment is authorized. Reads the deliberate
+    ///      `ALLOW_MAINNET_DEPLOY` opt-in from the environment. It is a separate
+    ///      method so tests can exercise the guard by overriding it, rather than
+    ///      toggling a process-global variable that races under parallel testing.
+    function _mainnetDeploymentAllowed() internal view virtual returns (bool) {
+        return vm.envOr("ALLOW_MAINNET_DEPLOY", false);
     }
 }
