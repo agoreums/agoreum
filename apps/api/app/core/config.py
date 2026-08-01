@@ -141,6 +141,17 @@ class Settings(BaseSettings):
     # --- Observability -------------------------------------------------------
     SENTRY_DSN: SecretStr | None = None
 
+    # --- Analytics -----------------------------------------------------------
+    # Creator analytics reads pageview counts directly from the self-hosted Umami
+    # database. Both are optional: when unset, view-based metrics (views and the
+    # conversion rate) are reported as unavailable rather than fabricated.
+    UMAMI_DATABASE_URL: SecretStr = SecretStr("")
+    UMAMI_WEBSITE_ID: str | None = None
+
+    @property
+    def analytics_views_enabled(self) -> bool:
+        return bool(self.UMAMI_DATABASE_URL.get_secret_value() and self.UMAMI_WEBSITE_ID)
+
     @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
     @classmethod
     def _split_origins(cls, v: object) -> object:
