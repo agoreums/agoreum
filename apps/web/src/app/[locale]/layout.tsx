@@ -5,12 +5,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { CookieConsent } from "@/components/layout/cookie-consent";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeScript } from "@/components/layout/theme-script";
 import { Providers } from "@/components/providers";
-import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import {
   getDirection,
   localeHreflang,
@@ -153,8 +149,10 @@ export default async function LocaleLayout(props: {
   // Required for static rendering of a locale-aware tree.
   setRequestLocale(locale);
 
-  const t = await getTranslations("nav");
-
+  // The root layout is deliberately thin: it establishes the document, fonts,
+  // theme, and providers, then defers all chrome to the route groups. Public
+  // pages get the marketing header and footer; the authenticated app gets its own
+  // persistent shell. Neither ever bleeds into the other.
   return (
     <html
       lang={localeHreflang[locale]}
@@ -169,21 +167,8 @@ export default async function LocaleLayout(props: {
         className={`${inter.variable} ${jetbrainsMono.variable} ${notoArabic.variable} min-h-dvh antialiased`}
       >
         <NextIntlClientProvider>
-          <Providers>
-            <a href="#main" className="skip-link">
-              {t("skipToContent")}
-            </a>
-            <div className="flex min-h-dvh flex-col">
-              <SiteHeader />
-              <main id="main" className="flex-1">
-                {props.children}
-              </main>
-              <SiteFooter />
-            </div>
-            <CookieConsent />
-          </Providers>
+          <Providers>{props.children}</Providers>
         </NextIntlClientProvider>
-        <OrganizationJsonLd />
       </body>
     </html>
   );

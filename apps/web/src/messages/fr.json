@@ -621,5 +621,103 @@
     "structured_data": "Données structurées",
     "file": "Fichier",
     "embedding": "Embedding"
+  },
+  "app": {
+    "loading": "Chargement de votre espace de travail…",
+    "gate": {
+      "title": "Connectez-vous pour continuer",
+      "body": "Voici votre espace de travail Agoreum. Connectez votre portefeuille pour vous identifier et gérer vos agents, organisations et intégrations."
+    },
+    "nav": {
+      "home": "Accueil Agoreum",
+      "primary": "Principal",
+      "backToSite": "Retour au site",
+      "openMenu": "Ouvrir le menu",
+      "closeMenu": "Fermer le menu",
+      "sections": {
+        "settings": "Paramètres"
+      },
+      "items": {
+        "dashboard": "Tableau de bord",
+        "organizations": "Organisations",
+        "apiKeys": "Clés d'API",
+        "webhooks": "Webhooks"
+      }
+    },
+    "userMenu": {
+      "settings": "Paramètres",
+      "apiKeys": "Clés d'API",
+      "docs": "Documentation",
+      "signOut": "Se déconnecter"
+    }
+  },
+  "organizations": {
+    "title": "Organisations",
+    "subtitle": "Créez une équipe pour partager agents, clés d'API et webhooks, et décidez qui peut faire quoi.",
+    "loadFailed": "Nous n'avons pas pu charger vos organisations.",
+    "signInRequired": "Connectez-vous pour gérer vos organisations.",
+    "loading": "Chargement…",
+    "yourOrgs": "Vos organisations",
+    "personal": "Personnel",
+    "memberCount": "{count, plural, one {# membre} other {# membres}}",
+    "selectPrompt": "Sélectionnez une organisation pour la gérer.",
+    "personalHint": "Ceci est votre organisation personnelle. Elle n'appartient qu'à vous et ne peut pas accueillir d'autres membres.",
+    "membersTitle": "Membres",
+    "membersFailed": "Nous n'avons pas pu charger les membres.",
+    "loadingMembers": "Chargement des membres…",
+    "create": {
+      "cta": "Nouvelle organisation",
+      "title": "Créer une organisation",
+      "nameLabel": "Nom",
+      "slugLabel": "Identifiant",
+      "slugPlaceholder": "equipe-acme",
+      "required": "Saisissez un nom et un identifiant.",
+      "failed": "Nous n'avons pas pu créer l'organisation.",
+      "creating": "Création…",
+      "submit": "Créer",
+      "cancel": "Annuler"
+    },
+    "add": {
+      "title": "Ajouter un membre",
+      "hint": "Invitez quelqu'un via l'adresse du portefeuille avec laquelle il se connecte. Il doit s'être connecté au moins une fois.",
+      "required": "Saisissez une adresse de portefeuille.",
+      "failed": "Nous n'avons pas pu ajouter ce membre.",
+      "adding": "Ajout…",
+      "submit": "Ajouter"
+    },
+    "member": {
+      "you": "Vous",
+      "remove": "Retirer",
+      "removeConfirm": "Retirer ce membre de l'organisation ?",
+      "leave": "Quitter",
+      "leaveConfirm": "Quitter cette organisation ?"
+    },
+    "roles": {
+      "member": "Membre",
+      "admin": "Administrateur",
+      "owner": "Propriétaire"
+    },
+    "switcher": {
+      "label": "Organisation",
+      "personal": "Personnel"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez vos organisations, identifiants et intégrations.",
+    "areas": {
+      "organizations": {
+        "title": "Organisations",
+        "description": "Créez des équipes et gérez qui peut accéder à vos agents et paiements."
+      },
+      "apiKeys": {
+        "title": "Clés d'API",
+        "description": "Créez et révoquez des clés pour l'accès programmatique à l'API."
+      },
+      "webhooks": {
+        "title": "Webhooks",
+        "description": "Recevez les notifications d'événements sur vos propres points de terminaison HTTPS."
+      }
+    }
   }
 }

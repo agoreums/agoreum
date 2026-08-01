@@ -621,5 +621,103 @@
     "structured_data": "Strukturierte Daten",
     "file": "Datei",
     "embedding": "Embedding"
+  },
+  "app": {
+    "loading": "Arbeitsbereich wird geladen…",
+    "gate": {
+      "title": "Zum Fortfahren anmelden",
+      "body": "Dies ist Ihr Agoreum-Arbeitsbereich. Verbinden Sie Ihre Wallet, um sich anzumelden und Ihre Agenten, Organisationen und Integrationen zu verwalten."
+    },
+    "nav": {
+      "home": "Agoreum-Startseite",
+      "primary": "Primär",
+      "backToSite": "Zurück zur Website",
+      "openMenu": "Menü öffnen",
+      "closeMenu": "Menü schließen",
+      "sections": {
+        "settings": "Einstellungen"
+      },
+      "items": {
+        "dashboard": "Übersicht",
+        "organizations": "Organisationen",
+        "apiKeys": "API-Schlüssel",
+        "webhooks": "Webhooks"
+      }
+    },
+    "userMenu": {
+      "settings": "Einstellungen",
+      "apiKeys": "API-Schlüssel",
+      "docs": "Dokumentation",
+      "signOut": "Abmelden"
+    }
+  },
+  "organizations": {
+    "title": "Organisationen",
+    "subtitle": "Erstellen Sie ein Team, um Agenten, API-Schlüssel und Webhooks zu teilen, und legen Sie fest, wer was darf.",
+    "loadFailed": "Ihre Organisationen konnten nicht geladen werden.",
+    "signInRequired": "Melden Sie sich an, um Ihre Organisationen zu verwalten.",
+    "loading": "Wird geladen…",
+    "yourOrgs": "Ihre Organisationen",
+    "personal": "Persönlich",
+    "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}",
+    "selectPrompt": "Wählen Sie eine Organisation aus, um sie zu verwalten.",
+    "personalHint": "Dies ist Ihre persönliche Organisation. Sie gehört immer nur Ihnen und kann keine weiteren Mitglieder aufnehmen.",
+    "membersTitle": "Mitglieder",
+    "membersFailed": "Die Mitglieder konnten nicht geladen werden.",
+    "loadingMembers": "Mitglieder werden geladen…",
+    "create": {
+      "cta": "Neue Organisation",
+      "title": "Organisation erstellen",
+      "nameLabel": "Name",
+      "slugLabel": "Kennung",
+      "slugPlaceholder": "acme-team",
+      "required": "Geben Sie einen Namen und eine Kennung ein.",
+      "failed": "Die Organisation konnte nicht erstellt werden.",
+      "creating": "Wird erstellt…",
+      "submit": "Erstellen",
+      "cancel": "Abbrechen"
+    },
+    "add": {
+      "title": "Mitglied hinzufügen",
+      "hint": "Laden Sie jemanden über die Wallet-Adresse ein, mit der er sich anmeldet. Er muss sich mindestens einmal angemeldet haben.",
+      "required": "Geben Sie eine Wallet-Adresse ein.",
+      "failed": "Dieses Mitglied konnte nicht hinzugefügt werden.",
+      "adding": "Wird hinzugefügt…",
+      "submit": "Hinzufügen"
+    },
+    "member": {
+      "you": "Sie",
+      "remove": "Entfernen",
+      "removeConfirm": "Dieses Mitglied aus der Organisation entfernen?",
+      "leave": "Verlassen",
+      "leaveConfirm": "Diese Organisation verlassen?"
+    },
+    "roles": {
+      "member": "Mitglied",
+      "admin": "Administrator",
+      "owner": "Eigentümer"
+    },
+    "switcher": {
+      "label": "Organisation",
+      "personal": "Persönlich"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Verwalten Sie Ihre Organisationen, Zugangsdaten und Integrationen.",
+    "areas": {
+      "organizations": {
+        "title": "Organisationen",
+        "description": "Erstellen Sie Teams und verwalten Sie den Zugriff auf Ihre Agenten und Auszahlungen."
+      },
+      "apiKeys": {
+        "title": "API-Schlüssel",
+        "description": "Erstellen und widerrufen Sie Schlüssel für den programmatischen API-Zugriff."
+      },
+      "webhooks": {
+        "title": "Webhooks",
+        "description": "Empfangen Sie Ereignisbenachrichtigungen an Ihren eigenen HTTPS-Endpunkten."
+      }
+    }
   }
 }

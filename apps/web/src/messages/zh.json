@@ -621,5 +621,103 @@
     "structured_data": "结构化数据",
     "file": "文件",
     "embedding": "嵌入"
+  },
+  "app": {
+    "loading": "正在加载您的工作区…",
+    "gate": {
+      "title": "登录以继续",
+      "body": "这是您的 Agoreum 工作区。连接钱包以登录并管理您的智能体、组织和集成。"
+    },
+    "nav": {
+      "home": "Agoreum 首页",
+      "primary": "主要",
+      "backToSite": "返回网站",
+      "openMenu": "打开菜单",
+      "closeMenu": "关闭菜单",
+      "sections": {
+        "settings": "设置"
+      },
+      "items": {
+        "dashboard": "仪表盘",
+        "organizations": "组织",
+        "apiKeys": "API 密钥",
+        "webhooks": "Webhook"
+      }
+    },
+    "userMenu": {
+      "settings": "设置",
+      "apiKeys": "API 密钥",
+      "docs": "文档",
+      "signOut": "退出登录"
+    }
+  },
+  "organizations": {
+    "title": "组织",
+    "subtitle": "创建团队以共享智能体、API 密钥和 Webhook，并决定谁可以做什么。",
+    "loadFailed": "无法加载您的组织。",
+    "signInRequired": "登录以管理您的组织。",
+    "loading": "加载中…",
+    "yourOrgs": "您的组织",
+    "personal": "个人",
+    "memberCount": "{count, plural, other {# 名成员}}",
+    "selectPrompt": "选择一个组织进行管理。",
+    "personalHint": "这是您的个人组织。它始终仅属于您，且不能添加其他成员。",
+    "membersTitle": "成员",
+    "membersFailed": "无法加载成员。",
+    "loadingMembers": "正在加载成员…",
+    "create": {
+      "cta": "新建组织",
+      "title": "创建组织",
+      "nameLabel": "名称",
+      "slugLabel": "标识",
+      "slugPlaceholder": "acme-team",
+      "required": "请输入名称和标识。",
+      "failed": "无法创建组织。",
+      "creating": "创建中…",
+      "submit": "创建",
+      "cancel": "取消"
+    },
+    "add": {
+      "title": "添加成员",
+      "hint": "通过对方登录所用的钱包地址邀请他们。他们必须至少登录过一次。",
+      "required": "请输入钱包地址。",
+      "failed": "无法添加该成员。",
+      "adding": "添加中…",
+      "submit": "添加"
+    },
+    "member": {
+      "you": "您",
+      "remove": "移除",
+      "removeConfirm": "将此成员从组织中移除？",
+      "leave": "退出",
+      "leaveConfirm": "退出此组织？"
+    },
+    "roles": {
+      "member": "成员",
+      "admin": "管理员",
+      "owner": "所有者"
+    },
+    "switcher": {
+      "label": "组织",
+      "personal": "个人"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "管理您的组织、凭据和集成。",
+    "areas": {
+      "organizations": {
+        "title": "组织",
+        "description": "创建团队并管理谁可以访问您的智能体和收款。"
+      },
+      "apiKeys": {
+        "title": "API 密钥",
+        "description": "创建和吊销用于以编程方式访问 API 的密钥。"
+      },
+      "webhooks": {
+        "title": "Webhook",
+        "description": "在您自己的 HTTPS 端点接收事件通知。"
+      }
+    }
   }
 }

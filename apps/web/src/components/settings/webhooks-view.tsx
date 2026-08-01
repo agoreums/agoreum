@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { OrgSelect } from "@/components/settings/org-select";
 import {
   ApiError,
   webhooksApi,
@@ -30,6 +31,8 @@ export function WebhooksView() {
   const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The active organization, empty string for the caller's personal org.
+  const [org, setOrg] = useState("");
   const [reload, setReload] = useState(0);
   const refresh = () => setReload((n) => n + 1);
 
@@ -41,7 +44,7 @@ export function WebhooksView() {
       try {
         const [cat, list] = await Promise.all([
           webhooksApi.events(),
-          webhooksApi.list(accessToken!),
+          webhooksApi.list(accessToken!, org || undefined),
         ]);
         if (cancelled) return;
         setCatalog(cat.events);
@@ -59,7 +62,7 @@ export function WebhooksView() {
     return () => {
       cancelled = true;
     };
-  }, [status, accessToken, reload, t]);
+  }, [status, accessToken, org, reload, t]);
 
   if (status !== "authenticated") {
     return (
@@ -75,6 +78,8 @@ export function WebhooksView() {
 
   return (
     <div className="space-y-10">
+      <OrgSelect accessToken={accessToken!} value={org} onChange={setOrg} />
+
       {error ? (
         <p className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-4 text-sm text-danger-500">
           {error}
@@ -84,12 +89,14 @@ export function WebhooksView() {
       <CreateEndpoint
         catalog={catalog}
         accessToken={accessToken!}
+        orgSlug={org || undefined}
         onCreated={refresh}
       />
 
       <EndpointList
         endpoints={endpoints}
         accessToken={accessToken!}
+        orgSlug={org || undefined}
         onChanged={refresh}
       />
     </div>
@@ -99,10 +106,12 @@ export function WebhooksView() {
 function CreateEndpoint({
   catalog,
   accessToken,
+  orgSlug,
   onCreated,
 }: {
   catalog: WebhookEvent[];
   accessToken: string;
+  orgSlug?: string;
   onCreated: () => void;
 }) {
   const t = useTranslations("webhooks");
@@ -136,11 +145,15 @@ function CreateEndpoint({
     setBusy(true);
     setFormError(null);
     try {
-      const endpoint = await webhooksApi.create(accessToken, {
-        url: url.trim(),
-        events,
-        description: description.trim() || null,
-      });
+      const endpoint = await webhooksApi.create(
+        accessToken,
+        {
+          url: url.trim(),
+          events,
+          description: description.trim() || null,
+        },
+        orgSlug,
+      );
       setCreated(endpoint);
       setUrl("");
       setDescription("");
@@ -310,10 +323,12 @@ function CreatedEndpoint({
 function EndpointList({
   endpoints,
   accessToken,
+  orgSlug,
   onChanged,
 }: {
   endpoints: WebhookEndpoint[];
   accessToken: string;
+  orgSlug?: string;
   onChanged: () => void;
 }) {
   const t = useTranslations("webhooks");
@@ -337,6 +352,7 @@ function EndpointList({
             key={e.id}
             endpoint={e}
             accessToken={accessToken}
+            orgSlug={orgSlug}
             onChanged={onChanged}
           />
         ))}
@@ -348,10 +364,12 @@ function EndpointList({
 function EndpointRow({
   endpoint,
   accessToken,
+  orgSlug,
   onChanged,
 }: {
   endpoint: WebhookEndpoint;
   accessToken: string;
+  orgSlug?: string;
   onChanged: () => void;
 }) {
   const t = useTranslations("webhooks");
@@ -364,7 +382,7 @@ function EndpointRow({
     if (!window.confirm(t("revokeConfirm", { url: endpoint.url }))) return;
     setBusy(true);
     try {
-      await webhooksApi.revoke(accessToken, endpoint.id);
+      await webhooksApi.revoke(accessToken, endpoint.id, orgSlug);
       onChanged();
     } finally {
       setBusy(false);
@@ -375,7 +393,7 @@ function EndpointRow({
     setShowDeliveries((v) => !v);
     if (deliveries === null) {
       try {
-        setDeliveries(await webhooksApi.deliveries(accessToken, endpoint.id));
+        setDeliveries(await webhooksApi.deliveries(accessToken, endpoint.id, orgSlug));
       } catch {
         setDeliveries([]);
       }

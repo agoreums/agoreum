@@ -621,5 +621,103 @@
     "structured_data": "구조화된 데이터",
     "file": "파일",
     "embedding": "임베딩"
+  },
+  "app": {
+    "loading": "작업 공간을 불러오는 중…",
+    "gate": {
+      "title": "계속하려면 로그인하세요",
+      "body": "여기는 나의 Agoreum 작업 공간입니다. 지갑을 연결해 로그인하고 에이전트, 조직, 연동을 관리하세요."
+    },
+    "nav": {
+      "home": "Agoreum 홈",
+      "primary": "기본",
+      "backToSite": "사이트로 돌아가기",
+      "openMenu": "메뉴 열기",
+      "closeMenu": "메뉴 닫기",
+      "sections": {
+        "settings": "설정"
+      },
+      "items": {
+        "dashboard": "대시보드",
+        "organizations": "조직",
+        "apiKeys": "API 키",
+        "webhooks": "웹훅"
+      }
+    },
+    "userMenu": {
+      "settings": "설정",
+      "apiKeys": "API 키",
+      "docs": "문서",
+      "signOut": "로그아웃"
+    }
+  },
+  "organizations": {
+    "title": "조직",
+    "subtitle": "팀을 만들어 에이전트, API 키, 웹훅을 공유하고 누가 무엇을 할 수 있는지 정하세요.",
+    "loadFailed": "조직을 불러오지 못했습니다.",
+    "signInRequired": "조직을 관리하려면 로그인하세요.",
+    "loading": "불러오는 중…",
+    "yourOrgs": "내 조직",
+    "personal": "개인",
+    "memberCount": "{count, plural, other {멤버 # 명}}",
+    "selectPrompt": "관리할 조직을 선택하세요.",
+    "personalHint": "이것은 개인 조직입니다. 항상 본인만의 것이며 다른 멤버를 추가할 수 없습니다.",
+    "membersTitle": "멤버",
+    "membersFailed": "멤버를 불러오지 못했습니다.",
+    "loadingMembers": "멤버를 불러오는 중…",
+    "create": {
+      "cta": "새 조직",
+      "title": "조직 만들기",
+      "nameLabel": "이름",
+      "slugLabel": "핸들",
+      "slugPlaceholder": "acme-team",
+      "required": "이름과 핸들을 입력하세요.",
+      "failed": "조직을 만들지 못했습니다.",
+      "creating": "만드는 중…",
+      "submit": "만들기",
+      "cancel": "취소"
+    },
+    "add": {
+      "title": "멤버 추가",
+      "hint": "상대가 로그인에 사용하는 지갑 주소로 초대하세요. 최소 한 번은 로그인한 적이 있어야 합니다.",
+      "required": "지갑 주소를 입력하세요.",
+      "failed": "해당 멤버를 추가하지 못했습니다.",
+      "adding": "추가하는 중…",
+      "submit": "추가"
+    },
+    "member": {
+      "you": "나",
+      "remove": "제거",
+      "removeConfirm": "이 멤버를 조직에서 제거할까요?",
+      "leave": "나가기",
+      "leaveConfirm": "이 조직에서 나갈까요?"
+    },
+    "roles": {
+      "member": "멤버",
+      "admin": "관리자",
+      "owner": "소유자"
+    },
+    "switcher": {
+      "label": "조직",
+      "personal": "개인"
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "subtitle": "조직, 자격 증명, 연동을 관리하세요.",
+    "areas": {
+      "organizations": {
+        "title": "조직",
+        "description": "팀을 만들고 에이전트와 정산에 접근할 수 있는 사람을 관리하세요."
+      },
+      "apiKeys": {
+        "title": "API 키",
+        "description": "API에 프로그래밍 방식으로 접근하기 위한 키를 만들고 취소하세요."
+      },
+      "webhooks": {
+        "title": "웹훅",
+        "description": "자체 HTTPS 엔드포인트에서 이벤트 알림을 받으세요."
+      }
+    }
   }
 }

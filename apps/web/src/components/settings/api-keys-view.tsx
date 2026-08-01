@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { OrgSelect } from "@/components/settings/org-select";
 import {
   ApiError,
   apiKeysApi,
@@ -27,6 +28,9 @@ export function ApiKeysView() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The active organization, empty string for the caller's personal org. Keys are
+  // scoped to it, so switching orgs reloads the list.
+  const [org, setOrg] = useState("");
   // Bumped after a create or revoke to re-run the loader. Keeping the fetch inside
   // the effect, rather than in a callback the effect calls, is what lets the
   // linter see that state is only ever set after an await, never on the render path.
@@ -41,7 +45,7 @@ export function ApiKeysView() {
       try {
         const [cat, list] = await Promise.all([
           apiKeysApi.scopes(),
-          apiKeysApi.list(accessToken!),
+          apiKeysApi.list(accessToken!, org || undefined),
         ]);
         if (cancelled) return;
         setCatalog(cat.scopes);
@@ -59,7 +63,7 @@ export function ApiKeysView() {
     return () => {
       cancelled = true;
     };
-  }, [status, accessToken, reload, t]);
+  }, [status, accessToken, org, reload, t]);
 
   if (status !== "authenticated") {
     return (
@@ -75,6 +79,8 @@ export function ApiKeysView() {
 
   return (
     <div className="space-y-10">
+      <OrgSelect accessToken={accessToken!} value={org} onChange={setOrg} />
+
       {error ? (
         <p className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-4 text-sm text-danger-500">
           {error}
@@ -84,10 +90,16 @@ export function ApiKeysView() {
       <CreateKey
         catalog={catalog}
         accessToken={accessToken!}
+        orgSlug={org || undefined}
         onCreated={refresh}
       />
 
-      <KeyList keys={keys} accessToken={accessToken!} onChanged={refresh} />
+      <KeyList
+        keys={keys}
+        accessToken={accessToken!}
+        orgSlug={org || undefined}
+        onChanged={refresh}
+      />
     </div>
   );
 }
@@ -95,10 +107,12 @@ export function ApiKeysView() {
 function CreateKey({
   catalog,
   accessToken,
+  orgSlug,
   onCreated,
 }: {
   catalog: ApiKeyScope[];
   accessToken: string;
+  orgSlug?: string;
   onCreated: () => void;
 }) {
   const t = useTranslations("apiKeys");
@@ -130,11 +144,15 @@ function CreateKey({
     setBusy(true);
     setFormError(null);
     try {
-      const key = await apiKeysApi.create(accessToken, {
-        name: name.trim(),
-        scopes: [...selected],
-        expires_in_days: expiry === "never" ? null : Number(expiry),
-      });
+      const key = await apiKeysApi.create(
+        accessToken,
+        {
+          name: name.trim(),
+          scopes: [...selected],
+          expires_in_days: expiry === "never" ? null : Number(expiry),
+        },
+        orgSlug,
+      );
       setCreated(key);
       setName("");
       setSelected(new Set());
@@ -286,10 +304,12 @@ function CreatedKey({
 function KeyList({
   keys,
   accessToken,
+  orgSlug,
   onChanged,
 }: {
   keys: ApiKey[];
   accessToken: string;
+  orgSlug?: string;
   onChanged: () => void;
 }) {
   const t = useTranslations("apiKeys");
@@ -313,6 +333,7 @@ function KeyList({
             key={k.id}
             apiKey={k}
             accessToken={accessToken}
+            orgSlug={orgSlug}
             onChanged={onChanged}
           />
         ))}
@@ -324,10 +345,12 @@ function KeyList({
 function KeyRow({
   apiKey,
   accessToken,
+  orgSlug,
   onChanged,
 }: {
   apiKey: ApiKey;
   accessToken: string;
+  orgSlug?: string;
   onChanged: () => void;
 }) {
   const t = useTranslations("apiKeys");
@@ -342,7 +365,7 @@ function KeyRow({
     if (!window.confirm(t("revokeConfirm", { name: apiKey.name }))) return;
     setBusy(true);
     try {
-      await apiKeysApi.revoke(accessToken, apiKey.id);
+      await apiKeysApi.revoke(accessToken, apiKey.id, orgSlug);
       onChanged();
     } finally {
       setBusy(false);

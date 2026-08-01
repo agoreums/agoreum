@@ -621,5 +621,103 @@
     "structured_data": "Datos estructurados",
     "file": "Archivo",
     "embedding": "Embedding"
+  },
+  "app": {
+    "loading": "Cargando tu espacio de trabajo…",
+    "gate": {
+      "title": "Inicia sesión para continuar",
+      "body": "Este es tu espacio de trabajo de Agoreum. Conecta tu monedero para iniciar sesión y gestionar tus agentes, organizaciones e integraciones."
+    },
+    "nav": {
+      "home": "Inicio de Agoreum",
+      "primary": "Principal",
+      "backToSite": "Volver al sitio",
+      "openMenu": "Abrir menú",
+      "closeMenu": "Cerrar menú",
+      "sections": {
+        "settings": "Ajustes"
+      },
+      "items": {
+        "dashboard": "Panel",
+        "organizations": "Organizaciones",
+        "apiKeys": "Claves de API",
+        "webhooks": "Webhooks"
+      }
+    },
+    "userMenu": {
+      "settings": "Ajustes",
+      "apiKeys": "Claves de API",
+      "docs": "Documentación",
+      "signOut": "Cerrar sesión"
+    }
+  },
+  "organizations": {
+    "title": "Organizaciones",
+    "subtitle": "Crea un equipo para compartir agentes, claves de API y webhooks, y decide quién puede hacer qué.",
+    "loadFailed": "No pudimos cargar tus organizaciones.",
+    "signInRequired": "Inicia sesión para gestionar tus organizaciones.",
+    "loading": "Cargando…",
+    "yourOrgs": "Tus organizaciones",
+    "personal": "Personal",
+    "memberCount": "{count, plural, one {# miembro} other {# miembros}}",
+    "selectPrompt": "Selecciona una organización para gestionarla.",
+    "personalHint": "Esta es tu organización personal. Siempre es solo tuya y no puede tener otros miembros.",
+    "membersTitle": "Miembros",
+    "membersFailed": "No pudimos cargar los miembros.",
+    "loadingMembers": "Cargando miembros…",
+    "create": {
+      "cta": "Nueva organización",
+      "title": "Crear una organización",
+      "nameLabel": "Nombre",
+      "slugLabel": "Identificador",
+      "slugPlaceholder": "equipo-acme",
+      "required": "Introduce un nombre y un identificador.",
+      "failed": "No pudimos crear la organización.",
+      "creating": "Creando…",
+      "submit": "Crear",
+      "cancel": "Cancelar"
+    },
+    "add": {
+      "title": "Añadir un miembro",
+      "hint": "Invita a alguien por la dirección del monedero con la que inicia sesión. Debe haber iniciado sesión al menos una vez.",
+      "required": "Introduce una dirección de monedero.",
+      "failed": "No pudimos añadir a ese miembro.",
+      "adding": "Añadiendo…",
+      "submit": "Añadir"
+    },
+    "member": {
+      "you": "Tú",
+      "remove": "Quitar",
+      "removeConfirm": "¿Quitar a este miembro de la organización?",
+      "leave": "Salir",
+      "leaveConfirm": "¿Salir de esta organización?"
+    },
+    "roles": {
+      "member": "Miembro",
+      "admin": "Administrador",
+      "owner": "Propietario"
+    },
+    "switcher": {
+      "label": "Organización",
+      "personal": "Personal"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Gestiona tus organizaciones, credenciales e integraciones.",
+    "areas": {
+      "organizations": {
+        "title": "Organizaciones",
+        "description": "Crea equipos y gestiona quién puede acceder a tus agentes y pagos."
+      },
+      "apiKeys": {
+        "title": "Claves de API",
+        "description": "Crea y revoca claves para el acceso programático a la API."
+      },
+      "webhooks": {
+        "title": "Webhooks",
+        "description": "Recibe notificaciones de eventos en tus propios endpoints HTTPS."
+      }
+    }
   }
 }

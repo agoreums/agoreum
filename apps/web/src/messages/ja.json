@@ -621,5 +621,103 @@
     "structured_data": "構造化データ",
     "file": "ファイル",
     "embedding": "埋め込み"
+  },
+  "app": {
+    "loading": "ワークスペースを読み込んでいます…",
+    "gate": {
+      "title": "続行するにはサインインしてください",
+      "body": "ここはあなたの Agoreum ワークスペースです。ウォレットを接続してサインインし、エージェント、組織、連携を管理しましょう。"
+    },
+    "nav": {
+      "home": "Agoreum ホーム",
+      "primary": "メイン",
+      "backToSite": "サイトに戻る",
+      "openMenu": "メニューを開く",
+      "closeMenu": "メニューを閉じる",
+      "sections": {
+        "settings": "設定"
+      },
+      "items": {
+        "dashboard": "ダッシュボード",
+        "organizations": "組織",
+        "apiKeys": "API キー",
+        "webhooks": "Webhook"
+      }
+    },
+    "userMenu": {
+      "settings": "設定",
+      "apiKeys": "API キー",
+      "docs": "ドキュメント",
+      "signOut": "サインアウト"
+    }
+  },
+  "organizations": {
+    "title": "組織",
+    "subtitle": "チームを作成してエージェント、API キー、Webhook を共有し、誰が何をできるかを決めます。",
+    "loadFailed": "組織を読み込めませんでした。",
+    "signInRequired": "組織を管理するにはサインインしてください。",
+    "loading": "読み込み中…",
+    "yourOrgs": "あなたの組織",
+    "personal": "個人",
+    "memberCount": "{count, plural, other {# 人のメンバー}}",
+    "selectPrompt": "管理する組織を選択してください。",
+    "personalHint": "これはあなたの個人組織です。常にあなただけのもので、他のメンバーを追加することはできません。",
+    "membersTitle": "メンバー",
+    "membersFailed": "メンバーを読み込めませんでした。",
+    "loadingMembers": "メンバーを読み込んでいます…",
+    "create": {
+      "cta": "新しい組織",
+      "title": "組織を作成",
+      "nameLabel": "名前",
+      "slugLabel": "ハンドル",
+      "slugPlaceholder": "acme-team",
+      "required": "名前とハンドルを入力してください。",
+      "failed": "組織を作成できませんでした。",
+      "creating": "作成中…",
+      "submit": "作成",
+      "cancel": "キャンセル"
+    },
+    "add": {
+      "title": "メンバーを追加",
+      "hint": "サインインに使うウォレットアドレスで招待します。相手は少なくとも一度サインインしている必要があります。",
+      "required": "ウォレットアドレスを入力してください。",
+      "failed": "そのメンバーを追加できませんでした。",
+      "adding": "追加中…",
+      "submit": "追加"
+    },
+    "member": {
+      "you": "あなた",
+      "remove": "削除",
+      "removeConfirm": "このメンバーを組織から削除しますか？",
+      "leave": "退出",
+      "leaveConfirm": "この組織を退出しますか？"
+    },
+    "roles": {
+      "member": "メンバー",
+      "admin": "管理者",
+      "owner": "オーナー"
+    },
+    "switcher": {
+      "label": "組織",
+      "personal": "個人"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "subtitle": "組織、認証情報、連携を管理します。",
+    "areas": {
+      "organizations": {
+        "title": "組織",
+        "description": "チームを作成し、エージェントや支払いにアクセスできる人を管理します。"
+      },
+      "apiKeys": {
+        "title": "API キー",
+        "description": "API へのプログラムによるアクセス用のキーを作成・失効します。"
+      },
+      "webhooks": {
+        "title": "Webhook",
+        "description": "自分の HTTPS エンドポイントでイベント通知を受け取ります。"
+      }
+    }
   }
 }
