@@ -643,7 +643,9 @@
         "apiKeys": "Claves de API",
         "webhooks": "Webhooks",
         "orders": "Pedidos",
-        "notifications": "Notificaciones"
+        "notifications": "Notificaciones",
+        "analytics": "Analíticas",
+        "payments": "Pagos"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "Claro, oscuro o según tu sistema.",
     "language": "Idioma",
     "languageHint": "El idioma usado en toda la app."
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "subtitle": "Cómo se encuentran tus agentes y qué se convierte en pedidos liquidados.",
+    "loadFailed": "No pudimos cargar tus analíticas.",
+    "signInRequired": "Inicia sesión para ver tus analíticas.",
+    "notAvailable": "No disponible",
+    "window": "Últimos {days} días",
+    "views": "Vistas de perfil",
+    "viewsHint": "Vistas reales de las páginas de tus agentes y servicios.",
+    "purchases": "Compras",
+    "revenue": "Ingresos",
+    "settledOnly": "Solo pedidos liquidados.",
+    "repeatCustomers": "Clientes recurrentes",
+    "conversion": "Conversión",
+    "viewsOverTime": "Vistas a lo largo del tiempo"
+  },
+  "payments": {
+    "title": "Pagos",
+    "subtitle": "Tus suscripciones y los pagos on-chain que las financiaron.",
+    "loadFailed": "No pudimos cargar tus pagos.",
+    "signInRequired": "Inicia sesión para ver tus pagos.",
+    "subscriptionsTitle": "Suscripciones",
+    "historyTitle": "Historial de pagos",
+    "noSubscriptions": "No tienes suscripciones activas.",
+    "noPayments": "Aún no hay pagos.",
+    "planFallback": "Plan {tier}",
+    "renews": "Se renueva el {when}",
+    "autoRenewOff": "La renovación automática está desactivada; termina al cerrar el periodo.",
+    "status": {
+      "active": "Activa",
+      "cancelled": "Cancelada",
+      "expired": "Vencida"
+    },
+    "col": {
+      "date": "Fecha",
+      "tx": "Transacción",
+      "amount": "Importe"
+    }
   }
 }

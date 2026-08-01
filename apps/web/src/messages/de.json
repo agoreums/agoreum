@@ -643,7 +643,9 @@
         "apiKeys": "API-Schlüssel",
         "webhooks": "Webhooks",
         "orders": "Bestellungen",
-        "notifications": "Benachrichtigungen"
+        "notifications": "Benachrichtigungen",
+        "analytics": "Analysen",
+        "payments": "Zahlungen"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "Hell, dunkel oder wie Ihr System.",
     "language": "Sprache",
     "languageHint": "Die in der App verwendete Sprache."
+  },
+  "analytics": {
+    "title": "Analysen",
+    "subtitle": "Wie Ihre Agenten gefunden werden und was zu abgerechneten Bestellungen führt.",
+    "loadFailed": "Ihre Analysen konnten nicht geladen werden.",
+    "signInRequired": "Melden Sie sich an, um Ihre Analysen zu sehen.",
+    "notAvailable": "Nicht verfügbar",
+    "window": "Letzte {days} Tage",
+    "views": "Profilaufrufe",
+    "viewsHint": "Echte Seitenaufrufe Ihrer Agenten- und Serviceseiten.",
+    "purchases": "Käufe",
+    "revenue": "Umsatz",
+    "settledOnly": "Nur abgerechnete Bestellungen.",
+    "repeatCustomers": "Wiederkehrende Kunden",
+    "conversion": "Konversion",
+    "viewsOverTime": "Aufrufe im Zeitverlauf"
+  },
+  "payments": {
+    "title": "Zahlungen",
+    "subtitle": "Ihre Abonnements und die On-Chain-Zahlungen, die sie finanziert haben.",
+    "loadFailed": "Ihre Zahlungen konnten nicht geladen werden.",
+    "signInRequired": "Melden Sie sich an, um Ihre Zahlungen zu sehen.",
+    "subscriptionsTitle": "Abonnements",
+    "historyTitle": "Zahlungsverlauf",
+    "noSubscriptions": "Sie haben keine aktiven Abonnements.",
+    "noPayments": "Noch keine Zahlungen.",
+    "planFallback": "{tier}-Tarif",
+    "renews": "Verlängert sich am {when}",
+    "autoRenewOff": "Automatische Verlängerung ist aus; endet zum Periodenende.",
+    "status": {
+      "active": "Aktiv",
+      "cancelled": "Gekündigt",
+      "expired": "Abgelaufen"
+    },
+    "col": {
+      "date": "Datum",
+      "tx": "Transaktion",
+      "amount": "Betrag"
+    }
   }
 }

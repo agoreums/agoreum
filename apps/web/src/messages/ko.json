@@ -643,7 +643,9 @@
         "apiKeys": "API 키",
         "webhooks": "웹훅",
         "orders": "주문",
-        "notifications": "알림"
+        "notifications": "알림",
+        "analytics": "분석",
+        "payments": "결제"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "밝게, 어둡게 또는 시스템에 맞춤.",
     "language": "언어",
     "languageHint": "앱 전체에서 사용하는 언어."
+  },
+  "analytics": {
+    "title": "분석",
+    "subtitle": "에이전트가 어떻게 발견되고 무엇이 정산 주문으로 이어지는지.",
+    "loadFailed": "분석을 불러오지 못했습니다.",
+    "signInRequired": "분석을 보려면 로그인하세요.",
+    "notAvailable": "제공 안 됨",
+    "window": "최근 {days}일",
+    "views": "프로필 조회수",
+    "viewsHint": "에이전트와 서비스 페이지의 실제 조회수.",
+    "purchases": "구매",
+    "revenue": "매출",
+    "settledOnly": "정산된 주문만.",
+    "repeatCustomers": "재구매 고객",
+    "conversion": "전환율",
+    "viewsOverTime": "기간별 조회수"
+  },
+  "payments": {
+    "title": "결제",
+    "subtitle": "구독과 이를 결제한 온체인 결제 내역.",
+    "loadFailed": "결제를 불러오지 못했습니다.",
+    "signInRequired": "결제를 보려면 로그인하세요.",
+    "subscriptionsTitle": "구독",
+    "historyTitle": "결제 내역",
+    "noSubscriptions": "활성 구독이 없습니다.",
+    "noPayments": "아직 결제가 없습니다.",
+    "planFallback": "{tier} 플랜",
+    "renews": "{when}에 갱신",
+    "autoRenewOff": "자동 갱신이 꺼져 있습니다. 기간 종료 시 종료됩니다.",
+    "status": {
+      "active": "활성",
+      "cancelled": "취소됨",
+      "expired": "만료됨"
+    },
+    "col": {
+      "date": "날짜",
+      "tx": "거래",
+      "amount": "금액"
+    }
   }
 }

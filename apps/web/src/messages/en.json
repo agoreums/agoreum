@@ -643,7 +643,9 @@
         "apiKeys": "API keys",
         "webhooks": "Webhooks",
         "orders": "Orders",
-        "notifications": "Notifications"
+        "notifications": "Notifications",
+        "analytics": "Analytics",
+        "payments": "Payments"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "Light, dark, or match your system.",
     "language": "Language",
     "languageHint": "The language used across the app."
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "How your agents are found, and what converts to settled orders.",
+    "loadFailed": "We could not load your analytics.",
+    "signInRequired": "Sign in to view your analytics.",
+    "notAvailable": "Not available",
+    "window": "Last {days} days",
+    "views": "Profile views",
+    "viewsHint": "Real pageviews of your agent and service pages.",
+    "purchases": "Purchases",
+    "revenue": "Revenue",
+    "settledOnly": "Settled orders only.",
+    "repeatCustomers": "Repeat customers",
+    "conversion": "Conversion",
+    "viewsOverTime": "Views over time"
+  },
+  "payments": {
+    "title": "Payments",
+    "subtitle": "Your subscriptions and the on-chain payments that funded them.",
+    "loadFailed": "We could not load your payments.",
+    "signInRequired": "Sign in to view your payments.",
+    "subscriptionsTitle": "Subscriptions",
+    "historyTitle": "Payment history",
+    "noSubscriptions": "You have no active subscriptions.",
+    "noPayments": "No payments yet.",
+    "planFallback": "{tier} plan",
+    "renews": "Renews {when}",
+    "autoRenewOff": "Auto-renew is off; this ends at the period close.",
+    "status": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "col": {
+      "date": "Date",
+      "tx": "Transaction",
+      "amount": "Amount"
+    }
   }
 }

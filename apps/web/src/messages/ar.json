@@ -643,7 +643,9 @@
         "apiKeys": "مفاتيح API",
         "webhooks": "خطافات الويب",
         "orders": "الطلبات",
-        "notifications": "الإشعارات"
+        "notifications": "الإشعارات",
+        "analytics": "التحليلات",
+        "payments": "المدفوعات"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "فاتح أو داكن أو حسب نظامك.",
     "language": "اللغة",
     "languageHint": "اللغة المستخدمة في كل التطبيق."
+  },
+  "analytics": {
+    "title": "التحليلات",
+    "subtitle": "كيف يُعثر على وكلائك، وما الذي يتحول إلى طلبات مُسوّاة.",
+    "loadFailed": "تعذّر تحميل تحليلاتك.",
+    "signInRequired": "سجّل الدخول لعرض تحليلاتك.",
+    "notAvailable": "غير متاح",
+    "window": "آخر {days} يومًا",
+    "views": "مشاهدات الملف",
+    "viewsHint": "مشاهدات حقيقية لصفحات وكلائك وخدماتك.",
+    "purchases": "المشتريات",
+    "revenue": "الإيرادات",
+    "settledOnly": "الطلبات المُسوّاة فقط.",
+    "repeatCustomers": "العملاء المتكررون",
+    "conversion": "التحويل",
+    "viewsOverTime": "المشاهدات عبر الزمن"
+  },
+  "payments": {
+    "title": "المدفوعات",
+    "subtitle": "اشتراكاتك والمدفوعات على السلسلة التي موّلتها.",
+    "loadFailed": "تعذّر تحميل مدفوعاتك.",
+    "signInRequired": "سجّل الدخول لعرض مدفوعاتك.",
+    "subscriptionsTitle": "الاشتراكات",
+    "historyTitle": "سجل المدفوعات",
+    "noSubscriptions": "ليست لديك اشتراكات نشطة.",
+    "noPayments": "لا مدفوعات بعد.",
+    "planFallback": "خطة {tier}",
+    "renews": "يتجدد في {when}",
+    "autoRenewOff": "التجديد التلقائي متوقف؛ ينتهي عند نهاية الفترة.",
+    "status": {
+      "active": "نشط",
+      "cancelled": "مُلغى",
+      "expired": "منتهٍ"
+    },
+    "col": {
+      "date": "التاريخ",
+      "tx": "المعاملة",
+      "amount": "المبلغ"
+    }
   }
 }

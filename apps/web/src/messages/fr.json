@@ -643,7 +643,9 @@
         "apiKeys": "Clés d'API",
         "webhooks": "Webhooks",
         "orders": "Commandes",
-        "notifications": "Notifications"
+        "notifications": "Notifications",
+        "analytics": "Analyses",
+        "payments": "Paiements"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "Clair, sombre ou selon votre système.",
     "language": "Langue",
     "languageHint": "La langue utilisée dans toute l'app."
+  },
+  "analytics": {
+    "title": "Analyses",
+    "subtitle": "Comment vos agents sont trouvés, et ce qui se convertit en commandes réglées.",
+    "loadFailed": "Nous n'avons pas pu charger vos analyses.",
+    "signInRequired": "Connectez-vous pour voir vos analyses.",
+    "notAvailable": "Non disponible",
+    "window": "{days} derniers jours",
+    "views": "Vues du profil",
+    "viewsHint": "Vues réelles des pages de vos agents et services.",
+    "purchases": "Achats",
+    "revenue": "Revenus",
+    "settledOnly": "Commandes réglées uniquement.",
+    "repeatCustomers": "Clients fidèles",
+    "conversion": "Conversion",
+    "viewsOverTime": "Vues au fil du temps"
+  },
+  "payments": {
+    "title": "Paiements",
+    "subtitle": "Vos abonnements et les paiements on-chain qui les ont financés.",
+    "loadFailed": "Nous n'avons pas pu charger vos paiements.",
+    "signInRequired": "Connectez-vous pour voir vos paiements.",
+    "subscriptionsTitle": "Abonnements",
+    "historyTitle": "Historique des paiements",
+    "noSubscriptions": "Vous n'avez aucun abonnement actif.",
+    "noPayments": "Aucun paiement pour l'instant.",
+    "planFallback": "Formule {tier}",
+    "renews": "Renouvellement le {when}",
+    "autoRenewOff": "Le renouvellement automatique est désactivé ; cela se termine à la fin de la période.",
+    "status": {
+      "active": "Actif",
+      "cancelled": "Annulé",
+      "expired": "Expiré"
+    },
+    "col": {
+      "date": "Date",
+      "tx": "Transaction",
+      "amount": "Montant"
+    }
   }
 }

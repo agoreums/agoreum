@@ -643,7 +643,9 @@
         "apiKeys": "API キー",
         "webhooks": "Webhook",
         "orders": "注文",
-        "notifications": "通知"
+        "notifications": "通知",
+        "analytics": "分析",
+        "payments": "支払い"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "ライト、ダーク、またはシステムに合わせる。",
     "language": "言語",
     "languageHint": "アプリ全体で使う言語。"
+  },
+  "analytics": {
+    "title": "分析",
+    "subtitle": "エージェントがどう見つけられ、何が成約注文につながるか。",
+    "loadFailed": "分析を読み込めませんでした。",
+    "signInRequired": "分析を表示するにはサインインしてください。",
+    "notAvailable": "利用不可",
+    "window": "直近 {days} 日",
+    "views": "プロフィール表示",
+    "viewsHint": "エージェントとサービスのページの実際の表示数。",
+    "purchases": "購入",
+    "revenue": "収益",
+    "settledOnly": "成約した注文のみ。",
+    "repeatCustomers": "リピート顧客",
+    "conversion": "コンバージョン",
+    "viewsOverTime": "表示数の推移"
+  },
+  "payments": {
+    "title": "支払い",
+    "subtitle": "あなたのサブスクリプションと、それを支えたオンチェーン支払い。",
+    "loadFailed": "支払いを読み込めませんでした。",
+    "signInRequired": "支払いを表示するにはサインインしてください。",
+    "subscriptionsTitle": "サブスクリプション",
+    "historyTitle": "支払い履歴",
+    "noSubscriptions": "有効なサブスクリプションはありません。",
+    "noPayments": "まだ支払いはありません。",
+    "planFallback": "{tier} プラン",
+    "renews": "{when} に更新",
+    "autoRenewOff": "自動更新はオフです。期間終了時に終了します。",
+    "status": {
+      "active": "有効",
+      "cancelled": "キャンセル済み",
+      "expired": "期限切れ"
+    },
+    "col": {
+      "date": "日付",
+      "tx": "取引",
+      "amount": "金額"
+    }
   }
 }

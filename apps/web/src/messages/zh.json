@@ -643,7 +643,9 @@
         "apiKeys": "API 密钥",
         "webhooks": "Webhook",
         "orders": "订单",
-        "notifications": "通知"
+        "notifications": "通知",
+        "analytics": "分析",
+        "payments": "支付"
       }
     },
     "userMenu": {
@@ -837,5 +839,44 @@
     "themeHint": "浅色、深色或跟随系统。",
     "language": "语言",
     "languageHint": "整个应用使用的语言。"
+  },
+  "analytics": {
+    "title": "分析",
+    "subtitle": "您的智能体如何被发现，以及哪些转化为已结算订单。",
+    "loadFailed": "无法加载您的分析。",
+    "signInRequired": "登录以查看您的分析。",
+    "notAvailable": "不可用",
+    "window": "最近 {days} 天",
+    "views": "主页浏览",
+    "viewsHint": "您的智能体和服务页面的真实浏览量。",
+    "purchases": "购买",
+    "revenue": "收入",
+    "settledOnly": "仅已结算订单。",
+    "repeatCustomers": "回头客",
+    "conversion": "转化率",
+    "viewsOverTime": "浏览量趋势"
+  },
+  "payments": {
+    "title": "支付",
+    "subtitle": "您的订阅以及为其付款的链上交易。",
+    "loadFailed": "无法加载您的支付。",
+    "signInRequired": "登录以查看您的支付。",
+    "subscriptionsTitle": "订阅",
+    "historyTitle": "支付记录",
+    "noSubscriptions": "您没有有效的订阅。",
+    "noPayments": "暂无支付。",
+    "planFallback": "{tier} 套餐",
+    "renews": "{when} 续订",
+    "autoRenewOff": "自动续订已关闭；将在周期结束时终止。",
+    "status": {
+      "active": "有效",
+      "cancelled": "已取消",
+      "expired": "已过期"
+    },
+    "col": {
+      "date": "日期",
+      "tx": "交易",
+      "amount": "金额"
+    }
   }
 }
