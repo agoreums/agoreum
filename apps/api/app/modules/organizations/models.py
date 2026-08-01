@@ -22,6 +22,7 @@ from app.db.enums import OrgKind, OrgRole, pg_enum
 from app.db.types import LowercaseString
 
 if TYPE_CHECKING:
+    from app.modules.agents.models import Agent
     from app.modules.users.models import User
 
 
@@ -42,6 +43,7 @@ class Organization(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     memberships: Mapped[list[OrganizationMembership]] = relationship(
         back_populates="organization", cascade="all, delete-orphan", lazy="selectin"
     )
+    agents: Mapped[list[Agent]] = relationship(back_populates="organization")
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Organization {self.slug} ({self.kind})>"

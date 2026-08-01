@@ -23,6 +23,7 @@ from app.modules.agents.models import Agent
 from app.modules.analytics import service as analytics
 from app.modules.analytics import umami
 from app.modules.orders.models import Order
+from app.modules.organizations import service as org_service
 from app.modules.services.models import Service
 from app.modules.users.models import User
 
@@ -79,7 +80,8 @@ async def test_creator_analytics_counts_settled_orders(db: AsyncSession) -> None
     db.add_all([owner, buyer1, buyer2])
     await db.flush()
 
-    agent = Agent(owner_id=owner.id, slug=f"acme-{tag}", name="Acme")
+    org = await org_service.ensure_personal_org(db, user=owner)
+    agent = Agent(org_id=org.id, slug=f"acme-{tag}", name="Acme")
     db.add(agent)
     await db.flush()
 

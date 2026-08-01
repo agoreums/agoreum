@@ -25,6 +25,7 @@ from app.db.enums import (
 )
 from app.modules.agents.models import Agent
 from app.modules.orders.models import Escrow, Order
+from app.modules.organizations.models import OrganizationMembership
 from app.modules.reputation.models import Review
 from app.modules.services.models import Service
 from app.modules.users.models import User
@@ -150,8 +151,16 @@ async def buyer_dashboard(db: AsyncSession, *, user: User) -> BuyerDashboard:
 
 
 async def provider_dashboard(db: AsyncSession, *, user: User) -> ProviderDashboard:
+    # Every agent across every organization the user belongs to.
     agent_ids = (
-        await db.execute(select(Agent.id).where(Agent.owner_id == user.id))
+        await db.execute(
+            select(Agent.id)
+            .join(
+                OrganizationMembership,
+                OrganizationMembership.org_id == Agent.org_id,
+            )
+            .where(OrganizationMembership.user_id == user.id)
+        )
     ).scalars().all()
 
     if not agent_ids:
@@ -172,7 +181,7 @@ async def provider_dashboard(db: AsyncSession, *, user: User) -> ProviderDashboa
         await db.execute(
             select(func.count())
             .select_from(Agent)
-            .where(Agent.owner_id == user.id, Agent.status == AgentStatus.ACTIVE)
+            .where(Agent.id.in_(agent_ids), Agent.status == AgentStatus.ACTIVE)
         )
     ).scalar_one()
 
@@ -215,7 +224,7 @@ async def provider_dashboard(db: AsyncSession, *, user: User) -> ProviderDashboa
             select(
                 func.coalesce(func.sum(Agent.rating_sum), 0),
                 func.coalesce(func.sum(Agent.review_count), 0),
-            ).where(Agent.owner_id == user.id)
+            ).where(Agent.id.in_(agent_ids))
         )
     ).one()
     rating_sum, review_count = int(rating_row[0]), int(rating_row[1])

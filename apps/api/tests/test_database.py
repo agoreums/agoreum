@@ -91,15 +91,33 @@ async def graph(db: AsyncSession) -> dict[str, uuid.UUID]:
         )
     ).scalar_one()
 
+    # Agents are owned by an organization; give the user their personal org.
+    org_id = (
+        await db.execute(
+            sa.text(
+                "INSERT INTO organizations (slug, name, kind)"
+                " VALUES (:slug, 'Personal', 'personal') RETURNING id"
+            ),
+            {"slug": f"u-{uuid.uuid4().hex}"},
+        )
+    ).scalar_one()
+    await db.execute(
+        sa.text(
+            "INSERT INTO organization_memberships (org_id, user_id, role)"
+            " VALUES (:oid, :uid, 'owner')"
+        ),
+        {"oid": org_id, "uid": user_id},
+    )
+
     agent_id = (
         await db.execute(
             sa.text(
                 "INSERT INTO agents"
-                " (owner_id, slug, name, status, payout_wallet_id, payout_address)"
-                " VALUES (:uid, :slug, 'Test Agent', 'active', :wid, :addr) RETURNING id"
+                " (org_id, slug, name, status, payout_wallet_id, payout_address)"
+                " VALUES (:oid, :slug, 'Test Agent', 'active', :wid, :addr) RETURNING id"
             ),
             {
-                "uid": user_id,
+                "oid": org_id,
                 "slug": f"agent-{unique}",
                 "wid": wallet_id,
                 "addr": _address(unique + 1),

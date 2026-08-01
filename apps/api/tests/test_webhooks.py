@@ -24,6 +24,7 @@ from app.core.config import settings
 from app.db.enums import WebhookDeliveryStatus
 from app.db.session import get_db
 from app.main import app
+from app.modules.organizations.models import Organization
 from app.modules.webhooks import events as event_catalog
 from app.modules.webhooks import service, signing
 from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
@@ -225,11 +226,21 @@ class TestManagement:
 # --- Integration: dispatch and delivery -------------------------------------
 
 
+async def _personal_org_id(db: AsyncSession, user_id: uuid.UUID) -> uuid.UUID:
+    """The user's personal org, created for them at sign-in."""
+    return (
+        await db.execute(
+            select(Organization.id).where(Organization.slug == f"u-{user_id.hex}")
+        )
+    ).scalar_one()
+
+
 async def _make_endpoint(
     db: AsyncSession, user_id: uuid.UUID, events: list[str]
 ) -> WebhookEndpoint:
     ep = WebhookEndpoint(
-        user_id=user_id,
+        org_id=await _personal_org_id(db, user_id),
+        created_by_user_id=user_id,
         url="https://example.test/hook",
         secret=_SECRET_A,
         events=events,
@@ -257,7 +268,10 @@ class TestDispatch:
         other = await _make_endpoint(db, user_id, ["order.completed"])
 
         queued = await service.dispatch(
-            db, user_id=user_id, event_type="order.created", data={"order": "x"}
+            db,
+            org_id=await _personal_org_id(db, user_id),
+            event_type="order.created",
+            data={"order": "x"},
         )
         assert queued == 1
         assert len(await _deliveries(db, subscribed.id)) == 1
@@ -271,7 +285,10 @@ class TestDispatch:
         ep.revoked_at = datetime.now(UTC)
         await db.flush()
         queued = await service.dispatch(
-            db, user_id=user_id, event_type="order.created", data={}
+            db,
+            org_id=await _personal_org_id(db, user_id),
+            event_type="order.created",
+            data={},
         )
         assert queued == 0
 

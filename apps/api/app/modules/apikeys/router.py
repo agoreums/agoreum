@@ -7,8 +7,9 @@ API; see `app.api.deps.ApiKeyPrincipal`.
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Query, Response, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.modules.apikeys import service
@@ -19,8 +20,15 @@ from app.modules.apikeys.schemas import (
     ApiKeyPublic,
     ScopeCatalog,
 )
+from app.modules.organizations import service as org_service
+from app.modules.organizations.authz import OrgAction
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
+
+# API keys are managed within an organization. The `org` query parameter selects
+# which one; omitted, it is the caller's personal organization, so a solo creator
+# manages keys exactly as before. Minting and revoking require the keys role.
+OrgSlug = Annotated[str | None, Query(alias="org", max_length=64)]
 
 
 @router.get("/scopes", response_model=ScopeCatalog, summary="Available API key scopes")
@@ -30,9 +38,14 @@ async def scopes() -> ScopeCatalog:
     return ScopeCatalog()
 
 
-@router.get("", response_model=ApiKeyList, summary="Your API keys")
-async def list_keys(user: CurrentUser, db: DbSession) -> ApiKeyList:
-    keys = await service.list_api_keys(db, user=user)
+@router.get("", response_model=ApiKeyList, summary="An organization's API keys")
+async def list_keys(
+    user: CurrentUser, db: DbSession, org: OrgSlug = None
+) -> ApiKeyList:
+    organization = await org_service.resolve_org_for_action(
+        db, user=user, slug=org, action=OrgAction.MANAGE_KEYS
+    )
+    keys = await service.list_api_keys(db, org=organization)
     return ApiKeyList(
         items=[ApiKeyPublic.model_validate(k) for k in keys], total=len(keys)
     )
@@ -45,13 +58,17 @@ async def list_keys(user: CurrentUser, db: DbSession) -> ApiKeyList:
     summary="Create an API key",
 )
 async def create_key(
-    payload: ApiKeyCreate, user: CurrentUser, db: DbSession
+    payload: ApiKeyCreate, user: CurrentUser, db: DbSession, org: OrgSlug = None
 ) -> ApiKeyCreated:
-    """Mint a key. The plaintext token is in the response and is shown only here, 
+    """Mint a key. The plaintext token is in the response and is shown only here,
     it cannot be retrieved again, only replaced."""
+    organization = await org_service.resolve_org_for_action(
+        db, user=user, slug=org, action=OrgAction.MANAGE_KEYS
+    )
     key, token = await service.create_api_key(
         db,
-        user=user,
+        org=organization,
+        creator=user,
         name=payload.name,
         scopes=payload.scopes,
         expires_in_days=payload.expires_in_days,
@@ -68,9 +85,12 @@ async def create_key(
     summary="Revoke an API key",
 )
 async def revoke_key(
-    key_id: uuid.UUID, user: CurrentUser, db: DbSession
+    key_id: uuid.UUID, user: CurrentUser, db: DbSession, org: OrgSlug = None
 ) -> Response:
     """Revoke a key immediately. Idempotent: revoking an already-revoked key is a
     no-op that still returns 204."""
-    await service.revoke_api_key(db, user=user, key_id=key_id)
+    organization = await org_service.resolve_org_for_action(
+        db, user=user, slug=org, action=OrgAction.MANAGE_KEYS
+    )
+    await service.revoke_api_key(db, org=organization, key_id=key_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

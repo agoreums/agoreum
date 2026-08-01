@@ -32,6 +32,7 @@ from app.modules.orders.schemas import (
     PaymentInstructions,
     ReconciliationReport,
 )
+from app.modules.organizations.authz import OrgAction, require_permission
 
 router = APIRouter(tags=["orders"])
 
@@ -53,14 +54,21 @@ def _to_detail(order) -> OrderDetail:
 
 
 async def _require_provider(db, order, user) -> Agent:
-    """Confirm the caller owns the agent providing this order."""
+    """Confirm the caller may act as the provider for this order.
+
+    The provider is the organization that owns the agent; any member with the
+    order-acting role may perform provider actions on its behalf.
+    """
     from sqlalchemy import select
 
     agent = (
         await db.execute(select(Agent).where(Agent.id == order.provider_agent_id))
     ).scalar_one_or_none()
-    if agent is None or agent.owner_id != user.id:
+    if agent is None:
         raise PermissionDeniedError("Only the provider can do this.")
+    await require_permission(
+        db, org_id=agent.org_id, user_id=user.id, action=OrgAction.ACT_ON_ORDERS
+    )
     return agent
 
 

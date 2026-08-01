@@ -22,6 +22,7 @@ from app.core.config import settings
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.db.enums import WebhookDeliveryStatus
+from app.modules.organizations.models import Organization
 from app.modules.users.models import User
 from app.modules.webhooks import events as event_catalog
 from app.modules.webhooks import signing
@@ -29,7 +30,7 @@ from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
 logger = get_logger(__name__)
 
-MAX_ENDPOINTS_PER_USER = 20
+MAX_ENDPOINTS_PER_ORG = 20
 # Backoff schedule: 30s, then doubling, capped at 6 hours. Slow enough to let a
 # briefly-down receiver recover, bounded so a dead endpoint stops hammering.
 _BACKOFF_BASE = timedelta(seconds=30)
@@ -42,12 +43,14 @@ _BACKOFF_CAP = timedelta(hours=6)
 async def create_endpoint(
     db: AsyncSession,
     *,
-    user: User,
+    org: Organization,
+    creator: User,
     url: str,
     events: list[str],
     description: str | None,
 ) -> tuple[WebhookEndpoint, str]:
-    """Register an endpoint. Returns it and its signing secret (shown once)."""
+    """Register an endpoint for an organization. Returns it and its signing secret
+    (shown once)."""
     if not url.startswith("https://"):
         raise ValidationError(
             "A webhook URL must be https.", code="insecure_webhook_url"
@@ -69,21 +72,22 @@ async def create_endpoint(
     active = (
         await db.execute(
             select(WebhookEndpoint).where(
-                WebhookEndpoint.user_id == user.id,
+                WebhookEndpoint.org_id == org.id,
                 WebhookEndpoint.revoked_at.is_(None),
             )
         )
     ).scalars()
-    if len(list(active)) >= MAX_ENDPOINTS_PER_USER:
+    if len(list(active)) >= MAX_ENDPOINTS_PER_ORG:
         raise ConflictError(
-            f"You already have the maximum of {MAX_ENDPOINTS_PER_USER} webhook "
-            "endpoints. Remove one before adding another.",
+            f"This organization already has the maximum of {MAX_ENDPOINTS_PER_ORG} "
+            "webhook endpoints. Remove one before adding another.",
             code="too_many_webhooks",
         )
 
     secret = signing.generate_secret()
     endpoint = WebhookEndpoint(
-        user_id=user.id,
+        org_id=org.id,
+        created_by_user_id=creator.id,
         url=url,
         description=description,
         secret=secret,
@@ -95,11 +99,11 @@ async def create_endpoint(
     return endpoint, secret
 
 
-async def list_endpoints(db: AsyncSession, *, user: User) -> list[WebhookEndpoint]:
+async def list_endpoints(db: AsyncSession, *, org: Organization) -> list[WebhookEndpoint]:
     rows = (
         await db.execute(
             select(WebhookEndpoint)
-            .where(WebhookEndpoint.user_id == user.id)
+            .where(WebhookEndpoint.org_id == org.id)
             .order_by(WebhookEndpoint.created_at.desc())
         )
     ).scalars()
@@ -107,13 +111,13 @@ async def list_endpoints(db: AsyncSession, *, user: User) -> list[WebhookEndpoin
 
 
 async def revoke_endpoint(
-    db: AsyncSession, *, user: User, endpoint_id: uuid.UUID
+    db: AsyncSession, *, org: Organization, endpoint_id: uuid.UUID
 ) -> WebhookEndpoint:
     endpoint = (
         await db.execute(
             select(WebhookEndpoint).where(
                 WebhookEndpoint.id == endpoint_id,
-                WebhookEndpoint.user_id == user.id,
+                WebhookEndpoint.org_id == org.id,
             )
         )
     ).scalar_one_or_none()
@@ -127,14 +131,14 @@ async def revoke_endpoint(
 
 
 async def list_deliveries(
-    db: AsyncSession, *, user: User, endpoint_id: uuid.UUID, limit: int
+    db: AsyncSession, *, org: Organization, endpoint_id: uuid.UUID, limit: int
 ) -> list[WebhookDelivery]:
-    # Confirm the endpoint belongs to the caller before exposing its deliveries.
+    # Confirm the endpoint belongs to the org before exposing its deliveries.
     endpoint = (
         await db.execute(
             select(WebhookEndpoint).where(
                 WebhookEndpoint.id == endpoint_id,
-                WebhookEndpoint.user_id == user.id,
+                WebhookEndpoint.org_id == org.id,
             )
         )
     ).scalar_one_or_none()
@@ -157,11 +161,11 @@ async def list_deliveries(
 async def dispatch(
     db: AsyncSession,
     *,
-    user_id: uuid.UUID,
+    org_id: uuid.UUID,
     event_type: str,
     data: dict | None = None,
 ) -> int:
-    """Queue this event for every active endpoint of the user subscribed to it.
+    """Queue this event for every active endpoint of the org subscribed to it.
 
     Writes outbox rows only, no HTTP here. Returns how many were queued. Never
     raises into the caller: a webhook problem must not fail the action that
@@ -171,7 +175,7 @@ async def dispatch(
         endpoints = (
             await db.execute(
                 select(WebhookEndpoint).where(
-                    WebhookEndpoint.user_id == user_id,
+                    WebhookEndpoint.org_id == org_id,
                     WebhookEndpoint.revoked_at.is_(None),
                 )
             )

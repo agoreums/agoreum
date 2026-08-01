@@ -17,12 +17,13 @@ from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.db.enums import AccountStatus
 from app.modules.apikeys.models import ApiKey
 from app.modules.apikeys.scopes import normalize_scopes, unknown_scopes
+from app.modules.organizations.models import Organization
 from app.modules.users.models import User
 
 # A generous ceiling that still bounds abuse: nobody has a legitimate need for
 # hundreds of live keys, and an unbounded count is a way to exhaust storage or
 # hide a rogue key in the noise.
-MAX_ACTIVE_KEYS_PER_USER = 25
+MAX_ACTIVE_KEYS_PER_ORG = 25
 
 # last_used_at is written at most this often per key. Every authenticated request
 # would otherwise issue a write, turning a read path into a write on every call.
@@ -32,12 +33,14 @@ LAST_USED_THROTTLE = timedelta(minutes=1)
 async def create_api_key(
     db: AsyncSession,
     *,
-    user: User,
+    org: Organization,
+    creator: User,
     name: str,
     scopes: list[str],
     expires_in_days: int | None,
 ) -> tuple[ApiKey, str]:
-    """Mint a key. Returns the row and the plaintext token (shown once)."""
+    """Mint a key for an organization. Returns the row and the plaintext token
+    (shown once). The key acts as its creator, confined to its granted scopes."""
     unknown = unknown_scopes(scopes)
     if unknown:
         raise ValidationError(
@@ -51,13 +54,13 @@ async def create_api_key(
         await db.execute(
             select(func.count())
             .select_from(ApiKey)
-            .where(ApiKey.user_id == user.id, ApiKey.revoked_at.is_(None))
+            .where(ApiKey.org_id == org.id, ApiKey.revoked_at.is_(None))
         )
     ).scalar_one()
-    if active_count >= MAX_ACTIVE_KEYS_PER_USER:
+    if active_count >= MAX_ACTIVE_KEYS_PER_ORG:
         raise ConflictError(
-            f"You already have the maximum of {MAX_ACTIVE_KEYS_PER_USER} active "
-            "API keys. Revoke one before creating another.",
+            f"This organization already has the maximum of {MAX_ACTIVE_KEYS_PER_ORG} "
+            "active API keys. Revoke one before creating another.",
             code="too_many_api_keys",
         )
 
@@ -68,7 +71,8 @@ async def create_api_key(
         else None
     )
     key = ApiKey(
-        user_id=user.id,
+        org_id=org.id,
+        created_by_user_id=creator.id,
         name=name,
         # Enough of the key to recognise it, not enough to use it.
         prefix=token[:12],
@@ -82,13 +86,13 @@ async def create_api_key(
     return key, token
 
 
-async def list_api_keys(db: AsyncSession, *, user: User) -> list[ApiKey]:
-    """Every key the user owns, newest first. Revoked keys are retained so the
-    history of what once had access stays visible rather than vanishing."""
+async def list_api_keys(db: AsyncSession, *, org: Organization) -> list[ApiKey]:
+    """Every key the organization holds, newest first. Revoked keys are retained
+    so the history of what once had access stays visible rather than vanishing."""
     rows = (
         await db.execute(
             select(ApiKey)
-            .where(ApiKey.user_id == user.id)
+            .where(ApiKey.org_id == org.id)
             .order_by(ApiKey.created_at.desc())
         )
     ).scalars()
@@ -96,11 +100,11 @@ async def list_api_keys(db: AsyncSession, *, user: User) -> list[ApiKey]:
 
 
 async def revoke_api_key(
-    db: AsyncSession, *, user: User, key_id: uuid.UUID
+    db: AsyncSession, *, org: Organization, key_id: uuid.UUID
 ) -> ApiKey:
     key = (
         await db.execute(
-            select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == user.id)
+            select(ApiKey).where(ApiKey.id == key_id, ApiKey.org_id == org.id)
         )
     ).scalar_one_or_none()
     if key is None:
@@ -114,11 +118,14 @@ async def revoke_api_key(
 
 
 async def authenticate(db: AsyncSession, *, token: str) -> tuple[User, ApiKey]:
-    """Resolve a plaintext key to its owner, or raise.
+    """Resolve a plaintext key to the user it acts as, or raise.
 
-    Rejects anything not shaped like a key before touching the database, then loads
-    by hash and enforces revocation, expiry, and the owner's account status, a
-    valid key over a suspended account must not grant access.
+    A key belongs to an organization and acts as the member who created it. Rejects
+    anything not shaped like a key before touching the database, then loads by hash
+    and enforces revocation, expiry, and the acting user's account status, a valid
+    key over a suspended account must not grant access. If the creator has been
+    removed (created_by_user_id set null), the key no longer resolves to anyone and
+    is rejected.
     """
     from app.core.errors import AuthenticationError, PermissionDeniedError
 
@@ -138,14 +145,29 @@ async def authenticate(db: AsyncSession, *, token: str) -> tuple[User, ApiKey]:
         raise AuthenticationError("This API key has expired.", code="key_expired")
 
     user = (
-        await db.execute(select(User).where(User.id == key.user_id))
-    ).scalar_one_or_none()
+        await db.execute(
+            select(User).where(User.id == key.created_by_user_id)
+        )
+        if key.created_by_user_id is not None
+        else None
+    )
+    user = user.scalar_one_or_none() if user is not None else None
     if user is None:
         raise AuthenticationError("Invalid API key.", code="invalid_api_key")
     if user.status in {AccountStatus.SUSPENDED_BY_ADMIN, AccountStatus.DEACTIVATED}:
         raise PermissionDeniedError(
             "This account is not permitted to perform this action.",
             code="account_suspended",
+        )
+
+    # The key acts within its organization; if its creator no longer belongs to
+    # that org, the key must stop working, otherwise removing a member would leave
+    # their programmatic access intact.
+    from app.modules.organizations.authz import get_membership
+
+    if await get_membership(db, org_id=key.org_id, user_id=user.id) is None:
+        raise AuthenticationError(
+            "This API key is no longer active.", code="key_revoked"
         )
 
     await _touch_last_used(db, key)

@@ -102,6 +102,29 @@ async def get_org_by_slug(db: AsyncSession, *, slug: str) -> Organization | None
     ).scalar_one_or_none()
 
 
+async def resolve_org_for_action(
+    db: AsyncSession,
+    *,
+    user: User,
+    slug: str | None,
+    action: authz.OrgAction,
+) -> Organization:
+    """Resolve which org a request acts under, enforcing the caller's permission.
+
+    With no slug the caller acts under their personal org, which they solely own,
+    so the action is always permitted there. With a slug the org must exist and the
+    caller must hold a role that permits the action; a non-member gets a 404 so org
+    membership stays unenumerable.
+    """
+    if slug is None:
+        return await ensure_personal_org(db, user=user)
+    org = await get_org_by_slug(db, slug=slug)
+    if org is None:
+        raise NotFoundError("Organization not found.", code="org_not_found")
+    await authz.require_permission(db, org_id=org.id, user_id=user.id, action=action)
+    return org
+
+
 async def create_team_org(
     db: AsyncSession, *, user: User, slug: str, name: str
 ) -> Organization:

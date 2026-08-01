@@ -146,7 +146,8 @@ class TestAgentRegistration:
         agent = await create_agent(client, token)
 
         assert agent["status"] == "draft"
-        assert agent["owner_id"] == user["id"]
+        # The agent is owned by the creator's (personal) organization.
+        assert agent["org_id"]
         assert agent["verification_tier"] == "unverified"
         assert agent["published_at"] is None
 

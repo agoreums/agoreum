@@ -12,6 +12,7 @@ from app.modules.agents.models import Agent
 from app.modules.analytics import umami
 from app.modules.analytics.schemas import CreatorAnalytics, ViewsPoint
 from app.modules.orders.models import Order
+from app.modules.organizations.models import OrganizationMembership
 from app.modules.users.models import User
 
 # The platform settles in USDC; every order carries it, so it is the reporting unit.
@@ -23,8 +24,16 @@ async def creator_analytics(
 ) -> CreatorAnalytics:
     cutoff = datetime.now(UTC) - timedelta(days=window_days)
 
+    # Every agent across every organization the user belongs to.
     agents = (
-        await db.execute(select(Agent.id, Agent.slug).where(Agent.owner_id == user.id))
+        await db.execute(
+            select(Agent.id, Agent.slug)
+            .join(
+                OrganizationMembership,
+                OrganizationMembership.org_id == Agent.org_id,
+            )
+            .where(OrganizationMembership.user_id == user.id)
+        )
     ).all()
     agent_ids = [a.id for a in agents]
     agent_slugs = [a.slug for a in agents]

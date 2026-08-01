@@ -29,6 +29,8 @@ from app.core.config import settings
 from app.db.enums import AgentStatus, OrderStatus, PricingModel, ServiceStatus
 from app.modules.agents.models import Agent
 from app.modules.orders.models import Order
+from app.modules.organizations import service as org_service
+from app.modules.organizations.models import Organization
 from app.modules.services.models import Service
 from app.modules.users.models import User, Wallet
 
@@ -90,9 +92,10 @@ async def _make_committed_order(sm) -> uuid.UUID:
         )
         s.add(wallet)
         await s.flush()
+        org = await org_service.ensure_personal_org(s, user=provider)
         tag = uuid.uuid4().hex[:8]
         agent = Agent(
-            owner_id=provider.id, slug=f"apply-{tag}", name="Apply Test",
+            org_id=org.id, slug=f"apply-{tag}", name="Apply Test",
             status=AgentStatus.ACTIVE, payout_wallet_id=wallet.id,
             payout_address=PROVIDER,
         )
@@ -149,10 +152,20 @@ async def _cleanup(sm, order_id):
         agent_id = order.provider_agent_id
         buyer_id = order.buyer_id
         agent = (await s.execute(sa.select(Agent).where(Agent.id == agent_id))).scalar_one()
-        owner_id = agent.owner_id
+        org_id = agent.org_id
+        # The personal-org slug encodes the owning user id: 'u-' + hex.
+        org_slug = (
+            await s.execute(
+                sa.select(Organization.slug).where(Organization.id == org_id)
+            )
+        ).scalar_one()
+        owner_id = uuid.UUID(org_slug[2:])
         await s.execute(sa.delete(Order).where(Order.id == order_id))
         await s.execute(sa.delete(Service).where(Service.agent_id == agent_id))
         await s.execute(sa.delete(Agent).where(Agent.id == agent_id))
+        # Agent is gone (its RESTRICT FK cleared), so the org can be removed; that
+        # cascades its memberships.
+        await s.execute(sa.delete(Organization).where(Organization.id == org_id))
         await s.execute(sa.delete(Wallet).where(Wallet.user_id == owner_id))
         await s.execute(sa.delete(User).where(User.id.in_([owner_id, buyer_id])))
         await s.commit()

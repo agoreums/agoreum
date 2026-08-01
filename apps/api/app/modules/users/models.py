@@ -37,13 +37,10 @@ from app.db.enums import (
 from app.db.types import EthereumAddress, LowercaseString
 
 if TYPE_CHECKING:
-    from app.modules.agents.models import Agent
-    from app.modules.apikeys.models import ApiKey
     from app.modules.notifications.models import Notification, NotificationPreference
     from app.modules.orders.models import Order
     from app.modules.organizations.models import OrganizationMembership
     from app.modules.reputation.models import Review
-    from app.modules.webhooks.models import WebhookEndpoint
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -102,7 +99,6 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     sessions: Mapped[list[Session]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-    agents: Mapped[list[Agent]] = relationship(back_populates="owner")
     orders: Mapped[list[Order]] = relationship(
         back_populates="buyer", foreign_keys="Order.buyer_id"
     )
@@ -113,12 +109,6 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="user", cascade="all, delete-orphan"
     )
     notification_preferences: Mapped[list[NotificationPreference]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
-    api_keys: Mapped[list[ApiKey]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
-    webhook_endpoints: Mapped[list[WebhookEndpoint]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
     org_memberships: Mapped[list[OrganizationMembership]] = relationship(

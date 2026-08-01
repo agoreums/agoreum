@@ -29,14 +29,16 @@ from app.modules.agents.models import (
     AgentGithubChallenge,
 )
 from app.modules.agents.schemas import AgentCreate, AgentUpdate
+from app.modules.organizations.authz import OrgAction, get_membership, role_can
+from app.modules.organizations.models import Organization, OrganizationMembership
 from app.modules.users.models import User, Wallet
 
 logger = get_logger(__name__)
 
-# How many agents one account may register. A limit exists so a single actor
+# How many agents one organization may register. A limit exists so a single actor
 # cannot flood discovery with near-duplicate listings; it is generous enough that
 # a legitimate operator running a fleet is not obstructed.
-MAX_AGENTS_PER_USER = 25
+MAX_AGENTS_PER_ORG = 25
 
 DOMAIN_CHALLENGE_TTL = timedelta(days=7)
 DNS_TXT_PREFIX = "agoreum-verification"
@@ -70,26 +72,51 @@ async def require_agent(db: AsyncSession, slug: str) -> Agent:
     return agent
 
 
-async def require_owned_agent(
-    db: AsyncSession, slug: str, *, user: User
+async def require_managed_agent(
+    db: AsyncSession,
+    slug: str,
+    *,
+    user: User,
+    action: OrgAction = OrgAction.MANAGE_AGENTS,
 ) -> Agent:
-    """Load an agent the caller is allowed to modify.
+    """Load an agent the caller is allowed to act on within its organization.
 
-    A non-owner gets the same 404 a stranger would, rather than a 403. Telling
+    A non-member gets the same 404 a stranger would, rather than a 403. Telling
     someone "this exists but is not yours" leaks the existence of private drafts.
+    A member whose role is too low for the action gets a 403.
     """
     agent = await get_by_slug(db, slug)
-    if agent is None or agent.owner_id != user.id:
+    if agent is None:
         raise NotFoundError("No agent exists with that name.")
+    membership = await get_membership(db, org_id=agent.org_id, user_id=user.id)
+    if membership is None:
+        raise NotFoundError("No agent exists with that name.")
+    if not role_can(membership.role, action):
+        raise PermissionDeniedError(
+            "Your role in this organization does not permit this action.",
+            code="org_permission_denied",
+        )
     return agent
 
 
-async def list_for_owner(db: AsyncSession, *, owner_id: uuid.UUID) -> list[Agent]:
-    result = await db.execute(
+async def list_for_user(
+    db: AsyncSession, *, user_id: uuid.UUID, org_id: uuid.UUID | None = None
+) -> list[Agent]:
+    """Every agent the user can manage, newest first.
+
+    Spans all organizations the user belongs to. When ``org_id`` is given the
+    result is narrowed to that single organization (membership is assumed to have
+    been checked by the caller).
+    """
+    query = (
         select(Agent)
-        .where(Agent.owner_id == owner_id)
+        .join(OrganizationMembership, OrganizationMembership.org_id == Agent.org_id)
+        .where(OrganizationMembership.user_id == user_id)
         .order_by(Agent.created_at.desc())
     )
+    if org_id is not None:
+        query = query.where(Agent.org_id == org_id)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
@@ -104,14 +131,15 @@ async def is_slug_available(db: AsyncSession, slug: str) -> bool:
 
 
 async def create_agent(
-    db: AsyncSession, *, owner: User, payload: AgentCreate
+    db: AsyncSession, *, org: Organization, creator: User, payload: AgentCreate
 ) -> Agent:
-    """Register a new agent, owned by the calling user.
+    """Register a new agent, owned by an organization.
 
     Agents start as drafts. Publishing is a separate action that checks the
-    agent is actually ready, an unpublished agent cannot be ordered from.
+    agent is actually ready, an unpublished agent cannot be ordered from. The
+    caller's permission to create under this org is enforced before we get here.
     """
-    if owner.status != AccountStatus.ACTIVE:
+    if creator.status != AccountStatus.ACTIVE:
         raise PermissionDeniedError(
             "Your account cannot register agents in its current state."
         )
@@ -121,20 +149,20 @@ async def create_agent(
             select(func.count())
             .select_from(Agent)
             .where(
-                Agent.owner_id == owner.id,
+                Agent.org_id == org.id,
                 Agent.status != AgentStatus.RETIRED,
             )
         )
     ).scalar_one()
 
-    if count >= MAX_AGENTS_PER_USER:
+    if count >= MAX_AGENTS_PER_ORG:
         raise ConflictError(
-            f"You have reached the limit of {MAX_AGENTS_PER_USER} agents.",
+            f"This organization has reached the limit of {MAX_AGENTS_PER_ORG} agents.",
             code="agent_limit_reached",
         )
 
     agent = Agent(
-        owner_id=owner.id,
+        org_id=org.id,
         slug=payload.slug,
         name=payload.name.strip(),
         tagline=payload.tagline,
@@ -158,7 +186,12 @@ async def create_agent(
         ) from exc
 
     logger.info(
-        "agent_created", extra={"agent_id": str(agent.id), "owner": str(owner.id)}
+        "agent_created",
+        extra={
+            "agent_id": str(agent.id),
+            "org_id": str(org.id),
+            "creator": str(creator.id),
+        },
     )
     return agent
 
@@ -193,17 +226,30 @@ async def update_agent(
 
 
 async def set_payout_wallet(
-    db: AsyncSession, *, agent: Agent, wallet_id: uuid.UUID, owner: User
+    db: AsyncSession, *, agent: Agent, wallet_id: uuid.UUID
 ) -> Agent:
-    """Point an agent's earnings at one of the owner's verified wallets."""
+    """Point an agent's earnings at a verified wallet held by an org member.
+
+    The wallet must belong to a member of the agent's organization and be verified,
+    so payouts only ever reach an address a real member has proven they control.
+    Nothing custodial is introduced: the platform never holds the key.
+    """
     wallet = (
         await db.execute(
-            select(Wallet).where(Wallet.id == wallet_id, Wallet.user_id == owner.id)
+            select(Wallet)
+            .join(
+                OrganizationMembership,
+                OrganizationMembership.user_id == Wallet.user_id,
+            )
+            .where(
+                Wallet.id == wallet_id,
+                OrganizationMembership.org_id == agent.org_id,
+            )
         )
     ).scalar_one_or_none()
 
     if wallet is None:
-        raise NotFoundError("No such wallet on this account.")
+        raise NotFoundError("No such wallet available to this organization.")
 
     if wallet.verification_status != WalletVerificationStatus.VERIFIED:
         # Enforced by a CHECK constraint too; rejected here so the caller gets a

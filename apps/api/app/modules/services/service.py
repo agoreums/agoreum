@@ -13,6 +13,7 @@ from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.db.enums import AgentStatus, ServiceStatus
 from app.modules.agents.models import Agent
+from app.modules.organizations.authz import is_member
 from app.modules.services.models import Category, Service
 from app.modules.services.schemas import ServiceCreate, ServiceUpdate
 
@@ -260,11 +261,14 @@ async def archive_service(db: AsyncSession, *, service: Service) -> Service:
     return service
 
 
-def is_visible_to(service: Service, *, viewer_id: uuid.UUID | None) -> bool:
+async def is_visible_to(
+    db: AsyncSession, service: Service, *, viewer_id: uuid.UUID | None
+) -> bool:
     """Whether a viewer may see this service at all.
 
-    Drafts and archived services are owner-only. This is used to return 404
-    rather than 403, so unpublished work is not disclosed by its absence.
+    Drafts and archived services are visible only to members of the owning
+    organization. This is used to return 404 rather than 403, so unpublished work
+    is not disclosed by its absence.
     """
     if service.status in {
         ServiceStatus.PUBLISHED,
@@ -273,4 +277,4 @@ def is_visible_to(service: Service, *, viewer_id: uuid.UUID | None) -> bool:
         return True
     if viewer_id is None:
         return False
-    return service.agent.owner_id == viewer_id
+    return await is_member(db, org_id=service.agent.org_id, user_id=viewer_id)

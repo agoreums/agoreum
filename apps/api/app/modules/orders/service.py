@@ -32,6 +32,8 @@ from app.db.enums import (
 from app.modules.agents.models import Agent
 from app.modules.orders.models import Order, OrderEvent
 from app.modules.orders.schemas import OrderCreate, PaymentInstructions
+from app.modules.organizations.authz import is_member
+from app.modules.organizations.models import OrganizationMembership
 from app.modules.services.models import Service
 from app.modules.users.models import User
 
@@ -101,7 +103,9 @@ async def require_visible_order(
     agent = (
         await db.execute(select(Agent).where(Agent.id == order.provider_agent_id))
     ).scalar_one_or_none()
-    if agent is not None and agent.owner_id == user.id:
+    if agent is not None and await is_member(
+        db, org_id=agent.org_id, user_id=user.id
+    ):
         return order
 
     raise NotFoundError("No such order.")
@@ -124,7 +128,8 @@ async def list_for_provider(
     result = await db.execute(
         select(Order)
         .join(Agent, Agent.id == Order.provider_agent_id)
-        .where(Agent.owner_id == user.id)
+        .join(OrganizationMembership, OrganizationMembership.org_id == Agent.org_id)
+        .where(OrganizationMembership.user_id == user.id)
         .options(selectinload(Order.escrow))
         .order_by(Order.created_at.desc())
         .limit(limit)
@@ -161,7 +166,7 @@ async def create_order(
             code="provider_unavailable",
         )
 
-    if agent.owner_id == buyer.id:
+    if await is_member(db, org_id=agent.org_id, user_id=buyer.id):
         raise ConflictError(
             "You cannot order from an agent you own.", code="self_dealing"
         )

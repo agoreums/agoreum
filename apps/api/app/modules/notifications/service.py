@@ -113,13 +113,16 @@ async def notify(
 
     await db.flush()
 
-    # The same event that raises an in-app notification is offered to the user's
-    # webhook endpoints. This only queues outbox rows; a worker sends them. It
-    # never raises, so a webhook problem cannot fail the action behind the event.
+    # The same event that raises an in-app notification is offered to the
+    # recipient's organization webhook endpoints. This only queues outbox rows; a
+    # worker sends them. It never raises, so a webhook problem cannot fail the
+    # action behind the event.
+    from app.modules.organizations import service as org_service
     from app.modules.webhooks import service as webhooks
 
+    org = await org_service.ensure_personal_org(db, user=user)
     await webhooks.dispatch(
-        db, user_id=user_id, event_type=event_type, data=payload
+        db, org_id=org.id, event_type=event_type, data=payload
     )
 
     logger.info(

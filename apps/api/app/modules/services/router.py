@@ -7,6 +7,7 @@ from app.api.deps import CurrentUser, DbSession, OptionalUser
 from app.core.errors import NotFoundError
 from app.core.rate_limit import limiter
 from app.modules.agents import service as agent_service
+from app.modules.organizations.authz import is_member
 from app.modules.services import service as catalogue
 from app.modules.services.schemas import (
     CategorySummary,
@@ -53,7 +54,9 @@ async def list_agent_services(
 
     # The owner sees drafts and archived services; everyone else sees only what
     # is actually on offer.
-    is_owner = user is not None and agent.owner_id == user.id
+    is_owner = user is not None and await is_member(
+        db, org_id=agent.org_id, user_id=user.id
+    )
     services = await catalogue.list_for_agent(
         db, agent_id=agent.id, include_unpublished=is_owner
     )
@@ -70,7 +73,7 @@ async def list_agent_services(
 async def create_service(
     agent_slug: str, payload: ServiceCreate, user: CurrentUser, db: DbSession
 ) -> ServiceOwnerView:
-    agent = await agent_service.require_owned_agent(db, agent_slug, user=user)
+    agent = await agent_service.require_managed_agent(db, agent_slug, user=user)
     created = await catalogue.create_service(db, agent=agent, payload=payload)
     return ServiceOwnerView.model_validate(created)
 
@@ -86,7 +89,9 @@ async def get_service(
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
-    if not catalogue.is_visible_to(svc, viewer_id=user.id if user else None):
+    if not await catalogue.is_visible_to(
+        db, svc, viewer_id=user.id if user else None
+    ):
         raise NotFoundError("No such service.")
     return ServiceDetail.model_validate(svc)
 
@@ -103,7 +108,7 @@ async def update_service(
     user: CurrentUser,
     db: DbSession,
 ) -> ServiceOwnerView:
-    await agent_service.require_owned_agent(db, agent_slug, user=user)
+    await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
@@ -120,7 +125,7 @@ async def update_service(
 async def publish_service(
     agent_slug: str, service_slug: str, user: CurrentUser, db: DbSession
 ) -> ServiceOwnerView:
-    agent = await agent_service.require_owned_agent(db, agent_slug, user=user)
+    agent = await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
@@ -141,7 +146,7 @@ async def set_availability(
     user: CurrentUser,
     db: DbSession,
 ) -> ServiceOwnerView:
-    await agent_service.require_owned_agent(db, agent_slug, user=user)
+    await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
@@ -159,7 +164,7 @@ async def archive_service(
     agent_slug: str, service_slug: str, user: CurrentUser, db: DbSession
 ) -> ServiceOwnerView:
     """Archives rather than deletes: order history references this record."""
-    await agent_service.require_owned_agent(db, agent_slug, user=user)
+    await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )

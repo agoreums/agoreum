@@ -22,6 +22,8 @@ from app.modules.agents.schemas import (
     GithubChallengeResponse,
     validate_slug,
 )
+from app.modules.organizations import service as org_service
+from app.modules.organizations.authz import OrgAction, is_member
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -68,7 +70,7 @@ async def slug_available(
     summary="Agents owned by the signed-in user",
 )
 async def my_agents(principal: AgentsRead, db: DbSession) -> list[AgentOwnerView]:
-    agents = await service.list_for_owner(db, owner_id=principal.user.id)
+    agents = await service.list_for_user(db, user_id=principal.user.id)
     return [AgentOwnerView.model_validate(a) for a in agents]
 
 
@@ -82,7 +84,10 @@ async def my_agents(principal: AgentsRead, db: DbSession) -> list[AgentOwnerView
 async def create_agent(
     payload: AgentCreate, user: CurrentUser, db: DbSession
 ) -> AgentOwnerView:
-    agent = await service.create_agent(db, owner=user, payload=payload)
+    org = await org_service.resolve_org_for_action(
+        db, user=user, slug=payload.org_slug, action=OrgAction.MANAGE_AGENTS
+    )
+    agent = await service.create_agent(db, org=org, creator=user, payload=payload)
     return AgentOwnerView.model_validate(agent)
 
 
@@ -100,7 +105,10 @@ async def get_agent(slug: str, db: DbSession, user: OptionalUser) -> AgentPublic
     agent = await service.require_agent(db, slug)
 
     hidden = agent.status in {AgentStatus.DRAFT, AgentStatus.RETIRED}
-    if hidden and (user is None or agent.owner_id != user.id):
+    if hidden and (
+        user is None
+        or not await is_member(db, org_id=agent.org_id, user_id=user.id)
+    ):
         raise NotFoundError("No agent exists with that name.")
 
     return AgentPublic.model_validate(agent)
@@ -112,7 +120,7 @@ async def get_agent(slug: str, db: DbSession, user: OptionalUser) -> AgentPublic
 async def update_agent(
     slug: str, payload: AgentUpdate, user: CurrentUser, db: DbSession
 ) -> AgentOwnerView:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     updated = await service.update_agent(db, agent=agent, payload=payload)
     return AgentOwnerView.model_validate(updated)
 
@@ -125,9 +133,11 @@ async def update_agent(
 async def set_payout_wallet(
     slug: str, payload: AgentPayoutUpdate, user: CurrentUser, db: DbSession
 ) -> AgentOwnerView:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(
+        db, slug, user=user, action=OrgAction.MANAGE_PAYOUT
+    )
     updated = await service.set_payout_wallet(
-        db, agent=agent, wallet_id=payload.wallet_id, owner=user
+        db, agent=agent, wallet_id=payload.wallet_id
     )
     return AgentOwnerView.model_validate(updated)
 
@@ -140,7 +150,7 @@ async def set_payout_wallet(
 async def publish_agent(
     slug: str, user: CurrentUser, db: DbSession
 ) -> AgentOwnerView:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     return AgentOwnerView.model_validate(
         await service.publish_agent(db, agent=agent)
     )
@@ -152,7 +162,7 @@ async def publish_agent(
     summary="Hide an agent from discovery",
 )
 async def pause_agent(slug: str, user: CurrentUser, db: DbSession) -> AgentOwnerView:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     return AgentOwnerView.model_validate(await service.pause_agent(db, agent=agent))
 
 
@@ -162,7 +172,7 @@ async def pause_agent(slug: str, user: CurrentUser, db: DbSession) -> AgentOwner
     summary="Permanently withdraw an agent",
 )
 async def retire_agent(slug: str, user: CurrentUser, db: DbSession) -> AgentOwnerView:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     return AgentOwnerView.model_validate(await service.retire_agent(db, agent=agent))
 
 
@@ -178,7 +188,7 @@ async def retire_agent(slug: str, user: CurrentUser, db: DbSession) -> AgentOwne
 async def create_domain_challenge(
     slug: str, payload: DomainChallengeCreate, user: CurrentUser, db: DbSession
 ) -> DomainChallengeResponse:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     challenge = await service.create_domain_challenge(
         db, agent=agent, domain=payload.domain, method=payload.method
     )
@@ -196,7 +206,7 @@ async def verify_domain_challenge(
 ) -> DomainChallengeResponse:
     """Performs a real DNS lookup or HTTPS fetch. Never succeeds without
     observing the token."""
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     challenge = await service.get_challenge(db, agent=agent, challenge_id=challenge_id)
     verified = await service.verify_domain_challenge(
         db, challenge=challenge, agent=agent
@@ -216,7 +226,7 @@ async def verify_domain_challenge(
 async def create_github_challenge(
     slug: str, payload: GithubChallengeCreate, user: CurrentUser, db: DbSession
 ) -> GithubChallengeResponse:
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     challenge = await service.create_github_challenge(
         db, agent=agent, github_login=payload.github_login
     )
@@ -234,7 +244,7 @@ async def verify_github_challenge(
 ) -> GithubChallengeResponse:
     """Performs a real read of the account's public gists. Never succeeds without
     observing the token."""
-    agent = await service.require_owned_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(db, slug, user=user)
     challenge = await service.get_github_challenge(
         db, agent=agent, challenge_id=challenge_id
     )

@@ -33,14 +33,19 @@ from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.db.enums import WebhookDeliveryStatus, pg_enum
 
 if TYPE_CHECKING:
-    from app.modules.users.models import User
+    from app.modules.organizations.models import Organization
 
 
 class WebhookEndpoint(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "webhook_endpoints"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    # An endpoint belongs to an organization; every member's events flow to it.
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    # Who registered it, for audit. Kept even if that user later leaves the org.
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
     url: Mapped[str] = mapped_column(String(2048), nullable=False)
@@ -64,12 +69,12 @@ class WebhookEndpoint(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    user: Mapped[User] = relationship(back_populates="webhook_endpoints")
+    organization: Mapped[Organization] = relationship()
     deliveries: Mapped[list[WebhookDelivery]] = relationship(
         back_populates="endpoint", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (Index("ix_webhook_endpoints_user_id", "user_id"),)
+    __table_args__ = (Index("ix_webhook_endpoints_org_id", "org_id"),)
 
     @property
     def is_active(self) -> bool:

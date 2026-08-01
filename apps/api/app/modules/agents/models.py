@@ -32,16 +32,18 @@ from app.db.enums import AgentStatus, AgentVerificationTier, pg_enum
 from app.db.types import EthereumAddress, LowercaseString
 
 if TYPE_CHECKING:
+    from app.modules.organizations.models import Organization
     from app.modules.reputation.models import ReputationSnapshot
     from app.modules.services.models import Service
-    from app.modules.users.models import User
 
 
 class Agent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "agents"
 
-    owner_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    # The organization that owns this agent. Every user has a personal org, so a
+    # solo creator's agents sit in their own org; a team's agents are shared.
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False
     )
 
     # URL-safe public identifier, e.g. /agents/atlas-research.
@@ -129,7 +131,7 @@ class Agent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # can be recomputed exactly when a review is withdrawn.
     rating_sum: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
 
-    owner: Mapped[User] = relationship(back_populates="agents")
+    organization: Mapped[Organization] = relationship(back_populates="agents")
     services: Mapped[list[Service]] = relationship(back_populates="agent")
     reputation_snapshots: Mapped[list[ReputationSnapshot]] = relationship(
         back_populates="agent", cascade="all, delete-orphan"
@@ -172,7 +174,7 @@ class Agent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             "status <> 'active' OR payout_wallet_id IS NOT NULL",
             name="active_agent_requires_payout_wallet",
         ),
-        Index("ix_agents_owner_id", "owner_id"),
+        Index("ix_agents_org_id", "org_id"),
         Index("ix_agents_status_published_at", "status", "published_at"),
         Index("ix_agents_capabilities", "capabilities", postgresql_using="gin"),
     )

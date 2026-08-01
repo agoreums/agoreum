@@ -32,6 +32,7 @@ from app.core.logging import get_logger
 from app.db.enums import EscrowStatus, OrderStatus, ReviewStatus
 from app.modules.agents.models import Agent
 from app.modules.orders.models import Escrow, Order
+from app.modules.organizations.authz import is_member
 from app.modules.reputation.models import ReputationSnapshot, Review
 from app.modules.services.models import Service
 from app.modules.users.models import User
@@ -416,7 +417,7 @@ async def respond_to_review(
         await db.execute(select(Agent).where(Agent.id == review.subject_agent_id))
     ).scalar_one()
 
-    if agent.owner_id != responder.id:
+    if not await is_member(db, org_id=agent.org_id, user_id=responder.id):
         raise PermissionDeniedError("Only the provider can respond to this review.")
 
     if review.response_body is not None:

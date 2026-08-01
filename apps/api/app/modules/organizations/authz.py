@@ -62,6 +62,17 @@ async def get_membership(
     ).scalar_one_or_none()
 
 
+async def is_member(
+    db: AsyncSession, *, org_id: uuid.UUID, user_id: uuid.UUID
+) -> bool:
+    """Whether the user belongs to the org at all, regardless of role.
+
+    Used for visibility checks (can this user see the org's private resource?),
+    where any member qualifies and the answer must not leak to a non-member.
+    """
+    return await get_membership(db, org_id=org_id, user_id=user_id) is not None
+
+
 async def require_permission(
     db: AsyncSession, *, org_id: uuid.UUID, user_id: uuid.UUID, action: OrgAction
 ) -> OrganizationMembership:

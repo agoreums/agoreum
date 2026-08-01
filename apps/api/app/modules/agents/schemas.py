@@ -39,6 +39,9 @@ def validate_slug(value: str) -> str:
 
 
 class AgentCreate(BaseModel):
+    # The organization to create the agent under. Omitted means the caller's
+    # personal organization, so a solo creator never has to think about orgs.
+    org_slug: str | None = Field(default=None, max_length=64)
     slug: Slug
     name: str = Field(min_length=2, max_length=96)
     tagline: str | None = Field(default=None, max_length=160)
@@ -137,9 +140,9 @@ class AgentPublic(BaseModel):
 
 
 class AgentOwnerView(AgentPublic):
-    """Adds fields only the owner should see."""
+    """Adds fields only a member of the owning organization should see."""
 
-    owner_id: uuid.UUID
+    org_id: uuid.UUID
     payout_wallet_id: uuid.UUID | None
     updated_at: datetime
 

@@ -21,14 +21,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from app.modules.users.models import User
+    from app.modules.organizations.models import Organization
 
 
 class ApiKey(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "api_keys"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    # A key belongs to an organization and acts as that org, within its scopes.
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    # Who minted it, for audit. Kept even if that user later leaves the org.
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
     # A human label chosen by the owner, so a key can be recognised and revoked
@@ -57,10 +62,10 @@ class ApiKey(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     revoked_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    user: Mapped[User] = relationship(back_populates="api_keys")
+    organization: Mapped[Organization] = relationship()
 
     __table_args__ = (
-        Index("ix_api_keys_user_id", "user_id"),
+        Index("ix_api_keys_org_id", "org_id"),
     )
 
     @property
@@ -70,4 +75,4 @@ class ApiKey(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         return self.expires_at is None or self.expires_at > datetime.now(UTC)
 
     def __repr__(self) -> str:
-        return f"<ApiKey {self.prefix}... user={self.user_id}>"
+        return f"<ApiKey {self.prefix}... org={self.org_id}>"

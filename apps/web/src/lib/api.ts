@@ -588,27 +588,38 @@ export type ApiKey = {
 /** Only ever returned once, at creation: it carries the plaintext `token`. */
 export type ApiKeyCreated = ApiKey & { token: string };
 
+/**
+ * API keys and webhooks belong to an organization. Passing an org slug scopes
+ * the call to that org; omitting it uses the caller's personal organization, so
+ * a solo creator never has to think about orgs.
+ */
+function orgQuery(orgSlug?: string): string {
+  return orgSlug ? `?org=${encodeURIComponent(orgSlug)}` : "";
+}
+
 export const apiKeysApi = {
   scopes: () =>
     apiFetch<{ scopes: ApiKeyScope[] }>("/api/v1/api-keys/scopes"),
 
-  list: (accessToken: string) =>
-    apiFetch<{ items: ApiKey[]; total: number }>("/api/v1/api-keys", {
-      accessToken,
-    }),
+  list: (accessToken: string, orgSlug?: string) =>
+    apiFetch<{ items: ApiKey[]; total: number }>(
+      `/api/v1/api-keys${orgQuery(orgSlug)}`,
+      { accessToken },
+    ),
 
   create: (
     accessToken: string,
     body: { name: string; scopes: string[]; expires_in_days?: number | null },
+    orgSlug?: string,
   ) =>
-    apiFetch<ApiKeyCreated>("/api/v1/api-keys", {
+    apiFetch<ApiKeyCreated>(`/api/v1/api-keys${orgQuery(orgSlug)}`, {
       method: "POST",
       accessToken,
       body: JSON.stringify(body),
     }),
 
-  revoke: (accessToken: string, id: string) =>
-    apiFetch<void>(`/api/v1/api-keys/${id}`, {
+  revoke: (accessToken: string, id: string, orgSlug?: string) =>
+    apiFetch<void>(`/api/v1/api-keys/${id}${orgQuery(orgSlug)}`, {
       method: "DELETE",
       accessToken,
     }),
@@ -653,29 +664,108 @@ export type WebhookDelivery = {
 export const webhooksApi = {
   events: () => apiFetch<{ events: WebhookEvent[] }>("/api/v1/webhooks/events"),
 
-  list: (accessToken: string) =>
-    apiFetch<{ items: WebhookEndpoint[]; total: number }>("/api/v1/webhooks", {
-      accessToken,
-    }),
+  list: (accessToken: string, orgSlug?: string) =>
+    apiFetch<{ items: WebhookEndpoint[]; total: number }>(
+      `/api/v1/webhooks${orgQuery(orgSlug)}`,
+      { accessToken },
+    ),
 
   create: (
     accessToken: string,
     body: { url: string; events: string[]; description?: string | null },
+    orgSlug?: string,
   ) =>
-    apiFetch<WebhookEndpointCreated>("/api/v1/webhooks", {
+    apiFetch<WebhookEndpointCreated>(`/api/v1/webhooks${orgQuery(orgSlug)}`, {
       method: "POST",
       accessToken,
       body: JSON.stringify(body),
     }),
 
-  revoke: (accessToken: string, id: string) =>
-    apiFetch<void>(`/api/v1/webhooks/${id}`, {
+  revoke: (accessToken: string, id: string, orgSlug?: string) =>
+    apiFetch<void>(`/api/v1/webhooks/${id}${orgQuery(orgSlug)}`, {
       method: "DELETE",
       accessToken,
     }),
 
-  deliveries: (accessToken: string, id: string) =>
-    apiFetch<WebhookDelivery[]>(`/api/v1/webhooks/${id}/deliveries`, {
+  deliveries: (accessToken: string, id: string, orgSlug?: string) =>
+    apiFetch<WebhookDelivery[]>(
+      `/api/v1/webhooks/${id}/deliveries${orgQuery(orgSlug)}`,
+      { accessToken },
+    ),
+};
+
+// --- Organizations ----------------------------------------------------------
+
+export type OrgKind = "personal" | "team";
+export type OrgRole = "member" | "admin" | "owner";
+
+export type Organization = {
+  id: string;
+  slug: string;
+  name: string;
+  kind: OrgKind;
+  /** The requesting member's own role in this org. */
+  role: OrgRole;
+  member_count: number;
+};
+
+export type OrgMember = {
+  user_id: string;
+  role: OrgRole;
+  username: string | null;
+  display_name: string | null;
+  primary_address: string;
+  joined_at: string;
+};
+
+export const orgsApi = {
+  list: (accessToken: string) =>
+    apiFetch<Organization[]>("/api/v1/orgs", { accessToken }),
+
+  create: (accessToken: string, body: { slug: string; name: string }) =>
+    apiFetch<Organization>("/api/v1/orgs", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  members: (accessToken: string, slug: string) =>
+    apiFetch<OrgMember[]>(
+      `/api/v1/orgs/${encodeURIComponent(slug)}/members`,
+      { accessToken },
+    ),
+
+  addMember: (
+    accessToken: string,
+    slug: string,
+    body: { address: string; role: OrgRole },
+  ) =>
+    apiFetch<OrgMember>(`/api/v1/orgs/${encodeURIComponent(slug)}/members`, {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  updateMember: (
+    accessToken: string,
+    slug: string,
+    userId: string,
+    role: OrgRole,
+  ) =>
+    apiFetch<OrgMember>(
+      `/api/v1/orgs/${encodeURIComponent(slug)}/members/${userId}`,
+      { method: "PATCH", accessToken, body: JSON.stringify({ role }) },
+    ),
+
+  removeMember: (accessToken: string, slug: string, userId: string) =>
+    apiFetch<void>(
+      `/api/v1/orgs/${encodeURIComponent(slug)}/members/${userId}`,
+      { method: "DELETE", accessToken },
+    ),
+
+  leave: (accessToken: string, slug: string) =>
+    apiFetch<void>(`/api/v1/orgs/${encodeURIComponent(slug)}/leave`, {
+      method: "POST",
       accessToken,
     }),
 };
