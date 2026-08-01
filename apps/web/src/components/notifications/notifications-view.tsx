@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Button, Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError, notificationsApi, type NotificationItem } from "@/lib/api";
 
@@ -87,13 +88,9 @@ export function NotificationsView() {
           {unread > 0 ? t("unreadCount", { count: unread }) : t("allRead")}
         </p>
         {unread > 0 ? (
-          <button
-            type="button"
-            onClick={markAll}
-            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
-          >
+          <Button variant="secondary" onClick={markAll}>
             {t("markAllRead")}
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -151,12 +148,9 @@ export function NotificationsView() {
 
 function NotificationsSkeleton() {
   return (
-    <div className="space-y-3" aria-hidden="true">
+    <div className="space-y-3">
       {[0, 1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="h-16 animate-pulse rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)]"
-        />
+        <Skeleton key={i} className="h-16" />
       ))}
     </div>
   );

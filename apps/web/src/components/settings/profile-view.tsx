@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Badge, Button, controlClass } from "@/components/app/ui";
 import { truncateAddress } from "@/components/auth/connect-wallet";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError, authApi, type ProfileUpdate, type UserProfile } from "@/lib/api";
@@ -91,7 +92,7 @@ function ProfileForm({ user }: { user: UserProfile }) {
           maxLength={64}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder={t("namePlaceholder")}
-          className={inputClass}
+          className={controlClass}
         />
       </Field>
 
@@ -101,7 +102,7 @@ function ProfileForm({ user }: { user: UserProfile }) {
           value={username}
           maxLength={32}
           onChange={(e) => setUsername(e.target.value)}
-          className={inputClass}
+          className={controlClass}
         />
       </Field>
 
@@ -110,15 +111,9 @@ function ProfileForm({ user }: { user: UserProfile }) {
         hint={t("emailHint")}
         aside={
           user.email ? (
-            <span
-              className={`rounded-full border px-2 py-0.5 text-xs ${
-                user.email_verified_at
-                  ? "border-success-500/40 text-success-500"
-                  : "border-[var(--border-subtle)] text-[var(--text-muted)]"
-              }`}
-            >
+            <Badge tone={user.email_verified_at ? "success" : "neutral"}>
               {user.email_verified_at ? t("emailVerified") : t("emailUnverified")}
-            </span>
+            </Badge>
           ) : null
         }
       >
@@ -127,7 +122,7 @@ function ProfileForm({ user }: { user: UserProfile }) {
           value={email}
           maxLength={320}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          className={controlClass}
         />
         {emailChanged && email.trim() ? (
           <p className="mt-1.5 text-xs text-warning-500">{t("emailReverify")}</p>
@@ -140,7 +135,7 @@ function ProfileForm({ user }: { user: UserProfile }) {
           maxLength={600}
           rows={4}
           onChange={(e) => setBio(e.target.value)}
-          className={`${inputClass} resize-y`}
+          className={`${controlClass} resize-y`}
         />
       </Field>
 
@@ -151,7 +146,7 @@ function ProfileForm({ user }: { user: UserProfile }) {
           maxLength={512}
           onChange={(e) => setAvatarUrl(e.target.value)}
           placeholder="https://"
-          className={inputClass}
+          className={controlClass}
         />
       </Field>
 
@@ -159,13 +154,9 @@ function ProfileForm({ user }: { user: UserProfile }) {
       {saved ? <p className="text-sm text-success-500">{t("saved")}</p> : null}
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={busy}
-          className="inline-flex rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-500 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={busy}>
           {busy ? t("saving") : t("save")}
-        </button>
+        </Button>
         <span className="text-xs text-[var(--text-muted)]">
           {t("memberSince")} {new Date(user.created_at).toLocaleDateString()}
         </span>
@@ -173,9 +164,6 @@ function ProfileForm({ user }: { user: UserProfile }) {
     </form>
   );
 }
-
-const inputClass =
-  "block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-4 py-2.5 text-sm outline-none focus:border-brand-500";
 
 function Field({
   label,

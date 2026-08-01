@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Button, Skeleton } from "@/components/app/ui";
 import { truncateAddress } from "@/components/auth/connect-wallet";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError, authApi, type SessionSummary } from "@/lib/api";
@@ -71,24 +72,16 @@ export function SecurityView() {
           <h2 className="text-[length:var(--text-h3)] font-semibold tracking-[var(--text-h3--letter-spacing)]">
             {t("sessionsTitle")}
           </h2>
-          <button
-            type="button"
-            onClick={signOutEverywhere}
-            disabled={busy}
-            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium text-danger-500 transition-colors hover:border-danger-500 disabled:opacity-60"
-          >
+          <Button variant="danger" onClick={signOutEverywhere} disabled={busy}>
             {busy ? t("signingOut") : t("signOutAll")}
-          </button>
+          </Button>
         </div>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">{t("sessionsHint")}</p>
 
         {sessions === null ? (
-          <div className="mt-4 space-y-3" aria-hidden="true">
+          <div className="mt-4 space-y-3">
             {[0, 1].map((i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)]"
-              />
+              <Skeleton key={i} className="h-16" />
             ))}
           </div>
         ) : sessions.length === 0 ? (

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Button } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Link } from "@/i18n/navigation";
 import { ApiError, authApi } from "@/lib/api";
@@ -81,14 +82,14 @@ export function PrivacyView() {
         </h2>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">{t("pauseHint")}</p>
         {error ? <p className="mt-3 text-sm text-danger-500">{error}</p> : null}
-        <button
-          type="button"
+        <Button
+          variant="danger"
           onClick={pause}
           disabled={busy}
-          className="mt-4 inline-flex rounded-xl border border-danger-500/50 px-5 py-2.5 text-sm font-medium text-danger-500 transition-colors hover:bg-danger-500/5 disabled:opacity-60"
+          className="mt-4"
         >
           {busy ? t("pausing") : t("pause")}
-        </button>
+        </Button>
       </section>
     </div>
   );

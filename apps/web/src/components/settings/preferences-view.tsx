@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Button, controlClass } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { localeNames, locales } from "@/i18n/routing";
 import { ApiError, authApi } from "@/lib/api";
@@ -63,7 +64,7 @@ export function PreferencesView() {
             setLocale(e.target.value);
             setSaved(false);
           }}
-          className="mt-2 block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+          className={`mt-2 ${controlClass}`}
         >
           {locales.map((l) => (
             <option key={l} value={l}>
@@ -76,14 +77,12 @@ export function PreferencesView() {
       {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       {saved ? <p className="text-sm text-success-500">{t("saved")}</p> : null}
 
-      <button
-        type="button"
+      <Button
         onClick={save}
         disabled={busy || locale === user.preferred_locale}
-        className="inline-flex rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-500 disabled:opacity-60"
       >
         {busy ? t("saving") : t("save")}
-      </button>
+      </Button>
     </div>
   );
 }
