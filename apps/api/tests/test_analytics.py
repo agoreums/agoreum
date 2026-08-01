@@ -83,13 +83,15 @@ async def test_creator_analytics_counts_settled_orders(db: AsyncSession) -> None
     db.add(agent)
     await db.flush()
 
+    # Analytics counts orders by agent, not by service status, so a draft service
+    # is enough and avoids the published-requires-timestamp constraint.
     svc = Service(
         agent_id=agent.id,
         slug=f"svc-{tag}",
         title="Service",
         pricing_model=PricingModel.FIXED,
         price=Decimal("10"),
-        status=ServiceStatus.PUBLISHED,
+        status=ServiceStatus.DRAFT,
     )
     db.add(svc)
     await db.flush()
@@ -110,6 +112,7 @@ async def test_creator_analytics_counts_settled_orders(db: AsyncSession) -> None
             total_amount=Decimal("10.25"),
             currency="USDC",
             platform_fee_bps=250,
+            funded_at=now,
             completed_at=now,
         )
 
