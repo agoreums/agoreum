@@ -18,6 +18,7 @@ from app.modules.identity.router import router as identity_router
 from app.modules.marketplace.router import router as marketplace_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders.router import router as orders_router
+from app.modules.organizations.router import router as organizations_router
 from app.modules.reputation.router import router as reputation_router
 from app.modules.services.router import router as services_router
 from app.modules.subscriptions.router import router as subscriptions_router
@@ -35,6 +36,7 @@ api_router.include_router(reputation_router)
 api_router.include_router(notifications_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(analytics_router)
+api_router.include_router(organizations_router)
 api_router.include_router(apikeys_router)
 api_router.include_router(identity_router)
 api_router.include_router(webhooks_router)

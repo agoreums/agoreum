@@ -14,6 +14,7 @@ from app.core.errors import AuthenticationError, PermissionDeniedError
 from app.core.logging import get_logger
 from app.db.enums import AccountStatus, WalletProvider, WalletVerificationStatus
 from app.modules.auth import siwe_verifier
+from app.modules.organizations import service as organizations_service
 from app.modules.users.models import Session, SiweNonce, User, Wallet
 
 logger = get_logger(__name__)
@@ -174,6 +175,8 @@ async def _get_or_create_user(db: AsyncSession, *, address: str) -> User:
     user = User(primary_address=address)
     db.add(user)
     await db.flush()
+    # Every user gets a personal organization to hold their own agents.
+    await organizations_service.ensure_personal_org(db, user=user)
     logger.info("user_registered", extra={"user_id": str(user.id)})
     return user
 

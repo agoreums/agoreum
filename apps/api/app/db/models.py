@@ -25,6 +25,7 @@ from app.modules.orders.models import (
     Order,
     OrderEvent,
 )
+from app.modules.organizations.models import Organization, OrganizationMembership
 from app.modules.reputation.models import ReputationSnapshot, Review
 from app.modules.services.models import Category, Service
 from app.modules.subscriptions.models import (
@@ -50,6 +51,8 @@ __all__ = [
     "NotificationPreference",
     "Order",
     "OrderEvent",
+    "Organization",
+    "OrganizationMembership",
     "ReputationSnapshot",
     "Review",
     "Service",

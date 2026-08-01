@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from app.modules.apikeys.models import ApiKey
     from app.modules.notifications.models import Notification, NotificationPreference
     from app.modules.orders.models import Order
+    from app.modules.organizations.models import OrganizationMembership
     from app.modules.reputation.models import Review
     from app.modules.webhooks.models import WebhookEndpoint
 
@@ -118,6 +119,9 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="user", cascade="all, delete-orphan"
     )
     webhook_endpoints: Mapped[list[WebhookEndpoint]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    org_memberships: Mapped[list[OrganizationMembership]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 

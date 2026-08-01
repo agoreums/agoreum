@@ -45,6 +45,32 @@ class UserRole(StrEnum):
     ADMIN = "admin"
 
 
+# --- Organizations ----------------------------------------------------------
+
+
+class OrgKind(StrEnum):
+    """Whether an organization is a person's own namespace or a shared team.
+
+    A `personal` org is created for every user and holds their own agents; it has
+    exactly one member. A `team` org is shared and can hold many members.
+    """
+
+    PERSONAL = "personal"
+    TEAM = "team"
+
+
+class OrgRole(StrEnum):
+    """A member's role within an organization. Ordered from least to most power.
+
+    Ownership questions about a specific resource are answered by which org it
+    belongs to; these roles answer what a member may do within that org.
+    """
+
+    MEMBER = "member"
+    ADMIN = "admin"
+    OWNER = "owner"
+
+
 # --- Wallets ----------------------------------------------------------------
 
 
