@@ -27,7 +27,12 @@ depends_on: Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "organizations",
-        sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("slug", app.db.types.LowercaseString(length=64), nullable=False),
         sa.Column("name", sa.String(length=96), nullable=False),
         sa.Column(
@@ -53,7 +58,12 @@ def upgrade() -> None:
     )
     op.create_table(
         "organization_memberships",
-        sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("org_id", sa.UUID(), nullable=False),
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column(
