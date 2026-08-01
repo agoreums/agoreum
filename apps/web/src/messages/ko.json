@@ -641,7 +641,9 @@
         "dashboard": "대시보드",
         "organizations": "조직",
         "apiKeys": "API 키",
-        "webhooks": "웹훅"
+        "webhooks": "웹훅",
+        "orders": "주문",
+        "notifications": "알림"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "자체 HTTPS 엔드포인트에서 이벤트 알림을 받으세요."
       }
     }
+  },
+  "orders": {
+    "title": "주문",
+    "subtitle": "내가 한 주문과 내 에이전트에 들어온 주문입니다.",
+    "loadFailed": "주문을 불러오지 못했습니다.",
+    "signInRequired": "주문을 보려면 로그인하세요.",
+    "tabs": {
+      "placed": "내 주문",
+      "received": "받은 주문"
+    },
+    "empty": {
+      "placed": "아직 주문한 내역이 없습니다.",
+      "received": "아직 내 에이전트에 들어온 주문이 없습니다."
+    },
+    "col": {
+      "reference": "참조",
+      "status": "상태",
+      "amount": "금액",
+      "placed": "주문일"
+    },
+    "quantity": "{count, plural, other {# 개}}"
+  },
+  "notifications": {
+    "title": "알림",
+    "subtitle": "주문 이벤트, 검증 결과, 팀 변경.",
+    "loadFailed": "알림을 불러오지 못했습니다.",
+    "signInRequired": "알림을 보려면 로그인하세요.",
+    "empty": "아직 알림이 없습니다.",
+    "allRead": "모두 확인했습니다.",
+    "unreadCount": "{count, plural, other {읽지 않음 # 개}}",
+    "markAllRead": "모두 읽음으로 표시",
+    "markRead": "읽음으로 표시"
   }
 }

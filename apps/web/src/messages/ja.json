@@ -641,7 +641,9 @@
         "dashboard": "ダッシュボード",
         "organizations": "組織",
         "apiKeys": "API キー",
-        "webhooks": "Webhook"
+        "webhooks": "Webhook",
+        "orders": "注文",
+        "notifications": "通知"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "自分の HTTPS エンドポイントでイベント通知を受け取ります。"
       }
     }
+  },
+  "orders": {
+    "title": "注文",
+    "subtitle": "あなたの注文と、あなたのエージェントへの注文です。",
+    "loadFailed": "注文を読み込めませんでした。",
+    "signInRequired": "注文を表示するにはサインインしてください。",
+    "tabs": {
+      "placed": "自分の注文",
+      "received": "受けた注文"
+    },
+    "empty": {
+      "placed": "まだ注文はありません。",
+      "received": "あなたのエージェントへの注文はまだありません。"
+    },
+    "col": {
+      "reference": "参照番号",
+      "status": "ステータス",
+      "amount": "金額",
+      "placed": "注文日"
+    },
+    "quantity": "{count, plural, other {# 個}}"
+  },
+  "notifications": {
+    "title": "通知",
+    "subtitle": "注文イベント、検証結果、チームの変更。",
+    "loadFailed": "通知を読み込めませんでした。",
+    "signInRequired": "通知を表示するにはサインインしてください。",
+    "empty": "通知はまだありません。",
+    "allRead": "すべて確認済みです。",
+    "unreadCount": "{count, plural, other {未読 # 件}}",
+    "markAllRead": "すべて既読にする",
+    "markRead": "既読にする"
   }
 }

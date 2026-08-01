@@ -9,6 +9,8 @@ import type { SVGProps } from "react";
  */
 export type IconKey =
   | "dashboard"
+  | "orders"
+  | "notifications"
   | "organizations"
   | "key"
   | "webhook"
@@ -27,6 +29,18 @@ const paths: Record<IconKey, React.ReactNode> = {
       <rect x="14" y="3" width="7" height="5" rx="1.5" />
       <rect x="14" y="12" width="7" height="9" rx="1.5" />
       <rect x="3" y="16" width="7" height="5" rx="1.5" />
+    </>
+  ),
+  orders: (
+    <>
+      <path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V4a2 2 0 0 1 2-2z" />
+      <path d="M9 7h6M9 11h6M9 15h4" />
+    </>
+  ),
+  notifications: (
+    <>
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
     </>
   ),
   organizations: (

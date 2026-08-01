@@ -641,7 +641,9 @@
         "dashboard": "لوحة التحكم",
         "organizations": "المؤسسات",
         "apiKeys": "مفاتيح API",
-        "webhooks": "خطافات الويب"
+        "webhooks": "خطافات الويب",
+        "orders": "الطلبات",
+        "notifications": "الإشعارات"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "استقبل إشعارات الأحداث على نقاط النهاية HTTPS الخاصة بك."
       }
     }
+  },
+  "orders": {
+    "title": "الطلبات",
+    "subtitle": "الطلبات التي قدّمتها والطلبات المقدَّمة إلى وكلائك.",
+    "loadFailed": "تعذّر تحميل طلباتك.",
+    "signInRequired": "سجّل الدخول لعرض طلباتك.",
+    "tabs": {
+      "placed": "المقدَّمة",
+      "received": "المستلَمة"
+    },
+    "empty": {
+      "placed": "لم تقدّم أي طلبات بعد.",
+      "received": "لم تُقدَّم أي طلبات إلى وكلائك بعد."
+    },
+    "col": {
+      "reference": "المرجع",
+      "status": "الحالة",
+      "amount": "المبلغ",
+      "placed": "التاريخ"
+    },
+    "quantity": "{count, plural, other {# وحدة}}"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "subtitle": "أحداث الطلبات ونتائج التحقق وتغييرات الفريق.",
+    "loadFailed": "تعذّر تحميل إشعاراتك.",
+    "signInRequired": "سجّل الدخول لعرض إشعاراتك.",
+    "empty": "لا توجد لديك إشعارات بعد.",
+    "allRead": "أنت على اطّلاع بكل شيء.",
+    "unreadCount": "{count, plural, other {# غير مقروء}}",
+    "markAllRead": "تحديد الكل كمقروء",
+    "markRead": "تحديد كمقروء"
   }
 }

@@ -641,7 +641,9 @@
         "dashboard": "Übersicht",
         "organizations": "Organisationen",
         "apiKeys": "API-Schlüssel",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "orders": "Bestellungen",
+        "notifications": "Benachrichtigungen"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "Empfangen Sie Ereignisbenachrichtigungen an Ihren eigenen HTTPS-Endpunkten."
       }
     }
+  },
+  "orders": {
+    "title": "Bestellungen",
+    "subtitle": "Bestellungen, die Sie aufgegeben haben, und Bestellungen bei Ihren Agenten.",
+    "loadFailed": "Ihre Bestellungen konnten nicht geladen werden.",
+    "signInRequired": "Melden Sie sich an, um Ihre Bestellungen zu sehen.",
+    "tabs": {
+      "placed": "Aufgegeben",
+      "received": "Erhalten"
+    },
+    "empty": {
+      "placed": "Sie haben noch keine Bestellungen aufgegeben.",
+      "received": "Bei Ihren Agenten wurden noch keine Bestellungen aufgegeben."
+    },
+    "col": {
+      "reference": "Referenz",
+      "status": "Status",
+      "amount": "Betrag",
+      "placed": "Datum"
+    },
+    "quantity": "{count, plural, one {# Einheit} other {# Einheiten}}"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "subtitle": "Bestellereignisse, Verifizierungsergebnisse und Teamänderungen.",
+    "loadFailed": "Ihre Benachrichtigungen konnten nicht geladen werden.",
+    "signInRequired": "Melden Sie sich an, um Ihre Benachrichtigungen zu sehen.",
+    "empty": "Sie haben noch keine Benachrichtigungen.",
+    "allRead": "Sie sind auf dem neuesten Stand.",
+    "unreadCount": "{count, plural, one {# ungelesen} other {# ungelesen}}",
+    "markAllRead": "Alle als gelesen markieren",
+    "markRead": "Als gelesen markieren"
   }
 }

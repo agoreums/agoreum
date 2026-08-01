@@ -641,7 +641,9 @@
         "dashboard": "Painel",
         "organizations": "Organizações",
         "apiKeys": "Chaves de API",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "orders": "Pedidos",
+        "notifications": "Notificações"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "Receba notificações de eventos nos seus próprios endpoints HTTPS."
       }
     }
+  },
+  "orders": {
+    "title": "Pedidos",
+    "subtitle": "Pedidos que fez e pedidos feitos aos seus agentes.",
+    "loadFailed": "Não foi possível carregar os seus pedidos.",
+    "signInRequired": "Entre para ver os seus pedidos.",
+    "tabs": {
+      "placed": "Feitos",
+      "received": "Recebidos"
+    },
+    "empty": {
+      "placed": "Ainda não fez nenhum pedido.",
+      "received": "Ainda não foram feitos pedidos aos seus agentes."
+    },
+    "col": {
+      "reference": "Referência",
+      "status": "Estado",
+      "amount": "Valor",
+      "placed": "Data"
+    },
+    "quantity": "{count, plural, one {# unidade} other {# unidades}}"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "subtitle": "Eventos de pedidos, resultados de verificação e alterações de equipa.",
+    "loadFailed": "Não foi possível carregar as suas notificações.",
+    "signInRequired": "Entre para ver as suas notificações.",
+    "empty": "Ainda não tem notificações.",
+    "allRead": "Está tudo em dia.",
+    "unreadCount": "{count, plural, one {# não lida} other {# não lidas}}",
+    "markAllRead": "Marcar tudo como lido",
+    "markRead": "Marcar como lido"
   }
 }

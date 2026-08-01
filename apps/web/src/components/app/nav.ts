@@ -21,7 +21,11 @@ export type AppNavSection = {
 export const appNav: AppNavSection[] = [
   {
     key: null,
-    items: [{ key: "dashboard", href: "/dashboard", icon: "dashboard" }],
+    items: [
+      { key: "dashboard", href: "/dashboard", icon: "dashboard" },
+      { key: "orders", href: "/orders", icon: "orders" },
+      { key: "notifications", href: "/notifications", icon: "notifications" },
+    ],
   },
   {
     key: "settings",

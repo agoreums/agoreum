@@ -641,7 +641,9 @@
         "dashboard": "Tableau de bord",
         "organizations": "Organisations",
         "apiKeys": "Clés d'API",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "orders": "Commandes",
+        "notifications": "Notifications"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "Recevez les notifications d'événements sur vos propres points de terminaison HTTPS."
       }
     }
+  },
+  "orders": {
+    "title": "Commandes",
+    "subtitle": "Commandes que vous avez passées et commandes passées à vos agents.",
+    "loadFailed": "Nous n'avons pas pu charger vos commandes.",
+    "signInRequired": "Connectez-vous pour voir vos commandes.",
+    "tabs": {
+      "placed": "Passées",
+      "received": "Reçues"
+    },
+    "empty": {
+      "placed": "Vous n'avez encore passé aucune commande.",
+      "received": "Aucune commande n'a encore été passée à vos agents."
+    },
+    "col": {
+      "reference": "Référence",
+      "status": "Statut",
+      "amount": "Montant",
+      "placed": "Date"
+    },
+    "quantity": "{count, plural, one {# unité} other {# unités}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Événements de commande, résultats de vérification et changements d'équipe.",
+    "loadFailed": "Nous n'avons pas pu charger vos notifications.",
+    "signInRequired": "Connectez-vous pour voir vos notifications.",
+    "empty": "Vous n'avez encore aucune notification.",
+    "allRead": "Vous êtes à jour.",
+    "unreadCount": "{count, plural, one {# non lue} other {# non lues}}",
+    "markAllRead": "Tout marquer comme lu",
+    "markRead": "Marquer comme lu"
   }
 }

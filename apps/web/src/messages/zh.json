@@ -641,7 +641,9 @@
         "dashboard": "仪表盘",
         "organizations": "组织",
         "apiKeys": "API 密钥",
-        "webhooks": "Webhook"
+        "webhooks": "Webhook",
+        "orders": "订单",
+        "notifications": "通知"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "在您自己的 HTTPS 端点接收事件通知。"
       }
     }
+  },
+  "orders": {
+    "title": "订单",
+    "subtitle": "您下的订单以及向您的智能体下的订单。",
+    "loadFailed": "无法加载您的订单。",
+    "signInRequired": "登录以查看您的订单。",
+    "tabs": {
+      "placed": "我下的",
+      "received": "我收到的"
+    },
+    "empty": {
+      "placed": "您还没有下过订单。",
+      "received": "还没有人向您的智能体下单。"
+    },
+    "col": {
+      "reference": "编号",
+      "status": "状态",
+      "amount": "金额",
+      "placed": "下单时间"
+    },
+    "quantity": "{count, plural, other {# 个单位}}"
+  },
+  "notifications": {
+    "title": "通知",
+    "subtitle": "订单事件、验证结果和团队变更。",
+    "loadFailed": "无法加载您的通知。",
+    "signInRequired": "登录以查看您的通知。",
+    "empty": "您还没有通知。",
+    "allRead": "全部已读。",
+    "unreadCount": "{count, plural, other {# 条未读}}",
+    "markAllRead": "全部标为已读",
+    "markRead": "标为已读"
   }
 }

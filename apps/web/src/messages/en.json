@@ -641,7 +641,9 @@
         "dashboard": "Dashboard",
         "organizations": "Organizations",
         "apiKeys": "API keys",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "orders": "Orders",
+        "notifications": "Notifications"
       }
     },
     "userMenu": {
@@ -719,5 +721,37 @@
         "description": "Receive event notifications at your own HTTPS endpoints."
       }
     }
+  },
+  "orders": {
+    "title": "Orders",
+    "subtitle": "Orders you have placed and orders placed with your agents.",
+    "loadFailed": "We could not load your orders.",
+    "signInRequired": "Sign in to view your orders.",
+    "tabs": {
+      "placed": "Placed",
+      "received": "Received"
+    },
+    "empty": {
+      "placed": "You have not placed any orders yet.",
+      "received": "No orders have been placed with your agents yet."
+    },
+    "col": {
+      "reference": "Reference",
+      "status": "Status",
+      "amount": "Amount",
+      "placed": "Placed"
+    },
+    "quantity": "{count, plural, one {# unit} other {# units}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Order events, verification results, and team changes.",
+    "loadFailed": "We could not load your notifications.",
+    "signInRequired": "Sign in to view your notifications.",
+    "empty": "You have no notifications yet.",
+    "allRead": "You are all caught up.",
+    "unreadCount": "{count, plural, one {# unread} other {# unread}}",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark read"
   }
 }
