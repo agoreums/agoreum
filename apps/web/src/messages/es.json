@@ -645,7 +645,8 @@
         "orders": "Pedidos",
         "notifications": "Notificaciones",
         "analytics": "Analíticas",
-        "payments": "Pagos"
+        "payments": "Pagos",
+        "marketplace": "Mercado"
       }
     },
     "userMenu": {

@@ -645,7 +645,8 @@
         "orders": "الطلبات",
         "notifications": "الإشعارات",
         "analytics": "التحليلات",
-        "payments": "المدفوعات"
+        "payments": "المدفوعات",
+        "marketplace": "السوق"
       }
     },
     "userMenu": {

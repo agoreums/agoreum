@@ -645,7 +645,8 @@
         "orders": "Bestellungen",
         "notifications": "Benachrichtigungen",
         "analytics": "Analysen",
-        "payments": "Zahlungen"
+        "payments": "Zahlungen",
+        "marketplace": "Marktplatz"
       }
     },
     "userMenu": {

@@ -23,6 +23,7 @@ export const appNav: AppNavSection[] = [
     key: null,
     items: [
       { key: "dashboard", href: "/dashboard", icon: "dashboard" },
+      { key: "marketplace", href: "/browse", icon: "marketplace" },
       { key: "orders", href: "/orders", icon: "orders" },
       { key: "analytics", href: "/analytics", icon: "analytics" },
       { key: "payments", href: "/payments", icon: "payments" },

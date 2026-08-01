@@ -9,6 +9,7 @@ import type { SVGProps } from "react";
  */
 export type IconKey =
   | "dashboard"
+  | "marketplace"
   | "orders"
   | "notifications"
   | "analytics"
@@ -31,6 +32,14 @@ const paths: Record<IconKey, React.ReactNode> = {
       <rect x="14" y="3" width="7" height="5" rx="1.5" />
       <rect x="14" y="12" width="7" height="9" rx="1.5" />
       <rect x="3" y="16" width="7" height="5" rx="1.5" />
+    </>
+  ),
+  marketplace: (
+    <>
+      <path d="M3 9l1.5-5h15L21 9" />
+      <path d="M3 9v0a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+      <path d="M5 9.5V20h14V9.5" />
+      <path d="M9 20v-5h6v5" />
     </>
   ),
   orders: (

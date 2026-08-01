@@ -645,7 +645,8 @@
         "orders": "주문",
         "notifications": "알림",
         "analytics": "분석",
-        "payments": "결제"
+        "payments": "결제",
+        "marketplace": "마켓플레이스"
       }
     },
     "userMenu": {

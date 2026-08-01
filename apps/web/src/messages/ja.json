@@ -645,7 +645,8 @@
         "orders": "注文",
         "notifications": "通知",
         "analytics": "分析",
-        "payments": "支払い"
+        "payments": "支払い",
+        "marketplace": "マーケットプレイス"
       }
     },
     "userMenu": {
