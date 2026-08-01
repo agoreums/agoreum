@@ -720,6 +720,19 @@
         "title": "Webhooks",
         "description": "Receba notificações de eventos nos seus próprios endpoints HTTPS."
       }
+    },
+    "nav": {
+      "label": "Secções de definições",
+      "items": {
+        "profile": "Perfil",
+        "security": "Segurança",
+        "wallet": "Carteira",
+        "notifications": "Notificações",
+        "appearance": "Aparência",
+        "organizations": "Organizações",
+        "apiKeys": "Chaves de API",
+        "webhooks": "Webhooks"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, one {# não lida} other {# não lidas}}",
     "markAllRead": "Marcar tudo como lido",
     "markRead": "Marcar como lido"
+  },
+  "settingsProfile": {
+    "title": "Perfil",
+    "subtitle": "A sua conta, ancorada à carteira com que inicia sessão.",
+    "signInRequired": "Entre para ver o seu perfil.",
+    "name": "Nome",
+    "address": "Endereço da carteira",
+    "email": "E-mail",
+    "noEmail": "Não definido",
+    "unnamed": "Sem nome",
+    "role": "Função",
+    "roles": {
+      "user": "Membro",
+      "admin": "Administrador"
+    },
+    "memberSince": "Membro desde"
+  },
+  "settingsSecurity": {
+    "title": "Segurança",
+    "subtitle": "As sessões que podem agir como a sua conta.",
+    "signInRequired": "Entre para gerir a segurança.",
+    "loadFailed": "Não foi possível carregar as suas sessões.",
+    "sessionsTitle": "Sessões ativas",
+    "sessionsHint": "Terminar sessão em todo o lado encerra todas as sessões, incluindo esta.",
+    "signOutAll": "Terminar sessão em todo o lado",
+    "signingOut": "A terminar sessão…",
+    "signOutAllConfirm": "Terminar todas as sessões, incluindo esta?",
+    "noSessions": "Sem sessões ativas.",
+    "lastUsed": "Último uso {when}"
+  },
+  "settingsWallet": {
+    "title": "Carteira",
+    "subtitle": "As carteiras associadas à sua conta e para onde vão os pagamentos.",
+    "signInRequired": "Entre para ver as suas carteiras.",
+    "loadFailed": "Não foi possível carregar as suas carteiras.",
+    "hint": "Uma carteira é verificada iniciando sessão com ela. Os pagamentos só vão para uma carteira verificada que controla.",
+    "empty": "Ainda não há carteiras associadas.",
+    "chain": "Cadeia {id}",
+    "payout": "Pagamentos",
+    "verified": "Verificada",
+    "unverified": "Não verificada"
+  },
+  "settingsNotifications": {
+    "title": "Notificações",
+    "subtitle": "Escolha que eventos lhe chegam e como.",
+    "signInRequired": "Entre para gerir as preferências de notificação.",
+    "loadFailed": "Não foi possível carregar as suas preferências.",
+    "saveFailed": "Não foi possível guardar essa alteração.",
+    "emailDisabled": "O envio de e-mail não está configurado nesta implementação, por isso as preferências de e-mail ainda não têm efeito aqui.",
+    "category": "Evento",
+    "securityLocked": "Sempre ativo",
+    "channels": {
+      "in_app": "Na app",
+      "email": "E-mail"
+    },
+    "categories": {
+      "order": "Pedidos",
+      "payment": "Pagamentos",
+      "message": "Mensagens",
+      "reputation": "Reputação",
+      "security": "Segurança",
+      "system": "Sistema"
+    }
+  },
+  "settingsAppearance": {
+    "title": "Aparência",
+    "subtitle": "Como o Agoreum se apresenta e o idioma que fala.",
+    "theme": "Tema",
+    "themeHint": "Claro, escuro ou conforme o seu sistema.",
+    "language": "Idioma",
+    "languageHint": "O idioma usado em toda a app."
   }
 }

@@ -720,6 +720,19 @@
         "title": "Webhooks",
         "description": "Empfangen Sie Ereignisbenachrichtigungen an Ihren eigenen HTTPS-Endpunkten."
       }
+    },
+    "nav": {
+      "label": "Einstellungsbereiche",
+      "items": {
+        "profile": "Profil",
+        "security": "Sicherheit",
+        "wallet": "Wallet",
+        "notifications": "Benachrichtigungen",
+        "appearance": "Darstellung",
+        "organizations": "Organisationen",
+        "apiKeys": "API-Schlüssel",
+        "webhooks": "Webhooks"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, one {# ungelesen} other {# ungelesen}}",
     "markAllRead": "Alle als gelesen markieren",
     "markRead": "Als gelesen markieren"
+  },
+  "settingsProfile": {
+    "title": "Profil",
+    "subtitle": "Ihr Konto, verankert an der Wallet, mit der Sie sich anmelden.",
+    "signInRequired": "Melden Sie sich an, um Ihr Profil zu sehen.",
+    "name": "Name",
+    "address": "Wallet-Adresse",
+    "email": "E-Mail",
+    "noEmail": "Nicht festgelegt",
+    "unnamed": "Ohne Namen",
+    "role": "Rolle",
+    "roles": {
+      "user": "Mitglied",
+      "admin": "Administrator"
+    },
+    "memberSince": "Mitglied seit"
+  },
+  "settingsSecurity": {
+    "title": "Sicherheit",
+    "subtitle": "Die Sitzungen, die als Ihr Konto handeln können.",
+    "signInRequired": "Melden Sie sich an, um die Sicherheit zu verwalten.",
+    "loadFailed": "Ihre Sitzungen konnten nicht geladen werden.",
+    "sessionsTitle": "Aktive Sitzungen",
+    "sessionsHint": "Überall abmelden beendet jede Sitzung, auch diese.",
+    "signOutAll": "Überall abmelden",
+    "signingOut": "Abmelden…",
+    "signOutAllConfirm": "Von allen Sitzungen abmelden, auch von dieser?",
+    "noSessions": "Keine aktiven Sitzungen.",
+    "lastUsed": "Zuletzt verwendet {when}"
+  },
+  "settingsWallet": {
+    "title": "Wallet",
+    "subtitle": "Die mit Ihrem Konto verknüpften Wallets und wohin Auszahlungen gehen.",
+    "signInRequired": "Melden Sie sich an, um Ihre Wallets zu sehen.",
+    "loadFailed": "Ihre Wallets konnten nicht geladen werden.",
+    "hint": "Eine Wallet wird verifiziert, indem man sich mit ihr anmeldet. Auszahlungen gehen nur an eine verifizierte Wallet, die Sie kontrollieren.",
+    "empty": "Noch keine Wallets verknüpft.",
+    "chain": "Chain {id}",
+    "payout": "Auszahlung",
+    "verified": "Verifiziert",
+    "unverified": "Nicht verifiziert"
+  },
+  "settingsNotifications": {
+    "title": "Benachrichtigungen",
+    "subtitle": "Wählen Sie, welche Ereignisse Sie erreichen und wie.",
+    "signInRequired": "Melden Sie sich an, um Benachrichtigungseinstellungen zu verwalten.",
+    "loadFailed": "Ihre Einstellungen konnten nicht geladen werden.",
+    "saveFailed": "Diese Änderung konnte nicht gespeichert werden.",
+    "emailDisabled": "Der E-Mail-Versand ist in dieser Umgebung nicht konfiguriert, daher haben E-Mail-Einstellungen hier noch keine Wirkung.",
+    "category": "Ereignis",
+    "securityLocked": "Immer aktiv",
+    "channels": {
+      "in_app": "In-App",
+      "email": "E-Mail"
+    },
+    "categories": {
+      "order": "Bestellungen",
+      "payment": "Zahlungen",
+      "message": "Nachrichten",
+      "reputation": "Reputation",
+      "security": "Sicherheit",
+      "system": "System"
+    }
+  },
+  "settingsAppearance": {
+    "title": "Darstellung",
+    "subtitle": "Wie Agoreum aussieht und welche Sprache es spricht.",
+    "theme": "Design",
+    "themeHint": "Hell, dunkel oder wie Ihr System.",
+    "language": "Sprache",
+    "languageHint": "Die in der App verwendete Sprache."
   }
 }

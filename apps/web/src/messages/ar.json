@@ -720,6 +720,19 @@
         "title": "خطافات الويب",
         "description": "استقبل إشعارات الأحداث على نقاط النهاية HTTPS الخاصة بك."
       }
+    },
+    "nav": {
+      "label": "أقسام الإعدادات",
+      "items": {
+        "profile": "الملف الشخصي",
+        "security": "الأمان",
+        "wallet": "المحفظة",
+        "notifications": "الإشعارات",
+        "appearance": "المظهر",
+        "organizations": "المؤسسات",
+        "apiKeys": "مفاتيح API",
+        "webhooks": "خطافات الويب"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, other {# غير مقروء}}",
     "markAllRead": "تحديد الكل كمقروء",
     "markRead": "تحديد كمقروء"
+  },
+  "settingsProfile": {
+    "title": "الملف الشخصي",
+    "subtitle": "حسابك المرتبط بالمحفظة التي تسجّل الدخول بها.",
+    "signInRequired": "سجّل الدخول لعرض ملفك الشخصي.",
+    "name": "الاسم",
+    "address": "عنوان المحفظة",
+    "email": "البريد الإلكتروني",
+    "noEmail": "غير محدد",
+    "unnamed": "بلا اسم",
+    "role": "الدور",
+    "roles": {
+      "user": "عضو",
+      "admin": "مسؤول"
+    },
+    "memberSince": "عضو منذ"
+  },
+  "settingsSecurity": {
+    "title": "الأمان",
+    "subtitle": "الجلسات التي يمكنها التصرف باسم حسابك.",
+    "signInRequired": "سجّل الدخول لإدارة الأمان.",
+    "loadFailed": "تعذّر تحميل جلساتك.",
+    "sessionsTitle": "الجلسات النشطة",
+    "sessionsHint": "تسجيل الخروج من كل مكان يُنهي كل الجلسات، بما فيها هذه.",
+    "signOutAll": "تسجيل الخروج من كل مكان",
+    "signingOut": "جارٍ تسجيل الخروج…",
+    "signOutAllConfirm": "تسجيل الخروج من كل الجلسات، بما فيها هذه؟",
+    "noSessions": "لا توجد جلسات نشطة.",
+    "lastUsed": "آخر استخدام {when}"
+  },
+  "settingsWallet": {
+    "title": "المحفظة",
+    "subtitle": "المحافظ المرتبطة بحسابك ووجهة المدفوعات.",
+    "signInRequired": "سجّل الدخول لعرض محافظك.",
+    "loadFailed": "تعذّر تحميل محافظك.",
+    "hint": "يتم التحقق من المحفظة بتسجيل الدخول بها. لا تذهب المدفوعات إلا إلى محفظة موثّقة تتحكم بها.",
+    "empty": "لا توجد محافظ مرتبطة بعد.",
+    "chain": "السلسلة {id}",
+    "payout": "المدفوعات",
+    "verified": "موثّقة",
+    "unverified": "غير موثّقة"
+  },
+  "settingsNotifications": {
+    "title": "الإشعارات",
+    "subtitle": "اختر الأحداث التي تصلك وكيفية وصولها.",
+    "signInRequired": "سجّل الدخول لإدارة تفضيلات الإشعارات.",
+    "loadFailed": "تعذّر تحميل تفضيلاتك.",
+    "saveFailed": "تعذّر حفظ هذا التغيير.",
+    "emailDisabled": "إرسال البريد الإلكتروني غير مُهيّأ في هذا النشر، لذا لا تأثير لتفضيلات البريد هنا بعد.",
+    "category": "الحدث",
+    "securityLocked": "مفعّل دائمًا",
+    "channels": {
+      "in_app": "داخل التطبيق",
+      "email": "البريد"
+    },
+    "categories": {
+      "order": "الطلبات",
+      "payment": "المدفوعات",
+      "message": "الرسائل",
+      "reputation": "السمعة",
+      "security": "الأمان",
+      "system": "النظام"
+    }
+  },
+  "settingsAppearance": {
+    "title": "المظهر",
+    "subtitle": "شكل Agoreum واللغة التي يتحدث بها.",
+    "theme": "السمة",
+    "themeHint": "فاتح أو داكن أو حسب نظامك.",
+    "language": "اللغة",
+    "languageHint": "اللغة المستخدمة في كل التطبيق."
   }
 }

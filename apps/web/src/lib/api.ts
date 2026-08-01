@@ -113,6 +113,27 @@ export type UserProfile = {
 
 export type SignInResponse = { user: UserProfile; tokens: Tokens };
 
+export type WalletSummary = {
+  id: string;
+  address: string;
+  chain_id: number;
+  label: string | null;
+  provider: string;
+  verification_status: string;
+  verified_at: string | null;
+  is_payout: boolean;
+};
+
+export type SessionSummary = {
+  id: string;
+  address: string;
+  chain_id: number;
+  user_agent: string | null;
+  created_at: string;
+  last_used_at: string;
+  expires_at: string;
+};
+
 export const authApi = {
   capabilities: () => apiFetch<AuthCapabilities>("/api/v1/auth/capabilities"),
 
@@ -151,6 +172,12 @@ export const authApi = {
 
   me: (accessToken: string) =>
     apiFetch<UserProfile>("/api/v1/auth/me", { accessToken }),
+
+  wallets: (accessToken: string) =>
+    apiFetch<WalletSummary[]>("/api/v1/auth/me/wallets", { accessToken }),
+
+  sessions: (accessToken: string) =>
+    apiFetch<SessionSummary[]>("/api/v1/auth/me/sessions", { accessToken }),
 };
 
 // --- Marketplace ------------------------------------------------------------
@@ -547,6 +574,22 @@ export const reputationApi = {
     ),
 };
 
+export type NotificationChannel = "in_app" | "email";
+export type NotificationCategory =
+  | "order" | "payment" | "message" | "reputation" | "security" | "system";
+
+export type NotificationPreference = {
+  category: NotificationCategory;
+  channel: NotificationChannel;
+  enabled: boolean;
+};
+
+export type EmailStatus = {
+  enabled: boolean;
+  reason: string | null;
+  from_address: string;
+};
+
 export const notificationsApi = {
   list: (accessToken: string, unreadOnly = false) =>
     apiFetch<NotificationList>(
@@ -565,6 +608,21 @@ export const notificationsApi = {
       method: "POST",
       accessToken,
     }),
+
+  preferences: (accessToken: string) =>
+    apiFetch<NotificationPreference[]>("/api/v1/notifications/preferences", {
+      accessToken,
+    }),
+
+  setPreference: (accessToken: string, body: NotificationPreference) =>
+    apiFetch<NotificationPreference>("/api/v1/notifications/preferences", {
+      method: "PUT",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  emailStatus: () =>
+    apiFetch<EmailStatus>("/api/v1/notifications/email-status"),
 };
 
 // --- API keys ---------------------------------------------------------------

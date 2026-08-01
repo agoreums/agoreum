@@ -720,6 +720,19 @@
         "title": "Webhooks",
         "description": "Recibe notificaciones de eventos en tus propios endpoints HTTPS."
       }
+    },
+    "nav": {
+      "label": "Secciones de ajustes",
+      "items": {
+        "profile": "Perfil",
+        "security": "Seguridad",
+        "wallet": "Monedero",
+        "notifications": "Notificaciones",
+        "appearance": "Apariencia",
+        "organizations": "Organizaciones",
+        "apiKeys": "Claves de API",
+        "webhooks": "Webhooks"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, one {# sin leer} other {# sin leer}}",
     "markAllRead": "Marcar todo como leído",
     "markRead": "Marcar leído"
+  },
+  "settingsProfile": {
+    "title": "Perfil",
+    "subtitle": "Tu cuenta, vinculada al monedero con el que inicias sesión.",
+    "signInRequired": "Inicia sesión para ver tu perfil.",
+    "name": "Nombre",
+    "address": "Dirección del monedero",
+    "email": "Correo",
+    "noEmail": "Sin definir",
+    "unnamed": "Sin nombre",
+    "role": "Rol",
+    "roles": {
+      "user": "Miembro",
+      "admin": "Administrador"
+    },
+    "memberSince": "Miembro desde"
+  },
+  "settingsSecurity": {
+    "title": "Seguridad",
+    "subtitle": "Las sesiones que pueden actuar como tu cuenta.",
+    "signInRequired": "Inicia sesión para gestionar la seguridad.",
+    "loadFailed": "No pudimos cargar tus sesiones.",
+    "sessionsTitle": "Sesiones activas",
+    "sessionsHint": "Cerrar sesión en todas partes termina todas las sesiones, incluida esta.",
+    "signOutAll": "Cerrar sesión en todas partes",
+    "signingOut": "Cerrando sesión…",
+    "signOutAllConfirm": "¿Cerrar todas las sesiones, incluida esta?",
+    "noSessions": "No hay sesiones activas.",
+    "lastUsed": "Último uso {when}"
+  },
+  "settingsWallet": {
+    "title": "Monedero",
+    "subtitle": "Los monederos vinculados a tu cuenta y a dónde van los pagos.",
+    "signInRequired": "Inicia sesión para ver tus monederos.",
+    "loadFailed": "No pudimos cargar tus monederos.",
+    "hint": "Un monedero se verifica iniciando sesión con él. Los pagos solo van a un monedero verificado que controlas.",
+    "empty": "Aún no hay monederos vinculados.",
+    "chain": "Cadena {id}",
+    "payout": "Pagos",
+    "verified": "Verificado",
+    "unverified": "Sin verificar"
+  },
+  "settingsNotifications": {
+    "title": "Notificaciones",
+    "subtitle": "Elige qué eventos te llegan y cómo.",
+    "signInRequired": "Inicia sesión para gestionar las preferencias de notificación.",
+    "loadFailed": "No pudimos cargar tus preferencias.",
+    "saveFailed": "No pudimos guardar ese cambio.",
+    "emailDisabled": "El envío de correo no está configurado en este despliegue, así que las preferencias de correo aún no tienen efecto aquí.",
+    "category": "Evento",
+    "securityLocked": "Siempre activo",
+    "channels": {
+      "in_app": "En la app",
+      "email": "Correo"
+    },
+    "categories": {
+      "order": "Pedidos",
+      "payment": "Pagos",
+      "message": "Mensajes",
+      "reputation": "Reputación",
+      "security": "Seguridad",
+      "system": "Sistema"
+    }
+  },
+  "settingsAppearance": {
+    "title": "Apariencia",
+    "subtitle": "Cómo se ve Agoreum y el idioma que habla.",
+    "theme": "Tema",
+    "themeHint": "Claro, oscuro o según tu sistema.",
+    "language": "Idioma",
+    "languageHint": "El idioma usado en toda la app."
   }
 }

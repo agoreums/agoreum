@@ -720,6 +720,19 @@
         "title": "Webhooks",
         "description": "Receive event notifications at your own HTTPS endpoints."
       }
+    },
+    "nav": {
+      "label": "Settings sections",
+      "items": {
+        "profile": "Profile",
+        "security": "Security",
+        "wallet": "Wallet",
+        "notifications": "Notifications",
+        "appearance": "Appearance",
+        "organizations": "Organizations",
+        "apiKeys": "API keys",
+        "webhooks": "Webhooks"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, one {# unread} other {# unread}}",
     "markAllRead": "Mark all as read",
     "markRead": "Mark read"
+  },
+  "settingsProfile": {
+    "title": "Profile",
+    "subtitle": "Your account, anchored to the wallet you sign in with.",
+    "signInRequired": "Sign in to view your profile.",
+    "name": "Name",
+    "address": "Wallet address",
+    "email": "Email",
+    "noEmail": "Not set",
+    "unnamed": "Unnamed",
+    "role": "Role",
+    "roles": {
+      "user": "Member",
+      "admin": "Administrator"
+    },
+    "memberSince": "Member since"
+  },
+  "settingsSecurity": {
+    "title": "Security",
+    "subtitle": "The sessions that can act as your account.",
+    "signInRequired": "Sign in to manage security.",
+    "loadFailed": "We could not load your sessions.",
+    "sessionsTitle": "Active sessions",
+    "sessionsHint": "Signing out everywhere ends every session, including this one.",
+    "signOutAll": "Sign out everywhere",
+    "signingOut": "Signing out…",
+    "signOutAllConfirm": "Sign out of every session, including this one?",
+    "noSessions": "No active sessions.",
+    "lastUsed": "Last used {when}"
+  },
+  "settingsWallet": {
+    "title": "Wallet",
+    "subtitle": "The wallets linked to your account and where payouts go.",
+    "signInRequired": "Sign in to view your wallets.",
+    "loadFailed": "We could not load your wallets.",
+    "hint": "A wallet is verified by signing in with it. Payouts only ever go to a verified wallet you control.",
+    "empty": "No wallets linked yet.",
+    "chain": "Chain {id}",
+    "payout": "Payout",
+    "verified": "Verified",
+    "unverified": "Unverified"
+  },
+  "settingsNotifications": {
+    "title": "Notifications",
+    "subtitle": "Choose which events reach you, and how.",
+    "signInRequired": "Sign in to manage notification preferences.",
+    "loadFailed": "We could not load your preferences.",
+    "saveFailed": "We could not save that change.",
+    "emailDisabled": "Email delivery is not configured on this deployment, so email preferences have no effect here yet.",
+    "category": "Event",
+    "securityLocked": "Always on",
+    "channels": {
+      "in_app": "In-app",
+      "email": "Email"
+    },
+    "categories": {
+      "order": "Orders",
+      "payment": "Payments",
+      "message": "Messages",
+      "reputation": "Reputation",
+      "security": "Security",
+      "system": "System"
+    }
+  },
+  "settingsAppearance": {
+    "title": "Appearance",
+    "subtitle": "How Agoreum looks and the language it speaks.",
+    "theme": "Theme",
+    "themeHint": "Light, dark, or match your system.",
+    "language": "Language",
+    "languageHint": "The language used across the app."
   }
 }

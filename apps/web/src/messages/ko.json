@@ -720,6 +720,19 @@
         "title": "웹훅",
         "description": "자체 HTTPS 엔드포인트에서 이벤트 알림을 받으세요."
       }
+    },
+    "nav": {
+      "label": "설정 섹션",
+      "items": {
+        "profile": "프로필",
+        "security": "보안",
+        "wallet": "지갑",
+        "notifications": "알림",
+        "appearance": "화면",
+        "organizations": "조직",
+        "apiKeys": "API 키",
+        "webhooks": "웹훅"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, other {읽지 않음 # 개}}",
     "markAllRead": "모두 읽음으로 표시",
     "markRead": "읽음으로 표시"
+  },
+  "settingsProfile": {
+    "title": "프로필",
+    "subtitle": "로그인에 사용하는 지갑에 연결된 계정입니다.",
+    "signInRequired": "프로필을 보려면 로그인하세요.",
+    "name": "이름",
+    "address": "지갑 주소",
+    "email": "이메일",
+    "noEmail": "미설정",
+    "unnamed": "이름 없음",
+    "role": "역할",
+    "roles": {
+      "user": "멤버",
+      "admin": "관리자"
+    },
+    "memberSince": "가입일"
+  },
+  "settingsSecurity": {
+    "title": "보안",
+    "subtitle": "내 계정으로 활동할 수 있는 세션.",
+    "signInRequired": "보안을 관리하려면 로그인하세요.",
+    "loadFailed": "세션을 불러오지 못했습니다.",
+    "sessionsTitle": "활성 세션",
+    "sessionsHint": "모든 곳에서 로그아웃하면 현재 세션을 포함한 모든 세션이 종료됩니다.",
+    "signOutAll": "모든 곳에서 로그아웃",
+    "signingOut": "로그아웃 중…",
+    "signOutAllConfirm": "현재 세션을 포함한 모든 세션에서 로그아웃할까요?",
+    "noSessions": "활성 세션이 없습니다.",
+    "lastUsed": "마지막 사용 {when}"
+  },
+  "settingsWallet": {
+    "title": "지갑",
+    "subtitle": "계정에 연결된 지갑과 정산이 이루어지는 곳.",
+    "signInRequired": "지갑을 보려면 로그인하세요.",
+    "loadFailed": "지갑을 불러오지 못했습니다.",
+    "hint": "지갑은 해당 지갑으로 로그인하여 검증됩니다. 정산은 본인이 관리하는 검증된 지갑으로만 전송됩니다.",
+    "empty": "아직 연결된 지갑이 없습니다.",
+    "chain": "체인 {id}",
+    "payout": "정산",
+    "verified": "검증됨",
+    "unverified": "미검증"
+  },
+  "settingsNotifications": {
+    "title": "알림",
+    "subtitle": "어떤 이벤트를 어떤 방식으로 받을지 선택하세요.",
+    "signInRequired": "알림 설정을 관리하려면 로그인하세요.",
+    "loadFailed": "설정을 불러오지 못했습니다.",
+    "saveFailed": "변경 사항을 저장하지 못했습니다.",
+    "emailDisabled": "이 배포에서는 이메일 발송이 구성되어 있지 않아 이메일 설정은 아직 적용되지 않습니다.",
+    "category": "이벤트",
+    "securityLocked": "항상 켜짐",
+    "channels": {
+      "in_app": "앱 내",
+      "email": "이메일"
+    },
+    "categories": {
+      "order": "주문",
+      "payment": "결제",
+      "message": "메시지",
+      "reputation": "평판",
+      "security": "보안",
+      "system": "시스템"
+    }
+  },
+  "settingsAppearance": {
+    "title": "화면",
+    "subtitle": "Agoreum의 모습과 표시 언어.",
+    "theme": "테마",
+    "themeHint": "밝게, 어둡게 또는 시스템에 맞춤.",
+    "language": "언어",
+    "languageHint": "앱 전체에서 사용하는 언어."
   }
 }

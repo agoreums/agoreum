@@ -720,6 +720,19 @@
         "title": "Webhook",
         "description": "自分の HTTPS エンドポイントでイベント通知を受け取ります。"
       }
+    },
+    "nav": {
+      "label": "設定セクション",
+      "items": {
+        "profile": "プロフィール",
+        "security": "セキュリティ",
+        "wallet": "ウォレット",
+        "notifications": "通知",
+        "appearance": "外観",
+        "organizations": "組織",
+        "apiKeys": "API キー",
+        "webhooks": "Webhook"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, other {未読 # 件}}",
     "markAllRead": "すべて既読にする",
     "markRead": "既読にする"
+  },
+  "settingsProfile": {
+    "title": "プロフィール",
+    "subtitle": "サインインに使うウォレットに紐づくアカウントです。",
+    "signInRequired": "プロフィールを表示するにはサインインしてください。",
+    "name": "名前",
+    "address": "ウォレットアドレス",
+    "email": "メール",
+    "noEmail": "未設定",
+    "unnamed": "名前なし",
+    "role": "ロール",
+    "roles": {
+      "user": "メンバー",
+      "admin": "管理者"
+    },
+    "memberSince": "登録日"
+  },
+  "settingsSecurity": {
+    "title": "セキュリティ",
+    "subtitle": "あなたのアカウントとして操作できるセッション。",
+    "signInRequired": "セキュリティを管理するにはサインインしてください。",
+    "loadFailed": "セッションを読み込めませんでした。",
+    "sessionsTitle": "アクティブなセッション",
+    "sessionsHint": "すべてからサインアウトすると、このセッションを含むすべてが終了します。",
+    "signOutAll": "すべてからサインアウト",
+    "signingOut": "サインアウト中…",
+    "signOutAllConfirm": "このセッションを含むすべてのセッションからサインアウトしますか？",
+    "noSessions": "アクティブなセッションはありません。",
+    "lastUsed": "最終利用 {when}"
+  },
+  "settingsWallet": {
+    "title": "ウォレット",
+    "subtitle": "アカウントに紐づくウォレットと支払い先。",
+    "signInRequired": "ウォレットを表示するにはサインインしてください。",
+    "loadFailed": "ウォレットを読み込めませんでした。",
+    "hint": "ウォレットはそれでサインインすることで検証されます。支払いは、あなたが管理する検証済みウォレットにのみ送られます。",
+    "empty": "まだウォレットが連携されていません。",
+    "chain": "チェーン {id}",
+    "payout": "支払い",
+    "verified": "検証済み",
+    "unverified": "未検証"
+  },
+  "settingsNotifications": {
+    "title": "通知",
+    "subtitle": "どのイベントを、どの方法で受け取るかを選びます。",
+    "signInRequired": "通知設定を管理するにはサインインしてください。",
+    "loadFailed": "設定を読み込めませんでした。",
+    "saveFailed": "変更を保存できませんでした。",
+    "emailDisabled": "このデプロイではメール送信が設定されていないため、メールの設定はまだ反映されません。",
+    "category": "イベント",
+    "securityLocked": "常にオン",
+    "channels": {
+      "in_app": "アプリ内",
+      "email": "メール"
+    },
+    "categories": {
+      "order": "注文",
+      "payment": "支払い",
+      "message": "メッセージ",
+      "reputation": "評判",
+      "security": "セキュリティ",
+      "system": "システム"
+    }
+  },
+  "settingsAppearance": {
+    "title": "外観",
+    "subtitle": "Agoreum の見た目と表示言語。",
+    "theme": "テーマ",
+    "themeHint": "ライト、ダーク、またはシステムに合わせる。",
+    "language": "言語",
+    "languageHint": "アプリ全体で使う言語。"
   }
 }

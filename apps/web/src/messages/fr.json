@@ -720,6 +720,19 @@
         "title": "Webhooks",
         "description": "Recevez les notifications d'événements sur vos propres points de terminaison HTTPS."
       }
+    },
+    "nav": {
+      "label": "Sections des paramètres",
+      "items": {
+        "profile": "Profil",
+        "security": "Sécurité",
+        "wallet": "Portefeuille",
+        "notifications": "Notifications",
+        "appearance": "Apparence",
+        "organizations": "Organisations",
+        "apiKeys": "Clés d'API",
+        "webhooks": "Webhooks"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, one {# non lue} other {# non lues}}",
     "markAllRead": "Tout marquer comme lu",
     "markRead": "Marquer comme lu"
+  },
+  "settingsProfile": {
+    "title": "Profil",
+    "subtitle": "Votre compte, lié au portefeuille avec lequel vous vous connectez.",
+    "signInRequired": "Connectez-vous pour voir votre profil.",
+    "name": "Nom",
+    "address": "Adresse du portefeuille",
+    "email": "E-mail",
+    "noEmail": "Non défini",
+    "unnamed": "Sans nom",
+    "role": "Rôle",
+    "roles": {
+      "user": "Membre",
+      "admin": "Administrateur"
+    },
+    "memberSince": "Membre depuis"
+  },
+  "settingsSecurity": {
+    "title": "Sécurité",
+    "subtitle": "Les sessions pouvant agir en tant que votre compte.",
+    "signInRequired": "Connectez-vous pour gérer la sécurité.",
+    "loadFailed": "Nous n'avons pas pu charger vos sessions.",
+    "sessionsTitle": "Sessions actives",
+    "sessionsHint": "Se déconnecter partout met fin à toutes les sessions, y compris celle-ci.",
+    "signOutAll": "Se déconnecter partout",
+    "signingOut": "Déconnexion…",
+    "signOutAllConfirm": "Se déconnecter de toutes les sessions, y compris celle-ci ?",
+    "noSessions": "Aucune session active.",
+    "lastUsed": "Dernière utilisation {when}"
+  },
+  "settingsWallet": {
+    "title": "Portefeuille",
+    "subtitle": "Les portefeuilles liés à votre compte et la destination des paiements.",
+    "signInRequired": "Connectez-vous pour voir vos portefeuilles.",
+    "loadFailed": "Nous n'avons pas pu charger vos portefeuilles.",
+    "hint": "Un portefeuille est vérifié en s'y connectant. Les paiements ne vont qu'à un portefeuille vérifié que vous contrôlez.",
+    "empty": "Aucun portefeuille lié pour l'instant.",
+    "chain": "Chaîne {id}",
+    "payout": "Paiements",
+    "verified": "Vérifié",
+    "unverified": "Non vérifié"
+  },
+  "settingsNotifications": {
+    "title": "Notifications",
+    "subtitle": "Choisissez quels événements vous parviennent, et comment.",
+    "signInRequired": "Connectez-vous pour gérer les préférences de notification.",
+    "loadFailed": "Nous n'avons pas pu charger vos préférences.",
+    "saveFailed": "Nous n'avons pas pu enregistrer ce changement.",
+    "emailDisabled": "L'envoi d'e-mails n'est pas configuré sur ce déploiement ; les préférences d'e-mail n'ont donc pas encore d'effet ici.",
+    "category": "Événement",
+    "securityLocked": "Toujours actif",
+    "channels": {
+      "in_app": "Dans l'app",
+      "email": "E-mail"
+    },
+    "categories": {
+      "order": "Commandes",
+      "payment": "Paiements",
+      "message": "Messages",
+      "reputation": "Réputation",
+      "security": "Sécurité",
+      "system": "Système"
+    }
+  },
+  "settingsAppearance": {
+    "title": "Apparence",
+    "subtitle": "L'apparence d'Agoreum et la langue qu'il parle.",
+    "theme": "Thème",
+    "themeHint": "Clair, sombre ou selon votre système.",
+    "language": "Langue",
+    "languageHint": "La langue utilisée dans toute l'app."
   }
 }

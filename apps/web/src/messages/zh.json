@@ -720,6 +720,19 @@
         "title": "Webhook",
         "description": "在您自己的 HTTPS 端点接收事件通知。"
       }
+    },
+    "nav": {
+      "label": "设置分区",
+      "items": {
+        "profile": "个人资料",
+        "security": "安全",
+        "wallet": "钱包",
+        "notifications": "通知",
+        "appearance": "外观",
+        "organizations": "组织",
+        "apiKeys": "API 密钥",
+        "webhooks": "Webhook"
+      }
     }
   },
   "orders": {
@@ -753,5 +766,76 @@
     "unreadCount": "{count, plural, other {# 条未读}}",
     "markAllRead": "全部标为已读",
     "markRead": "标为已读"
+  },
+  "settingsProfile": {
+    "title": "个人资料",
+    "subtitle": "您的账户，与您登录所用的钱包绑定。",
+    "signInRequired": "登录以查看您的个人资料。",
+    "name": "名称",
+    "address": "钱包地址",
+    "email": "电子邮件",
+    "noEmail": "未设置",
+    "unnamed": "未命名",
+    "role": "角色",
+    "roles": {
+      "user": "成员",
+      "admin": "管理员"
+    },
+    "memberSince": "加入时间"
+  },
+  "settingsSecurity": {
+    "title": "安全",
+    "subtitle": "可以代表您账户操作的会话。",
+    "signInRequired": "登录以管理安全。",
+    "loadFailed": "无法加载您的会话。",
+    "sessionsTitle": "活动会话",
+    "sessionsHint": "在所有设备上退出会结束所有会话，包括当前会话。",
+    "signOutAll": "在所有设备上退出",
+    "signingOut": "正在退出…",
+    "signOutAllConfirm": "退出所有会话，包括当前会话？",
+    "noSessions": "没有活动会话。",
+    "lastUsed": "最近使用 {when}"
+  },
+  "settingsWallet": {
+    "title": "钱包",
+    "subtitle": "与您账户绑定的钱包，以及收款去向。",
+    "signInRequired": "登录以查看您的钱包。",
+    "loadFailed": "无法加载您的钱包。",
+    "hint": "钱包通过用它登录来验证。收款只会发送到您掌控的已验证钱包。",
+    "empty": "尚未绑定钱包。",
+    "chain": "链 {id}",
+    "payout": "收款",
+    "verified": "已验证",
+    "unverified": "未验证"
+  },
+  "settingsNotifications": {
+    "title": "通知",
+    "subtitle": "选择哪些事件通知您，以及通过什么方式。",
+    "signInRequired": "登录以管理通知偏好。",
+    "loadFailed": "无法加载您的偏好。",
+    "saveFailed": "无法保存该更改。",
+    "emailDisabled": "此部署未配置邮件发送，因此邮件偏好在此暂不生效。",
+    "category": "事件",
+    "securityLocked": "始终开启",
+    "channels": {
+      "in_app": "应用内",
+      "email": "邮件"
+    },
+    "categories": {
+      "order": "订单",
+      "payment": "支付",
+      "message": "消息",
+      "reputation": "声誉",
+      "security": "安全",
+      "system": "系统"
+    }
+  },
+  "settingsAppearance": {
+    "title": "外观",
+    "subtitle": "Agoreum 的外观及其使用的语言。",
+    "theme": "主题",
+    "themeHint": "浅色、深色或跟随系统。",
+    "language": "语言",
+    "languageHint": "整个应用使用的语言。"
   }
 }
