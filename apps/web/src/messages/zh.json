@@ -733,7 +733,9 @@
         "appearance": "外观",
         "organizations": "组织",
         "apiKeys": "API 密钥",
-        "webhooks": "Webhook"
+        "webhooks": "Webhook",
+        "preferences": "偏好",
+        "privacy": "隐私"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "个人资料",
     "subtitle": "您的账户，与您登录所用的钱包绑定。",
-    "signInRequired": "登录以查看您的个人资料。",
-    "name": "名称",
-    "address": "钱包地址",
-    "email": "电子邮件",
-    "noEmail": "未设置",
-    "unnamed": "未命名",
-    "role": "角色",
-    "roles": {
-      "user": "成员",
-      "admin": "管理员"
-    },
+    "signInRequired": "登录以编辑您的个人资料。",
+    "addressLabel": "钱包地址",
+    "addressHint": "您的身份锚定于此，无法更改。",
+    "nameLabel": "显示名称",
+    "namePlaceholder": "您在 Agoreum 上的显示方式",
+    "usernameLabel": "用户名",
+    "usernameHint": "3 到 32 个字符：小写字母、数字、连字符和下划线。",
+    "emailLabel": "电子邮件",
+    "emailHint": "仅用于通知。留空则不接收通知。",
+    "emailVerified": "已验证",
+    "emailUnverified": "未验证",
+    "emailReverify": "更改邮箱会清除其验证，直到您确认新邮箱。",
+    "bioLabel": "简介",
+    "avatarLabel": "头像 URL",
+    "save": "保存更改",
+    "saving": "保存中…",
+    "saved": "个人资料已保存。",
+    "saveFailed": "无法保存您的个人资料。",
     "memberSince": "加入时间"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "交易",
       "amount": "金额"
     }
+  },
+  "settingsPreferences": {
+    "title": "偏好",
+    "subtitle": "跨设备跟随您的账户偏好。",
+    "signInRequired": "登录以管理您的偏好。",
+    "communicationsLanguage": "通信语言",
+    "communicationsHint": "您的通知和邮件所用的语言。界面语言在“外观”中设置。",
+    "save": "保存",
+    "saving": "保存中…",
+    "saved": "偏好已保存。",
+    "saveFailed": "无法保存您的偏好。"
+  },
+  "settingsPrivacy": {
+    "title": "隐私",
+    "subtitle": "Agoreum 保存了什么，以及您对账户的控制。",
+    "signInRequired": "登录以管理隐私。",
+    "dataTitle": "我们保存的内容",
+    "dataHint": "Agoreum 只保留运行所需的信息。",
+    "dataAddress": "您的钱包地址，即您的身份。",
+    "dataEmail": "可选的电子邮件，仅用于通知。",
+    "dataActivity": "您真实订单、智能体和声誉的记录。",
+    "emailManaged": "您的邮箱在您的",
+    "emailManagedLink": "个人资料",
+    "pauseTitle": "暂停您的账户",
+    "pauseHint": "暂停会在所有设备退出并隐藏您的账户。它会保持暂停，直到您再次登录才恢复。他人无法为您解除。",
+    "pause": "暂停账户",
+    "pausing": "暂停中…",
+    "pauseConfirm": "暂停您的账户并在所有设备退出？再次登录即可恢复。",
+    "pauseFailed": "无法暂停您的账户。"
   }
 }

@@ -733,7 +733,9 @@
         "appearance": "Apariencia",
         "organizations": "Organizaciones",
         "apiKeys": "Claves de API",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "preferences": "Preferencias",
+        "privacy": "Privacidad"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "Perfil",
     "subtitle": "Tu cuenta, vinculada al monedero con el que inicias sesión.",
-    "signInRequired": "Inicia sesión para ver tu perfil.",
-    "name": "Nombre",
-    "address": "Dirección del monedero",
-    "email": "Correo",
-    "noEmail": "Sin definir",
-    "unnamed": "Sin nombre",
-    "role": "Rol",
-    "roles": {
-      "user": "Miembro",
-      "admin": "Administrador"
-    },
+    "signInRequired": "Inicia sesión para editar tu perfil.",
+    "addressLabel": "Dirección del monedero",
+    "addressHint": "Tu identidad está anclada aquí y no se puede cambiar.",
+    "nameLabel": "Nombre para mostrar",
+    "namePlaceholder": "Cómo apareces en Agoreum",
+    "usernameLabel": "Nombre de usuario",
+    "usernameHint": "De 3 a 32 caracteres: minúsculas, números, guiones y guiones bajos.",
+    "emailLabel": "Correo",
+    "emailHint": "Solo se usa para notificaciones. Déjalo vacío para no recibir ninguna.",
+    "emailVerified": "Verificado",
+    "emailUnverified": "Sin verificar",
+    "emailReverify": "Cambiar tu correo borra su verificación hasta que confirmes el nuevo.",
+    "bioLabel": "Biografía",
+    "avatarLabel": "URL del avatar",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "Perfil guardado.",
+    "saveFailed": "No pudimos guardar tu perfil.",
     "memberSince": "Miembro desde"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "Transacción",
       "amount": "Importe"
     }
+  },
+  "settingsPreferences": {
+    "title": "Preferencias",
+    "subtitle": "Preferencias de cuenta que te acompañan en todos los dispositivos.",
+    "signInRequired": "Inicia sesión para gestionar tus preferencias.",
+    "communicationsLanguage": "Idioma de comunicaciones",
+    "communicationsHint": "El idioma de tus notificaciones y correos. El idioma de la interfaz se ajusta en Apariencia.",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saved": "Preferencias guardadas.",
+    "saveFailed": "No pudimos guardar tus preferencias."
+  },
+  "settingsPrivacy": {
+    "title": "Privacidad",
+    "subtitle": "Qué guarda Agoreum y los controles que tienes sobre tu cuenta.",
+    "signInRequired": "Inicia sesión para gestionar la privacidad.",
+    "dataTitle": "Qué guardamos",
+    "dataHint": "Agoreum solo conserva lo que necesita para funcionar.",
+    "dataAddress": "Tu dirección de monedero, que es tu identidad.",
+    "dataEmail": "Un correo opcional, usado solo para notificaciones.",
+    "dataActivity": "El registro de tus pedidos, agentes y reputación reales.",
+    "emailManaged": "Tu correo se gestiona en tu",
+    "emailManagedLink": "perfil",
+    "pauseTitle": "Pausar tu cuenta",
+    "pauseHint": "Pausar cierra tu sesión en todas partes y oculta tu cuenta. Permanece en pausa hasta que vuelvas a iniciar sesión, lo que la restaura. Nadie más puede reactivarla por ti.",
+    "pause": "Pausar cuenta",
+    "pausing": "Pausando…",
+    "pauseConfirm": "¿Pausar tu cuenta y cerrar sesión en todas partes? Volver a iniciar sesión la restaura.",
+    "pauseFailed": "No pudimos pausar tu cuenta."
   }
 }

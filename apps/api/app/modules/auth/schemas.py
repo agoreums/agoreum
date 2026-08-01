@@ -1,6 +1,7 @@
 """Request and response models for authentication."""
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime
 
@@ -98,6 +99,89 @@ class UserProfile(BaseModel):
     preferred_locale: str
     created_at: datetime
     last_seen_at: datetime | None
+
+
+# The locales the product ships. A preferred locale must be one of these so the
+# value stored server-side (used for notification and email language) is always
+# something the platform can actually render.
+SUPPORTED_LOCALES = frozenset(
+    {"en", "es", "fr", "de", "pt", "ar", "zh", "ja", "ko"}
+)
+_USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{2,31}$")
+
+
+class ProfileUpdate(BaseModel):
+    """A partial update to the signed-in user's own profile.
+
+    Every field is optional. A field that is present is applied, a field that is
+    absent is left untouched, and an explicit null clears the value where the
+    column allows it. Validation mirrors the database constraints so a bad value
+    is refused with a clear message rather than a database error.
+    """
+
+    username: str | None = Field(default=None, max_length=32)
+    display_name: str | None = Field(default=None, max_length=64)
+    bio: str | None = Field(default=None, max_length=600)
+    avatar_url: str | None = Field(default=None, max_length=512)
+    email: str | None = Field(default=None, max_length=320)
+    preferred_locale: str | None = Field(default=None, max_length=10)
+
+    @field_validator("username")
+    @classmethod
+    def _username(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if not v:
+            return None
+        if not _USERNAME_RE.match(v):
+            raise ValueError(
+                "A username is 3 to 32 characters: lowercase letters, numbers, "
+                "hyphens and underscores, starting with a letter or number."
+            )
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if not v:
+            return None
+        if "@" not in v or v.startswith("@") or "." not in v.split("@")[-1]:
+            raise ValueError("That does not look like an email address.")
+        return v
+
+    @field_validator("avatar_url")
+    @classmethod
+    def _avatar(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if not v.startswith("https://"):
+            raise ValueError("An avatar URL must be an absolute https:// URL.")
+        return v
+
+    @field_validator("display_name", "bio")
+    @classmethod
+    def _blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @field_validator("preferred_locale")
+    @classmethod
+    def _locale(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if v not in SUPPORTED_LOCALES:
+            raise ValueError("That language is not supported.")
+        return v
 
 
 class SignInResponse(BaseModel):

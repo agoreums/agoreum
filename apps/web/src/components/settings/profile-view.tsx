@@ -1,17 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { truncateAddress } from "@/components/auth/connect-wallet";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ApiError, authApi, type ProfileUpdate, type UserProfile } from "@/lib/api";
 
 /**
- * The account overview.
+ * The editable profile.
  *
- * Identity on Agoreum is anchored to a wallet, not an editable profile, so this
- * screen reads the real account and does not offer fields the platform has no
- * endpoint to save. What can be changed, appearance, notifications, wallets, has
- * its own screen.
+ * Identity is anchored to the wallet, which is shown but never editable. The rest,
+ * a display name, a username, an optional email, a bio and avatar, is saved
+ * through the profile endpoint. Changing the email clears its verification until
+ * it is proven again, which the interface states plainly.
  */
 export function ProfileView() {
   const t = useTranslations("settingsProfile");
@@ -25,44 +27,179 @@ export function ProfileView() {
     );
   }
 
-  const rows: { label: string; value: string; mono?: boolean }[] = [
-    {
-      label: t("name"),
-      value: user.display_name || user.username || t("unnamed"),
-    },
-    { label: t("address"), value: user.primary_address, mono: true },
-    { label: t("email"), value: user.email ?? t("noEmail") },
-    { label: t("role"), value: t(`roles.${user.role}`) },
-    {
-      label: t("memberSince"),
-      value: new Date(user.created_at).toLocaleDateString(),
-    },
-  ];
+  // Keyed on identity so the form's initial values always reflect the loaded user.
+  return <ProfileForm key={user.id} user={user} />;
+}
+
+function ProfileForm({ user }: { user: UserProfile }) {
+  const t = useTranslations("settingsProfile");
+  const { accessToken, refreshUser } = useAuth();
+
+  const [displayName, setDisplayName] = useState(user.display_name ?? "");
+  const [username, setUsername] = useState(user.username ?? "");
+  const [email, setEmail] = useState(user.email ?? "");
+  const [bio, setBio] = useState(user.bio ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(user.avatar_url ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const emailChanged = (email.trim() || null) !== (user.email ?? null);
+
+  async function save() {
+    if (!accessToken) return;
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    const body: ProfileUpdate = {
+      display_name: displayName.trim() || null,
+      username: username.trim() || null,
+      email: email.trim() || null,
+      bio: bio.trim() || null,
+      avatar_url: avatarUrl.trim() || null,
+    };
+    try {
+      await authApi.updateProfile(accessToken, body);
+      await refreshUser();
+      setSaved(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("saveFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <dl className="divide-y divide-[var(--border-subtle)] rounded-[var(--radius-card)] border border-[var(--border-subtle)]">
-      {rows.map((row) => (
-        <div
-          key={row.label}
-          className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+    <form
+      className="max-w-2xl space-y-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <Field label={t("addressLabel")} hint={t("addressHint")}>
+        <p className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-2.5 font-mono text-sm text-[var(--text-secondary)]">
+          <span className="hidden sm:inline">{user.primary_address}</span>
+          <span className="sm:hidden">{truncateAddress(user.primary_address)}</span>
+        </p>
+      </Field>
+
+      <Field label={t("nameLabel")}>
+        <input
+          type="text"
+          value={displayName}
+          maxLength={64}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder={t("namePlaceholder")}
+          className={inputClass}
+        />
+      </Field>
+
+      <Field label={t("usernameLabel")} hint={t("usernameHint")}>
+        <input
+          type="text"
+          value={username}
+          maxLength={32}
+          onChange={(e) => setUsername(e.target.value)}
+          className={inputClass}
+        />
+      </Field>
+
+      <Field
+        label={t("emailLabel")}
+        hint={t("emailHint")}
+        aside={
+          user.email ? (
+            <span
+              className={`rounded-full border px-2 py-0.5 text-xs ${
+                user.email_verified_at
+                  ? "border-success-500/40 text-success-500"
+                  : "border-[var(--border-subtle)] text-[var(--text-muted)]"
+              }`}
+            >
+              {user.email_verified_at ? t("emailVerified") : t("emailUnverified")}
+            </span>
+          ) : null
+        }
+      >
+        <input
+          type="email"
+          value={email}
+          maxLength={320}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
+        />
+        {emailChanged && email.trim() ? (
+          <p className="mt-1.5 text-xs text-warning-500">{t("emailReverify")}</p>
+        ) : null}
+      </Field>
+
+      <Field label={t("bioLabel")}>
+        <textarea
+          value={bio}
+          maxLength={600}
+          rows={4}
+          onChange={(e) => setBio(e.target.value)}
+          className={`${inputClass} resize-y`}
+        />
+      </Field>
+
+      <Field label={t("avatarLabel")}>
+        <input
+          type="url"
+          value={avatarUrl}
+          maxLength={512}
+          onChange={(e) => setAvatarUrl(e.target.value)}
+          placeholder="https://"
+          className={inputClass}
+        />
+      </Field>
+
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
+      {saved ? <p className="text-sm text-success-500">{t("saved")}</p> : null}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy}
+          className="inline-flex rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-500 disabled:opacity-60"
         >
-          <dt className="text-sm text-[var(--text-muted)]">{row.label}</dt>
-          <dd
-            className={`text-sm text-[var(--text-primary)] ${
-              row.mono ? "break-all font-mono" : ""
-            }`}
-          >
-            {row.mono ? (
-              <span className="hidden sm:inline">{row.value}</span>
-            ) : (
-              row.value
-            )}
-            {row.mono ? (
-              <span className="sm:hidden">{truncateAddress(row.value)}</span>
-            ) : null}
-          </dd>
-        </div>
-      ))}
-    </dl>
+          {busy ? t("saving") : t("save")}
+        </button>
+        <span className="text-xs text-[var(--text-muted)]">
+          {t("memberSince")} {new Date(user.created_at).toLocaleDateString()}
+        </span>
+      </div>
+    </form>
+  );
+}
+
+const inputClass =
+  "block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-4 py-2.5 text-sm outline-none focus:border-brand-500";
+
+function Field({
+  label,
+  hint,
+  aside,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-[var(--text-primary)]">
+          {label}
+        </span>
+        {aside}
+      </span>
+      <span className="mt-2 block">{children}</span>
+      {hint ? (
+        <span className="mt-1.5 block text-xs text-[var(--text-muted)]">{hint}</span>
+      ) : null}
+    </label>
   );
 }

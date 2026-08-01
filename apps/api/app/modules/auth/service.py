@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import security
 from app.core.config import settings
-from app.core.errors import AuthenticationError, PermissionDeniedError
+from app.core.errors import AuthenticationError, ConflictError, PermissionDeniedError
 from app.core.logging import get_logger
 from app.db.enums import AccountStatus, WalletProvider, WalletVerificationStatus
 from app.modules.auth import siwe_verifier
@@ -394,6 +395,51 @@ async def list_active_sessions(
         .order_by(Session.last_used_at.desc())
     )
     return list(result.scalars().all())
+
+
+async def update_profile(
+    db: AsyncSession, *, user: User, changes: dict[str, object]
+) -> User:
+    """Apply a partial update to a user's own profile.
+
+    Only the keys present in ``changes`` are touched. Changing the email clears
+    its verification, since a new address has not been proven. Uniqueness on the
+    username and email is enforced by the database; a collision is reported as a
+    conflict rather than surfacing as a raw integrity error.
+    """
+    if "email" in changes and changes["email"] != user.email:
+        # A different address (including clearing it) invalidates any prior proof.
+        user.email_verified_at = None
+
+    for field, value in changes.items():
+        setattr(user, field, value)
+
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        await db.rollback()
+        # The unique indexes on username and email are the authority.
+        raise ConflictError(
+            "That username or email is already taken.",
+            code="profile_conflict",
+        ) from exc
+
+    await db.refresh(user)
+    logger.info("profile_updated", extra={"user_id": str(user.id)})
+    return user
+
+
+async def suspend_own_account(db: AsyncSession, *, user: User) -> None:
+    """Pause the caller's own account.
+
+    A self-suspension the owner can lift simply by signing in again, which is why
+    every session is revoked here: the account goes quiet until its owner returns
+    and proves control of the wallet, at which point sign-in restores it.
+    """
+    user.status = AccountStatus.SUSPENDED_BY_USER
+    await db.flush()
+    await revoke_all_sessions(db, user_id=user.id, reason="self_suspended")
+    logger.info("account_self_suspended", extra={"user_id": str(user.id)})
 
 
 async def purge_expired_sessions(db: AsyncSession) -> int:

@@ -733,7 +733,9 @@
         "appearance": "Aparência",
         "organizations": "Organizações",
         "apiKeys": "Chaves de API",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "preferences": "Preferências",
+        "privacy": "Privacidade"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "Perfil",
     "subtitle": "A sua conta, ancorada à carteira com que inicia sessão.",
-    "signInRequired": "Entre para ver o seu perfil.",
-    "name": "Nome",
-    "address": "Endereço da carteira",
-    "email": "E-mail",
-    "noEmail": "Não definido",
-    "unnamed": "Sem nome",
-    "role": "Função",
-    "roles": {
-      "user": "Membro",
-      "admin": "Administrador"
-    },
+    "signInRequired": "Entre para editar o seu perfil.",
+    "addressLabel": "Endereço da carteira",
+    "addressHint": "A sua identidade está ancorada aqui e não pode ser alterada.",
+    "nameLabel": "Nome a apresentar",
+    "namePlaceholder": "Como aparece no Agoreum",
+    "usernameLabel": "Nome de utilizador",
+    "usernameHint": "3 a 32 caracteres: minúsculas, números, hífens e sublinhados.",
+    "emailLabel": "E-mail",
+    "emailHint": "Usado apenas para notificações. Deixe vazio para não receber nenhuma.",
+    "emailVerified": "Verificado",
+    "emailUnverified": "Não verificado",
+    "emailReverify": "Alterar o seu e-mail limpa a verificação até confirmar o novo.",
+    "bioLabel": "Biografia",
+    "avatarLabel": "URL do avatar",
+    "save": "Guardar alterações",
+    "saving": "A guardar…",
+    "saved": "Perfil guardado.",
+    "saveFailed": "Não foi possível guardar o seu perfil.",
     "memberSince": "Membro desde"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "Transação",
       "amount": "Valor"
     }
+  },
+  "settingsPreferences": {
+    "title": "Preferências",
+    "subtitle": "Preferências da conta que o acompanham em todos os dispositivos.",
+    "signInRequired": "Entre para gerir as suas preferências.",
+    "communicationsLanguage": "Idioma das comunicações",
+    "communicationsHint": "O idioma das suas notificações e e-mails. O idioma da interface define-se em Aparência.",
+    "save": "Guardar",
+    "saving": "A guardar…",
+    "saved": "Preferências guardadas.",
+    "saveFailed": "Não foi possível guardar as suas preferências."
+  },
+  "settingsPrivacy": {
+    "title": "Privacidade",
+    "subtitle": "O que o Agoreum guarda e os controlos que tem sobre a sua conta.",
+    "signInRequired": "Entre para gerir a privacidade.",
+    "dataTitle": "O que guardamos",
+    "dataHint": "O Agoreum mantém apenas o necessário para funcionar.",
+    "dataAddress": "O seu endereço de carteira, que é a sua identidade.",
+    "dataEmail": "Um e-mail opcional, usado apenas para notificações.",
+    "dataActivity": "O registo dos seus pedidos, agentes e reputação reais.",
+    "emailManaged": "O seu e-mail é gerido no seu",
+    "emailManagedLink": "perfil",
+    "pauseTitle": "Pausar a sua conta",
+    "pauseHint": "Pausar termina a sessão em todo o lado e oculta a sua conta. Fica em pausa até voltar a iniciar sessão, o que a restaura. Mais ninguém a pode reativar por si.",
+    "pause": "Pausar conta",
+    "pausing": "A pausar…",
+    "pauseConfirm": "Pausar a sua conta e terminar sessão em todo o lado? Iniciar sessão novamente restaura-a.",
+    "pauseFailed": "Não foi possível pausar a sua conta."
   }
 }

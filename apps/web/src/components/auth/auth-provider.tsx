@@ -36,6 +36,8 @@ type AuthContextValue = {
   error: string | null;
   signIn: () => Promise<void>;
   signOut: (allSessions?: boolean) => Promise<void>;
+  /** Re-fetch the signed-in user, so a profile change is reflected everywhere. */
+  refreshUser: () => Promise<void>;
   clearError: () => void;
 };
 
@@ -251,6 +253,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [tokens, endSession, disconnect],
   );
 
+  const refreshUser = useCallback(async () => {
+    if (!tokens) return;
+    try {
+      setUser(await authApi.me(tokens.access_token));
+    } catch {
+      // A transient failure just leaves the cached user in place; the next load
+      // reconciles it. Nothing here should surface an error to the user.
+    }
+  }, [tokens]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
@@ -259,9 +271,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error,
       signIn,
       signOut,
+      refreshUser,
       clearError: () => setError(null),
     }),
-    [status, user, tokens, error, signIn, signOut],
+    [status, user, tokens, error, signIn, signOut, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

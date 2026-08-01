@@ -104,11 +104,21 @@ export type UserProfile = {
   bio: string | null;
   avatar_url: string | null;
   email: string | null;
+  email_verified_at: string | null;
   role: "user" | "admin";
   status: string;
   preferred_locale: string;
   created_at: string;
   last_seen_at: string | null;
+};
+
+export type ProfileUpdate = {
+  username?: string | null;
+  display_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  email?: string | null;
+  preferred_locale?: string;
 };
 
 export type SignInResponse = { user: UserProfile; tokens: Tokens };
@@ -178,6 +188,19 @@ export const authApi = {
 
   sessions: (accessToken: string) =>
     apiFetch<SessionSummary[]>("/api/v1/auth/me/sessions", { accessToken }),
+
+  updateProfile: (accessToken: string, body: ProfileUpdate) =>
+    apiFetch<UserProfile>("/api/v1/auth/me", {
+      method: "PATCH",
+      accessToken,
+      body: JSON.stringify(body),
+    }),
+
+  suspend: (accessToken: string) =>
+    apiFetch<void>("/api/v1/auth/me/suspend", {
+      method: "POST",
+      accessToken,
+    }),
 };
 
 // --- Marketplace ------------------------------------------------------------

@@ -733,7 +733,9 @@
         "appearance": "Darstellung",
         "organizations": "Organisationen",
         "apiKeys": "API-Schlüssel",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "preferences": "Einstellungen",
+        "privacy": "Datenschutz"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "Profil",
     "subtitle": "Ihr Konto, verankert an der Wallet, mit der Sie sich anmelden.",
-    "signInRequired": "Melden Sie sich an, um Ihr Profil zu sehen.",
-    "name": "Name",
-    "address": "Wallet-Adresse",
-    "email": "E-Mail",
-    "noEmail": "Nicht festgelegt",
-    "unnamed": "Ohne Namen",
-    "role": "Rolle",
-    "roles": {
-      "user": "Mitglied",
-      "admin": "Administrator"
-    },
+    "signInRequired": "Melden Sie sich an, um Ihr Profil zu bearbeiten.",
+    "addressLabel": "Wallet-Adresse",
+    "addressHint": "Ihre Identität ist hier verankert und kann nicht geändert werden.",
+    "nameLabel": "Anzeigename",
+    "namePlaceholder": "Wie Sie auf Agoreum erscheinen",
+    "usernameLabel": "Benutzername",
+    "usernameHint": "3 bis 32 Zeichen: Kleinbuchstaben, Zahlen, Binde- und Unterstriche.",
+    "emailLabel": "E-Mail",
+    "emailHint": "Nur für Benachrichtigungen. Leer lassen, um keine zu erhalten.",
+    "emailVerified": "Verifiziert",
+    "emailUnverified": "Nicht verifiziert",
+    "emailReverify": "Das Ändern Ihrer E-Mail löscht deren Verifizierung, bis Sie die neue bestätigen.",
+    "bioLabel": "Biografie",
+    "avatarLabel": "Avatar-URL",
+    "save": "Änderungen speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Profil gespeichert.",
+    "saveFailed": "Ihr Profil konnte nicht gespeichert werden.",
     "memberSince": "Mitglied seit"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "Transaktion",
       "amount": "Betrag"
     }
+  },
+  "settingsPreferences": {
+    "title": "Einstellungen",
+    "subtitle": "Kontoeinstellungen, die Sie geräteübergreifend begleiten.",
+    "signInRequired": "Melden Sie sich an, um Ihre Einstellungen zu verwalten.",
+    "communicationsLanguage": "Sprache der Mitteilungen",
+    "communicationsHint": "Die Sprache Ihrer Benachrichtigungen und E-Mails. Die Oberflächensprache stellen Sie unter Darstellung ein.",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Einstellungen gespeichert.",
+    "saveFailed": "Ihre Einstellungen konnten nicht gespeichert werden."
+  },
+  "settingsPrivacy": {
+    "title": "Datenschutz",
+    "subtitle": "Was Agoreum speichert und welche Kontrollen Sie über Ihr Konto haben.",
+    "signInRequired": "Melden Sie sich an, um den Datenschutz zu verwalten.",
+    "dataTitle": "Was wir speichern",
+    "dataHint": "Agoreum behält nur, was zum Funktionieren nötig ist.",
+    "dataAddress": "Ihre Wallet-Adresse, die Ihre Identität ist.",
+    "dataEmail": "Eine optionale E-Mail, nur für Benachrichtigungen.",
+    "dataActivity": "Die Aufzeichnung Ihrer echten Bestellungen, Agenten und Reputation.",
+    "emailManaged": "Ihre E-Mail verwalten Sie in Ihrem",
+    "emailManagedLink": "Profil",
+    "pauseTitle": "Konto pausieren",
+    "pauseHint": "Beim Pausieren werden Sie überall abgemeldet und Ihr Konto ausgeblendet. Es bleibt pausiert, bis Sie sich wieder anmelden, was es wiederherstellt. Niemand sonst kann es für Sie aufheben.",
+    "pause": "Konto pausieren",
+    "pausing": "Wird pausiert…",
+    "pauseConfirm": "Konto pausieren und überall abmelden? Eine erneute Anmeldung stellt es wieder her.",
+    "pauseFailed": "Ihr Konto konnte nicht pausiert werden."
   }
 }

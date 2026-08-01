@@ -733,7 +733,9 @@
         "appearance": "Apparence",
         "organizations": "Organisations",
         "apiKeys": "Clés d'API",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "preferences": "Préférences",
+        "privacy": "Confidentialité"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "Profil",
     "subtitle": "Votre compte, lié au portefeuille avec lequel vous vous connectez.",
-    "signInRequired": "Connectez-vous pour voir votre profil.",
-    "name": "Nom",
-    "address": "Adresse du portefeuille",
-    "email": "E-mail",
-    "noEmail": "Non défini",
-    "unnamed": "Sans nom",
-    "role": "Rôle",
-    "roles": {
-      "user": "Membre",
-      "admin": "Administrateur"
-    },
+    "signInRequired": "Connectez-vous pour modifier votre profil.",
+    "addressLabel": "Adresse du portefeuille",
+    "addressHint": "Votre identité est ancrée ici et ne peut pas être modifiée.",
+    "nameLabel": "Nom affiché",
+    "namePlaceholder": "Comment vous apparaissez sur Agoreum",
+    "usernameLabel": "Nom d'utilisateur",
+    "usernameHint": "De 3 à 32 caractères : minuscules, chiffres, tirets et traits de soulignement.",
+    "emailLabel": "E-mail",
+    "emailHint": "Utilisé uniquement pour les notifications. Laissez vide pour n'en recevoir aucune.",
+    "emailVerified": "Vérifié",
+    "emailUnverified": "Non vérifié",
+    "emailReverify": "Changer votre e-mail efface sa vérification jusqu'à ce que vous confirmiez le nouveau.",
+    "bioLabel": "Bio",
+    "avatarLabel": "URL de l'avatar",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Profil enregistré.",
+    "saveFailed": "Nous n'avons pas pu enregistrer votre profil.",
     "memberSince": "Membre depuis"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "Transaction",
       "amount": "Montant"
     }
+  },
+  "settingsPreferences": {
+    "title": "Préférences",
+    "subtitle": "Préférences de compte qui vous suivent sur tous vos appareils.",
+    "signInRequired": "Connectez-vous pour gérer vos préférences.",
+    "communicationsLanguage": "Langue des communications",
+    "communicationsHint": "La langue de vos notifications et e-mails. La langue de l'interface se règle dans Apparence.",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Préférences enregistrées.",
+    "saveFailed": "Nous n'avons pas pu enregistrer vos préférences."
+  },
+  "settingsPrivacy": {
+    "title": "Confidentialité",
+    "subtitle": "Ce qu'Agoreum conserve, et les contrôles dont vous disposez sur votre compte.",
+    "signInRequired": "Connectez-vous pour gérer la confidentialité.",
+    "dataTitle": "Ce que nous conservons",
+    "dataHint": "Agoreum ne garde que ce qui est nécessaire à son fonctionnement.",
+    "dataAddress": "Votre adresse de portefeuille, qui est votre identité.",
+    "dataEmail": "Un e-mail facultatif, utilisé uniquement pour les notifications.",
+    "dataActivity": "Le registre de vos commandes, agents et réputation réels.",
+    "emailManaged": "Votre e-mail se gère sur votre",
+    "emailManagedLink": "profil",
+    "pauseTitle": "Mettre votre compte en pause",
+    "pauseHint": "La mise en pause vous déconnecte partout et masque votre compte. Il reste en pause jusqu'à ce que vous vous reconnectiez, ce qui le restaure. Personne d'autre ne peut le réactiver à votre place.",
+    "pause": "Mettre en pause",
+    "pausing": "Mise en pause…",
+    "pauseConfirm": "Mettre votre compte en pause et vous déconnecter partout ? Une nouvelle connexion le restaure.",
+    "pauseFailed": "Nous n'avons pas pu mettre votre compte en pause."
   }
 }

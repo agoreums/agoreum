@@ -666,3 +666,84 @@ class TestSessionBoundAccessTokens:
             "/api/v1/auth/me", headers={"Authorization": f"Bearer {no_sid}"}
         )
         assert response.status_code == 401
+
+
+class TestProfileUpdate:
+    async def test_updates_own_profile_fields(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        body = await _sign_in(client, wallet)
+        token = body["tokens"]["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        tag = uuid.uuid4().hex[:8]
+        response = await client.patch(
+            "/api/v1/auth/me",
+            headers=headers,
+            json={"display_name": "Ada", "username": f"ada-{tag}", "bio": "Builder"},
+        )
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["display_name"] == "Ada"
+        assert data["username"] == f"ada-{tag}"
+
+        again = await client.get("/api/v1/auth/me", headers=headers)
+        assert again.json()["username"] == f"ada-{tag}"
+
+    async def test_malformed_username_is_rejected(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        body = await _sign_in(client, wallet)
+        token = body["tokens"]["access_token"]
+        response = await client.patch(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"username": "a"},  # too short
+        )
+        assert response.status_code == 422
+
+    async def test_unsupported_locale_is_rejected(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        body = await _sign_in(client, wallet)
+        token = body["tokens"]["access_token"]
+        response = await client.patch(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_locale": "tlh"},
+        )
+        assert response.status_code == 422
+
+
+class TestSelfSuspend:
+    async def test_suspend_revokes_sessions(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        body = await _sign_in(client, wallet)
+        token = body["tokens"]["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        suspended = await client.post("/api/v1/auth/me/suspend", headers=headers)
+        assert suspended.status_code == 204
+
+        # The session was revoked, so the same token no longer authenticates.
+        after = await client.get("/api/v1/auth/me", headers=headers)
+        assert after.status_code == 401
+
+    async def test_signing_in_again_restores_a_suspended_account(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        first = await _sign_in(client, wallet)
+        await client.post(
+            "/api/v1/auth/me/suspend",
+            headers={"Authorization": f"Bearer {first['tokens']['access_token']}"},
+        )
+        # Proving control of the wallet again restores the account and issues a
+        # fresh session.
+        restored = await _sign_in(client, wallet)
+        me = await client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {restored['tokens']['access_token']}"},
+        )
+        assert me.status_code == 200
+        assert me.json()["status"] == "active"

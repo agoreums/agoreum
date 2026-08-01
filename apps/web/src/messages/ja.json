@@ -733,7 +733,9 @@
         "appearance": "外観",
         "organizations": "組織",
         "apiKeys": "API キー",
-        "webhooks": "Webhook"
+        "webhooks": "Webhook",
+        "preferences": "設定",
+        "privacy": "プライバシー"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "プロフィール",
     "subtitle": "サインインに使うウォレットに紐づくアカウントです。",
-    "signInRequired": "プロフィールを表示するにはサインインしてください。",
-    "name": "名前",
-    "address": "ウォレットアドレス",
-    "email": "メール",
-    "noEmail": "未設定",
-    "unnamed": "名前なし",
-    "role": "ロール",
-    "roles": {
-      "user": "メンバー",
-      "admin": "管理者"
-    },
+    "signInRequired": "プロフィールを編集するにはサインインしてください。",
+    "addressLabel": "ウォレットアドレス",
+    "addressHint": "あなたの身元はここに紐づき、変更できません。",
+    "nameLabel": "表示名",
+    "namePlaceholder": "Agoreum での表示のされ方",
+    "usernameLabel": "ユーザー名",
+    "usernameHint": "3〜32文字：小文字・数字・ハイフン・アンダースコア。",
+    "emailLabel": "メール",
+    "emailHint": "通知にのみ使用します。受け取らない場合は空にしてください。",
+    "emailVerified": "確認済み",
+    "emailUnverified": "未確認",
+    "emailReverify": "メールを変更すると、新しいメールを確認するまで確認済み状態が解除されます。",
+    "bioLabel": "自己紹介",
+    "avatarLabel": "アバター URL",
+    "save": "変更を保存",
+    "saving": "保存中…",
+    "saved": "プロフィールを保存しました。",
+    "saveFailed": "プロフィールを保存できませんでした。",
     "memberSince": "登録日"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "取引",
       "amount": "金額"
     }
+  },
+  "settingsPreferences": {
+    "title": "設定",
+    "subtitle": "デバイスをまたいで引き継がれるアカウント設定。",
+    "signInRequired": "設定を管理するにはサインインしてください。",
+    "communicationsLanguage": "通知の言語",
+    "communicationsHint": "通知とメールの言語です。画面の言語は「外観」で設定します。",
+    "save": "保存",
+    "saving": "保存中…",
+    "saved": "設定を保存しました。",
+    "saveFailed": "設定を保存できませんでした。"
+  },
+  "settingsPrivacy": {
+    "title": "プライバシー",
+    "subtitle": "Agoreum が保持する情報と、アカウントに対する操作。",
+    "signInRequired": "プライバシーを管理するにはサインインしてください。",
+    "dataTitle": "保持している情報",
+    "dataHint": "Agoreum は動作に必要なものだけを保持します。",
+    "dataAddress": "あなたの身元であるウォレットアドレス。",
+    "dataEmail": "通知にのみ使う任意のメール。",
+    "dataActivity": "実際の注文・エージェント・評判の記録。",
+    "emailManaged": "メールは次で管理します:",
+    "emailManagedLink": "プロフィール",
+    "pauseTitle": "アカウントを一時停止",
+    "pauseHint": "一時停止するとすべての端末からサインアウトし、アカウントが非表示になります。再度サインインするまで停止したままで、サインインすると復元されます。ほかの人が解除することはできません。",
+    "pause": "アカウントを一時停止",
+    "pausing": "一時停止中…",
+    "pauseConfirm": "アカウントを一時停止し、すべての端末からサインアウトしますか？再度サインインすると復元されます。",
+    "pauseFailed": "アカウントを一時停止できませんでした。"
   }
 }

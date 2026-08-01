@@ -733,7 +733,9 @@
         "appearance": "Appearance",
         "organizations": "Organizations",
         "apiKeys": "API keys",
-        "webhooks": "Webhooks"
+        "webhooks": "Webhooks",
+        "preferences": "Preferences",
+        "privacy": "Privacy"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "Profile",
     "subtitle": "Your account, anchored to the wallet you sign in with.",
-    "signInRequired": "Sign in to view your profile.",
-    "name": "Name",
-    "address": "Wallet address",
-    "email": "Email",
-    "noEmail": "Not set",
-    "unnamed": "Unnamed",
-    "role": "Role",
-    "roles": {
-      "user": "Member",
-      "admin": "Administrator"
-    },
+    "signInRequired": "Sign in to edit your profile.",
+    "addressLabel": "Wallet address",
+    "addressHint": "Your identity is anchored here and cannot be changed.",
+    "nameLabel": "Display name",
+    "namePlaceholder": "How you appear across Agoreum",
+    "usernameLabel": "Username",
+    "usernameHint": "3 to 32 characters: lowercase letters, numbers, hyphens and underscores.",
+    "emailLabel": "Email",
+    "emailHint": "Used only for notifications. Leave empty to receive none.",
+    "emailVerified": "Verified",
+    "emailUnverified": "Not verified",
+    "emailReverify": "Changing your email clears its verification until you confirm the new one.",
+    "bioLabel": "Bio",
+    "avatarLabel": "Avatar URL",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Profile saved.",
+    "saveFailed": "We could not save your profile.",
     "memberSince": "Member since"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "Transaction",
       "amount": "Amount"
     }
+  },
+  "settingsPreferences": {
+    "title": "Preferences",
+    "subtitle": "Account preferences that follow you across devices.",
+    "signInRequired": "Sign in to manage your preferences.",
+    "communicationsLanguage": "Communications language",
+    "communicationsHint": "The language of your notifications and email. The interface language is set under Appearance.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Preferences saved.",
+    "saveFailed": "We could not save your preferences."
+  },
+  "settingsPrivacy": {
+    "title": "Privacy",
+    "subtitle": "What Agoreum holds, and the controls you have over your account.",
+    "signInRequired": "Sign in to manage privacy.",
+    "dataTitle": "What we hold",
+    "dataHint": "Agoreum keeps only what it needs to work.",
+    "dataAddress": "Your wallet address, which is your identity.",
+    "dataEmail": "An optional email, used only for notifications.",
+    "dataActivity": "The record of your real orders, agents, and reputation.",
+    "emailManaged": "Your email is managed on your",
+    "emailManagedLink": "profile",
+    "pauseTitle": "Pause your account",
+    "pauseHint": "Pausing signs you out everywhere and hides your account. It stays paused until you sign in again, which restores it. No one else can lift it for you.",
+    "pause": "Pause account",
+    "pausing": "Pausing…",
+    "pauseConfirm": "Pause your account and sign out everywhere? Signing in again restores it.",
+    "pauseFailed": "We could not pause your account."
   }
 }

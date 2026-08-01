@@ -21,6 +21,7 @@ from app.modules.auth.schemas import (
     LogoutRequest,
     NonceRequest,
     NonceResponse,
+    ProfileUpdate,
     RefreshRequest,
     SessionSummary,
     SignInRequest,
@@ -148,6 +149,34 @@ async def logout(
 @router.get("/me", response_model=UserProfile, summary="The signed-in user")
 async def me(user: CurrentUser) -> UserProfile:
     return UserProfile.model_validate(user)
+
+
+@router.patch(
+    "/me",
+    response_model=UserProfile,
+    summary="Update your profile",
+)
+async def update_me(
+    payload: ProfileUpdate, user: CurrentUser, db: DbSession
+) -> UserProfile:
+    """Change your own profile: name, username, bio, avatar, email, or preferred
+    language. Only the fields you send are altered. Changing your email clears its
+    verification until it is proven again."""
+    changes = payload.model_dump(exclude_unset=True)
+    if changes:
+        user = await service.update_profile(db, user=user, changes=changes)
+    return UserProfile.model_validate(user)
+
+
+@router.post(
+    "/me/suspend",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Pause your account",
+)
+async def suspend_me(user: CurrentUser, db: DbSession) -> None:
+    """Pause your own account and sign out everywhere. It stays paused until you
+    sign in again, which restores it, no one else can lift it for you."""
+    await service.suspend_own_account(db, user=user)
 
 
 @router.get(

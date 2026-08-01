@@ -733,7 +733,9 @@
         "appearance": "화면",
         "organizations": "조직",
         "apiKeys": "API 키",
-        "webhooks": "웹훅"
+        "webhooks": "웹훅",
+        "preferences": "환경설정",
+        "privacy": "개인정보"
       }
     }
   },
@@ -772,17 +774,24 @@
   "settingsProfile": {
     "title": "프로필",
     "subtitle": "로그인에 사용하는 지갑에 연결된 계정입니다.",
-    "signInRequired": "프로필을 보려면 로그인하세요.",
-    "name": "이름",
-    "address": "지갑 주소",
-    "email": "이메일",
-    "noEmail": "미설정",
-    "unnamed": "이름 없음",
-    "role": "역할",
-    "roles": {
-      "user": "멤버",
-      "admin": "관리자"
-    },
+    "signInRequired": "프로필을 편집하려면 로그인하세요.",
+    "addressLabel": "지갑 주소",
+    "addressHint": "본인 신원이 여기에 고정되며 변경할 수 없습니다.",
+    "nameLabel": "표시 이름",
+    "namePlaceholder": "Agoreum에서 보이는 방식",
+    "usernameLabel": "사용자 이름",
+    "usernameHint": "3~32자: 소문자, 숫자, 하이픈, 밑줄.",
+    "emailLabel": "이메일",
+    "emailHint": "알림에만 사용됩니다. 받지 않으려면 비워 두세요.",
+    "emailVerified": "인증됨",
+    "emailUnverified": "미인증",
+    "emailReverify": "이메일을 변경하면 새 이메일을 확인할 때까지 인증이 해제됩니다.",
+    "bioLabel": "소개",
+    "avatarLabel": "아바타 URL",
+    "save": "변경 사항 저장",
+    "saving": "저장 중…",
+    "saved": "프로필을 저장했습니다.",
+    "saveFailed": "프로필을 저장하지 못했습니다.",
     "memberSince": "가입일"
   },
   "settingsSecurity": {
@@ -878,5 +887,34 @@
       "tx": "거래",
       "amount": "금액"
     }
+  },
+  "settingsPreferences": {
+    "title": "환경설정",
+    "subtitle": "기기 간에 따라오는 계정 환경설정.",
+    "signInRequired": "환경설정을 관리하려면 로그인하세요.",
+    "communicationsLanguage": "알림 언어",
+    "communicationsHint": "알림과 이메일의 언어입니다. 인터페이스 언어는 화면에서 설정합니다.",
+    "save": "저장",
+    "saving": "저장 중…",
+    "saved": "환경설정을 저장했습니다.",
+    "saveFailed": "환경설정을 저장하지 못했습니다."
+  },
+  "settingsPrivacy": {
+    "title": "개인정보",
+    "subtitle": "Agoreum이 보관하는 것과 계정에 대한 제어.",
+    "signInRequired": "개인정보를 관리하려면 로그인하세요.",
+    "dataTitle": "보관하는 정보",
+    "dataHint": "Agoreum은 작동에 필요한 것만 보관합니다.",
+    "dataAddress": "본인 신원인 지갑 주소.",
+    "dataEmail": "알림에만 사용하는 선택적 이메일.",
+    "dataActivity": "실제 주문, 에이전트, 평판 기록.",
+    "emailManaged": "이메일은 다음에서 관리합니다:",
+    "emailManagedLink": "프로필",
+    "pauseTitle": "계정 일시 중지",
+    "pauseHint": "일시 중지하면 모든 곳에서 로그아웃되고 계정이 숨겨집니다. 다시 로그인할 때까지 중지 상태이며, 로그인하면 복원됩니다. 다른 사람은 대신 해제할 수 없습니다.",
+    "pause": "계정 일시 중지",
+    "pausing": "중지 중…",
+    "pauseConfirm": "계정을 일시 중지하고 모든 곳에서 로그아웃할까요? 다시 로그인하면 복원됩니다.",
+    "pauseFailed": "계정을 일시 중지하지 못했습니다."
   }
 }
