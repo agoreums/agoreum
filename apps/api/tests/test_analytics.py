@@ -6,6 +6,7 @@ the other database-backed suites.
 """
 from __future__ import annotations
 
+import secrets
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -66,7 +67,8 @@ async def db() -> AsyncSession:
 
 
 def _addr() -> str:
-    return "0x" + uuid.uuid4().hex[:40]
+    # A valid EVM address is 0x plus 40 hex characters (20 bytes).
+    return "0x" + secrets.token_hex(20)
 
 
 async def test_creator_analytics_counts_settled_orders(db: AsyncSession) -> None:
