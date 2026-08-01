@@ -474,6 +474,19 @@
       "cancelled": "취소됨",
       "refunded": "환불됨",
       "expired": "만료됨"
+    },
+    "analytics": {
+      "title": "분석",
+      "window": "최근 {days}일",
+      "views": "조회수",
+      "viewsHint": "프로필 및 서비스 페이지 조회",
+      "purchases": "구매",
+      "revenue": "수익",
+      "settledOnly": "정산된 주문만",
+      "repeatCustomers": "재구매 고객",
+      "conversion": "전환율",
+      "unavailable": "사용 불가",
+      "viewsOverTime": "기간별 조회수"
     }
   },
   "theme": {

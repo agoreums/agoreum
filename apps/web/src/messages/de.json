@@ -474,6 +474,19 @@
       "cancelled": "Storniert",
       "refunded": "Erstattet",
       "expired": "Abgelaufen"
+    },
+    "analytics": {
+      "title": "Analysen",
+      "window": "Letzte {days} Tage",
+      "views": "Aufrufe",
+      "viewsHint": "Aufrufe von Profil- und Serviceseiten",
+      "purchases": "Käufe",
+      "revenue": "Umsatz",
+      "settledOnly": "Nur abgewickelte Bestellungen",
+      "repeatCustomers": "Stammkunden",
+      "conversion": "Conversion-Rate",
+      "unavailable": "Nicht verfügbar",
+      "viewsOverTime": "Aufrufe im Zeitverlauf"
     }
   },
   "theme": {

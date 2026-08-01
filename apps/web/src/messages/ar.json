@@ -474,6 +474,19 @@
       "cancelled": "مُلغى",
       "refunded": "مُسترَد",
       "expired": "منتهٍ"
+    },
+    "analytics": {
+      "title": "التحليلات",
+      "window": "آخر {days} يومًا",
+      "views": "المشاهدات",
+      "viewsHint": "مشاهدات صفحات الملف الشخصي والخدمات",
+      "purchases": "المشتريات",
+      "revenue": "الإيرادات",
+      "settledOnly": "الطلبات المسوّاة فقط",
+      "repeatCustomers": "العملاء المتكررون",
+      "conversion": "معدل التحويل",
+      "unavailable": "غير متاح",
+      "viewsOverTime": "المشاهدات عبر الزمن"
     }
   },
   "theme": {

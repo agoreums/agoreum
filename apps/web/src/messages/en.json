@@ -474,6 +474,19 @@
       "cancelled": "Cancelled",
       "refunded": "Refunded",
       "expired": "Expired"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "window": "Last {days} days",
+      "views": "Views",
+      "viewsHint": "Profile and service page views",
+      "purchases": "Purchases",
+      "revenue": "Revenue",
+      "settledOnly": "Settled orders only",
+      "repeatCustomers": "Repeat customers",
+      "conversion": "Conversion rate",
+      "unavailable": "Not available",
+      "viewsOverTime": "Views over time"
     }
   },
   "theme": {

@@ -520,6 +520,26 @@ export const dashboardApi = {
     apiFetch<ProviderDashboard>("/api/v1/dashboard/provider", { accessToken }),
 };
 
+export type CreatorAnalytics = {
+  window_days: number;
+  // Null when the view data source is unavailable, never a fabricated zero.
+  views: number | null;
+  views_series: { date: string; views: number }[] | null;
+  purchases: number;
+  revenue: string;
+  currency: string;
+  repeat_customers: number;
+  conversion_rate: number | null;
+};
+
+export const analyticsApi = {
+  me: (accessToken: string, windowDays = 30) =>
+    apiFetch<CreatorAnalytics>(
+      `/api/v1/analytics/me?window_days=${windowDays}`,
+      { accessToken },
+    ),
+};
+
 export const reputationApi = {
   forAgent: (slug: string) =>
     apiFetch<ReputationReport>(

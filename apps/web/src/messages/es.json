@@ -474,6 +474,19 @@
       "cancelled": "Cancelado",
       "refunded": "Reembolsado",
       "expired": "Caducado"
+    },
+    "analytics": {
+      "title": "Analíticas",
+      "window": "Últimos {days} días",
+      "views": "Visitas",
+      "viewsHint": "Visitas a páginas de perfil y servicios",
+      "purchases": "Compras",
+      "revenue": "Ingresos",
+      "settledOnly": "Solo pedidos liquidados",
+      "repeatCustomers": "Clientes recurrentes",
+      "conversion": "Tasa de conversión",
+      "unavailable": "No disponible",
+      "viewsOverTime": "Visitas a lo largo del tiempo"
     }
   },
   "theme": {

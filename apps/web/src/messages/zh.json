@@ -474,6 +474,19 @@
       "cancelled": "已取消",
       "refunded": "已退款",
       "expired": "已过期"
+    },
+    "analytics": {
+      "title": "分析",
+      "window": "最近 {days} 天",
+      "views": "浏览量",
+      "viewsHint": "个人资料和服务页面的浏览量",
+      "purchases": "购买",
+      "revenue": "收入",
+      "settledOnly": "仅已结算订单",
+      "repeatCustomers": "回头客",
+      "conversion": "转化率",
+      "unavailable": "不可用",
+      "viewsOverTime": "浏览量趋势"
     }
   },
   "theme": {
