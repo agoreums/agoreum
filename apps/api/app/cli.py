@@ -180,11 +180,20 @@ async def _deliver_webhooks(args: argparse.Namespace) -> int:
     no outbound request unless WEBHOOK_DELIVERY_ENABLED is set; until then it marks
     due deliveries suppressed so the queue does not grow unbounded.
     """
+    import contextlib
+    import time
+
     import httpx
 
+    from app.core.redis import create_client
+    from app.modules.health.service import WEBHOOK_HEARTBEAT_KEY
     from app.modules.webhooks import service as webhooks
 
     print(f"webhook delivery: enabled={settings.WEBHOOK_DELIVERY_ENABLED}")
+    # The worker has no chain cursor to trail, so it records a heartbeat each pass.
+    # A stalled loop is then visible to /health/workers even while the container is
+    # up. A Redis blip must never stop delivery, so the write is best-effort.
+    redis = create_client()
     try:
         async with httpx.AsyncClient(
             timeout=settings.WEBHOOK_TIMEOUT_SECONDS, follow_redirects=False
@@ -198,14 +207,19 @@ async def _deliver_webhooks(args: argparse.Namespace) -> int:
                         processed += 1
                 if processed:
                     print(f"attempted {processed} deliver(y/ies)")
+                # A redis blip must never stop delivery, so the write is best-effort.
+                with contextlib.suppress(Exception):
+                    await redis.set(WEBHOOK_HEARTBEAT_KEY, str(int(time.time())))
                 if not args.follow:
                     return 0
                 await asyncio.sleep(args.interval)
     except KeyboardInterrupt:  # pragma: no cover - operator interrupt
         print("stopped")
-        return 0
     finally:
+        with contextlib.suppress(Exception):
+            await redis.aclose()
         await dispose_engine()
+    return 0
 
 
 def _add_deliver_webhooks(subparsers: argparse._SubParsersAction) -> None:

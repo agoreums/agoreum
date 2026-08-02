@@ -74,3 +74,26 @@ async def indexer(
     if component.status == "down":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"status": component.status, "indexer": component.as_dict()}
+
+
+@router.get("/workers", summary="Background worker liveness")
+async def workers(
+    response: Response, db: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
+    """Liveness of the background workers that have no HTTP surface of their own.
+
+    The subscription indexer is judged by its cursor freshness (like the escrow
+    indexer); the webhooks delivery loop by the heartbeat it records each pass.
+    503 when either has stopped, so the monitor can alert on a stuck worker even
+    though its container is up.
+    """
+    sub = await service.check_subscription_indexer(db)
+    hook = await service.check_webhooks_worker()
+    overall = service.overall_status([sub, hook])
+    if overall == "down":
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return {
+        "status": overall,
+        "subscription_indexer": sub.as_dict(),
+        "webhooks_worker": hook.as_dict(),
+    }

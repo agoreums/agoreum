@@ -92,6 +92,19 @@ def check() -> tuple[bool, list[str]]:
         if idx.get("status") == "down":
             problems.append(f"indexer: stalled ({idx.get('lag_blocks', '?')} blocks behind head)")
 
+    code, body = _get(f"{API_BASE}/health/workers")
+    if body is not None:
+        sub = body.get("subscription_indexer", {})
+        if sub.get("status") == "down":
+            problems.append(
+                f"subscription indexer: stalled ({sub.get('lag_blocks', '?')} blocks behind head)"
+            )
+        hook = body.get("webhooks_worker", {})
+        if hook.get("status") == "down":
+            problems.append(
+                f"webhooks worker: not delivering ({hook.get('heartbeat_age_seconds', '?')}s since last heartbeat)"
+            )
+
     return (len(problems) == 0), problems
 
 

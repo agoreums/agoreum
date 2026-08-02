@@ -22,6 +22,12 @@ Status = Literal["ok", "degraded", "down"]
 DEGRADED_THRESHOLD_MS = 500.0
 PROBE_TIMEOUT_SECONDS = 3.0
 
+# The webhooks delivery worker has no chain cursor to trail, so it records a
+# liveness heartbeat in Redis each loop. A heartbeat older than this means the
+# loop has stopped draining the outbox even though the container may be up.
+WEBHOOK_HEARTBEAT_KEY = "health:worker:webhooks"
+WORKER_HEARTBEAT_STALE_SECONDS = 180
+
 
 @dataclass
 class ComponentHealth:
@@ -213,6 +219,123 @@ async def check_indexer(session: AsyncSession) -> ComponentHealth:
             "last_scanned_block": str(cursor.last_scanned_block),
             "lag_blocks": str(lag),
         },
+    )
+
+
+async def check_subscription_indexer(session: AsyncSession) -> ComponentHealth:
+    """How far the subscription indexer trails the head.
+
+    The mirror of `check_indexer` for the subscription contract's own cursor. A
+    stalled subscription indexer means confirmed payments stop activating
+    subscriptions, so a subscriber pays and their access never turns on.
+    """
+    from sqlalchemy import select
+
+    from app.chain import subscriptions as contract
+    from app.chain.client import ChainClient
+    from app.chain.models import IndexerCursor
+    from app.core.config import settings
+
+    if not contract.is_configured():
+        return ComponentHealth(
+            name="subscription_indexer",
+            status="degraded",
+            error="no subscription contract configured",
+        )
+
+    try:
+        address = contract.contract_address()
+        cursor = (
+            await session.execute(
+                select(IndexerCursor).where(
+                    IndexerCursor.chain_id == settings.CHAIN_ID,
+                    IndexerCursor.contract_address == address.lower(),
+                )
+            )
+        ).scalar_one_or_none()
+        async with ChainClient() as client:
+            head = await client.block_number()
+    except Exception as exc:
+        logger.warning(
+            "health_subscription_indexer_failed", extra={"error_type": type(exc).__name__}
+        )
+        return ComponentHealth(
+            name="subscription_indexer", status="down", error=type(exc).__name__
+        )
+
+    if cursor is None:
+        return ComponentHealth(
+            name="subscription_indexer",
+            status="degraded",
+            error="subscription indexer has not recorded a scan yet",
+            detail={"head_block": str(head)},
+        )
+
+    lag = head - cursor.last_scanned_block
+    status: Status = "ok" if lag <= 40 else "degraded" if lag <= 200 else "down"
+    return ComponentHealth(
+        name="subscription_indexer",
+        status=status,
+        detail={
+            "head_block": str(head),
+            "last_scanned_block": str(cursor.last_scanned_block),
+            "lag_blocks": str(lag),
+        },
+    )
+
+
+async def check_webhooks_worker() -> ComponentHealth:
+    """Whether the webhooks delivery loop is still running.
+
+    The worker records a heartbeat timestamp in Redis each loop. A missing
+    heartbeat means it has not run yet; a stale one means the loop has stopped
+    even if the container is nominally up, so deliveries would silently pile up.
+    """
+    try:
+        from app.core.redis import create_client
+    except ImportError:
+        return ComponentHealth(
+            name="webhooks_worker", status="down", error="redis client not installed"
+        )
+
+    client = None
+    try:
+        client = create_client(timeout=PROBE_TIMEOUT_SECONDS)
+        raw = await client.get(WEBHOOK_HEARTBEAT_KEY)
+    except Exception as exc:
+        logger.warning(
+            "health_webhooks_worker_failed", extra={"error_type": type(exc).__name__}
+        )
+        return ComponentHealth(
+            name="webhooks_worker", status="down", error=type(exc).__name__
+        )
+    finally:
+        if client is not None:
+            try:
+                await client.aclose()
+            except Exception as exc:
+                logger.debug(
+                    "health_webhooks_worker_close_failed",
+                    extra={"error_type": type(exc).__name__},
+                )
+
+    if raw is None:
+        return ComponentHealth(
+            name="webhooks_worker",
+            status="degraded",
+            error="no heartbeat recorded yet",
+        )
+
+    try:
+        last = int(raw)
+    except (TypeError, ValueError):
+        last = 0
+    age = int(time.time()) - last
+    status: Status = "ok" if age <= WORKER_HEARTBEAT_STALE_SECONDS else "down"
+    return ComponentHealth(
+        name="webhooks_worker",
+        status=status,
+        detail={"heartbeat_age_seconds": str(age)},
     )
 
 
