@@ -240,7 +240,22 @@ settles, never `0.00`.
 | --- | --- | --- |
 | GET | `/health/live` | Process is up; touches no dependency |
 | GET | `/health/ready` | Real round-trips to Postgres, Redis and the chain |
+| GET | `/health/indexer` | How far the escrow indexer trails the chain head |
+| GET | `/health/workers` | Liveness of background workers with no HTTP surface |
 
 `/health/ready` returns 503 naming the failed component. The response includes
 `required_components`, which excludes `chain`: an RPC outage degrades the
 platform rather than taking it out of rotation.
+
+The last two probes are deliberately separate from readiness so a background
+problem gets its own signal without pulling the whole site out of rotation.
+
+`/health/indexer` reports the escrow indexer's lag in blocks behind the head and
+returns 503 once that lag looks stalled, so monitoring can alert before a buyer's
+paid order sits unfunded.
+
+`/health/workers` covers the two workers that have no endpoint of their own. The
+subscription indexer is judged by its own cursor freshness, the same way the
+escrow indexer is. The webhook delivery loop is judged by a heartbeat it writes
+to Redis each pass, so a loop that has silently stopped is visible even while its
+container is still up. The probe returns 503 when either has stopped.

@@ -214,6 +214,21 @@ Each run resumes `REORG_DEPTH` (64) blocks behind the stored position. Blocks
 already covered may have been reorganised since; re-applying an event costs
 nothing, missing one is permanent.
 
+Two sibling workers run the same single-instance shape and for the same reasons:
+
+```bash
+python -m app.cli index-subscriptions --follow --interval 15
+python -m app.cli deliver-webhooks --follow --interval 5
+```
+
+`index-subscriptions` trails the subscription contract and is the only thing that
+activates a subscription, judged by its own cursor exactly like the escrow indexer.
+`deliver-webhooks` drains the outbox, signing and posting due deliveries and
+retrying failures; it makes no outbound call until `WEBHOOK_DELIVERY_ENABLED` is
+set, marking due deliveries suppressed until then so the queue cannot grow
+unbounded. Having no chain cursor to trail, it records a Redis heartbeat each pass,
+which is the signal `/health/workers` reads. Both are covered by that probe.
+
 ## Observability
 
 ```bash
@@ -246,12 +261,35 @@ emits `chain_scan_complete` on every pass; if that stops appearing, buyers are
 funding escrows and nothing is marking their orders paid. A silent indexer looks
 exactly like a quiet marketplace.
 
+A small monitor container turns those signals into pages without a hosted service.
+It polls the public site end to end, `/health/ready`, `/health/indexer` and
+`/health/workers` on a fixed interval, and messages a chat bot when the state
+changes: once when a problem starts and once when it clears, rather than every
+interval in between. A short run of consecutive failures is required before it
+pages, so a routine recreate that briefly returns 502 does not wake anyone, and a
+daily heartbeat confirms the monitor itself is alive. The two worker probes are
+what make a stalled subscription indexer or a stuck webhook loop page on their own,
+rather than being noticed later. It stays silent until a chat id is configured, so
+it is safe to run before alerting is wired.
+
 ## Backups
 
 The managed database handles automated backups and point-in-time recovery. Verify
 the retention window matches what you would need, and **restore into a scratch
 database occasionally**, an unverified backup is a hypothesis. Redis holds only
 cache and rate-limit counters; losing it costs a cold cache.
+
+A nightly logical dump runs alongside the provider snapshots as a second, portable
+layer: a `pg_dump` in custom format, rotated on a short retention, with credentials
+read at runtime and never written to the command line or a log. Provider snapshots
+are tied to the provider; a logical dump restores anywhere Postgres runs, which is
+what you want on the day the provider itself is the problem.
+
+Prove the restore, do not assume it. The drill is to load the latest dump into a
+throwaway Postgres container and compare row counts per table against production.
+A dump that has never been restored is a hypothesis; a restore whose row counts
+match is the evidence. Rehearsing it also means the steps are familiar the one time
+they are run under real pressure.
 
 ## Resources
 
