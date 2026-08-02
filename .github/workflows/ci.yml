@@ -5,6 +5,16 @@ name: CI
 on:
   push:
     branches: [main]
+    # A push whose files are all documentation neither needs the test matrix nor
+    # a production redeploy: the running site serves none of these files, so a
+    # recreate would only cost a brief blip for nothing. GitHub skips the run only
+    # when every changed path matches, so a single code file still runs the full
+    # suite and deploys. The workflow file itself is not matched here, so changes
+    # to CI always run.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
   pull_request:
     branches: [main]
   workflow_dispatch:
