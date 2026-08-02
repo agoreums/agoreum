@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Button, controlClass } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { OrgSelect } from "@/components/settings/org-select";
 import {
@@ -187,7 +188,7 @@ function CreateEndpoint({
             maxLength={2048}
             onChange={(e) => setUrl(e.target.value)}
             placeholder={t("urlPlaceholder")}
-            className="mt-2 block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className={`mt-2 ${controlClass}`}
           />
         </label>
 
@@ -199,7 +200,7 @@ function CreateEndpoint({
             maxLength={100}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("descriptionPlaceholder")}
-            className="mt-2 block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className={`mt-2 ${controlClass}`}
           />
         </label>
 
@@ -251,14 +252,9 @@ function CreateEndpoint({
           <p className="text-sm text-danger-500">{formError}</p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={submit}
-          disabled={busy}
-          className="inline-flex rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-500 disabled:opacity-60"
-        >
+        <Button onClick={submit} disabled={busy}>
           {busy ? t("creating") : t("create")}
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -300,22 +296,14 @@ function CreatedEndpoint({
         <code className="grow overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-4 py-3 font-mono text-sm">
           {created.secret}
         </code>
-        <button
-          type="button"
-          onClick={copy}
-          className="rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-sm font-medium transition-colors hover:border-brand-500"
-        >
+        <Button variant="secondary" onClick={copy} className="px-4 py-3">
           {copied ? t("copied") : t("copy")}
-        </button>
+        </Button>
       </div>
 
-      <button
-        type="button"
-        onClick={onDone}
-        className="mt-6 inline-flex rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-500"
-      >
+      <Button onClick={onDone} className="mt-6">
         {t("createdDone")}
-      </button>
+      </Button>
     </section>
   );
 }
@@ -442,22 +430,18 @@ function EndpointRow({
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={loadDeliveries}
-            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-brand-500"
-          >
+          <Button variant="secondary" onClick={loadDeliveries} className="px-4 py-2">
             {t("deliveriesToggle")}
-          </button>
+          </Button>
           {!revoked ? (
-            <button
-              type="button"
+            <Button
+              variant="danger"
               onClick={revoke}
               disabled={busy}
-              className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium text-danger-500 transition-colors hover:border-danger-500 disabled:opacity-60"
+              className="px-4 py-2"
             >
               {busy ? t("revoking") : t("revoke")}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>

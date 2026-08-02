@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   ApiError,
@@ -102,9 +103,7 @@ export function NotificationPrefsView() {
   }
 
   if (enabled === null && !error) {
-    return (
-      <div className="h-48 animate-pulse rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)]" />
-    );
+    return <Skeleton className="h-48" />;
   }
 
   return (

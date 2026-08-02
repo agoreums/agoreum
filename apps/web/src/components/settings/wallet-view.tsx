@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError, authApi, type WalletSummary } from "@/lib/api";
 
@@ -60,12 +61,9 @@ export function WalletView() {
       <p className="text-sm text-[var(--text-secondary)]">{t("hint")}</p>
 
       {wallets === null ? (
-        <div className="space-y-3" aria-hidden="true">
+        <div className="space-y-3">
           {[0, 1].map((i) => (
-            <div
-              key={i}
-              className="h-16 animate-pulse rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)]"
-            />
+            <Skeleton key={i} className="h-16" />
           ))}
         </div>
       ) : wallets.length === 0 ? (

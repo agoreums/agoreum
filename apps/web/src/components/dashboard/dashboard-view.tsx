@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Link } from "@/i18n/navigation";
 import {
@@ -70,7 +71,7 @@ export function DashboardView() {
   }, [status, accessToken, t]);
 
   if (status === "loading") {
-    return <p className="text-[var(--text-muted)]">{t("loading")}</p>;
+    return <DashboardSkeleton />;
   }
 
   if (status !== "authenticated") {
@@ -93,7 +94,7 @@ export function DashboardView() {
   }
 
   if (loading || !buyer || !provider) {
-    return <p className="text-[var(--text-muted)]">{t("loading")}</p>;
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -127,6 +128,20 @@ export function DashboardView() {
           <ProviderPanel data={provider} analytics={analytics} />
         )}
       </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      <Skeleton className="h-10 max-w-xs" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24" />
+        ))}
+      </div>
+      <Skeleton className="h-40" />
     </div>
   );
 }

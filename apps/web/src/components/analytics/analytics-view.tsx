@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { analyticsApi, ApiError, type CreatorAnalytics } from "@/lib/api";
 
@@ -54,12 +55,9 @@ export function AnalyticsView() {
 
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-24 animate-pulse rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)]"
-          />
+          <Skeleton key={i} className="h-24" />
         ))}
       </div>
     );

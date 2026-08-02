@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   ApiError,
@@ -57,12 +58,9 @@ export function PaymentsView() {
 
   if (subs === null && !error) {
     return (
-      <div className="space-y-3" aria-hidden="true">
+      <div className="space-y-3">
         {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-20 animate-pulse rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)]"
-          />
+          <Skeleton key={i} className="h-20" />
         ))}
       </div>
     );

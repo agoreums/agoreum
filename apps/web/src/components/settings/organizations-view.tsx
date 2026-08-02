@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
+import { Button, controlClass } from "@/components/app/ui";
 import { truncateAddress } from "@/components/auth/connect-wallet";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
@@ -212,7 +213,7 @@ function CreateOrg({
             value={name}
             maxLength={96}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-3 py-2 text-sm outline-none focus:border-brand-500"
+            className={`mt-1 ${controlClass}`}
           />
         </label>
         <label className="block">
@@ -223,26 +224,17 @@ function CreateOrg({
             maxLength={64}
             onChange={(e) => setSlug(e.target.value)}
             placeholder={t("create.slugPlaceholder")}
-            className="mt-1 block w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-base)] px-3 py-2 font-mono text-sm outline-none focus:border-brand-500"
+            className={`mt-1 ${controlClass} font-mono`}
           />
         </label>
         {formError ? <p className="text-xs text-danger-500">{formError}</p> : null}
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={submit}
-            disabled={busy}
-            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-500 disabled:opacity-60"
-          >
+          <Button onClick={submit} disabled={busy}>
             {busy ? t("create.creating") : t("create.submit")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium transition-colors hover:border-[var(--border-strong)]"
-          >
+          </Button>
+          <Button variant="secondary" onClick={() => setOpen(false)}>
             {t("create.cancel")}
-          </button>
+          </Button>
         </div>
       </div>
     </section>
