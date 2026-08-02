@@ -205,7 +205,12 @@ services:
   # tracker is same-origin, and pointed at a dedicated `umami` database on the
   # managed cluster (no extra database container to run or back up).
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
+    # Pinned by digest rather than the floating postgresql-latest tag. A moving tag
+    # means a recreate can silently bring the container back on whatever version
+    # latest points to that day, which is how an untouched umami broke after a
+    # routine recreate once. This digest is umami 3.2.0, verified against this
+    # managed database. Bump it deliberately after testing a newer image.
+    image: ghcr.io/umami-software/umami@sha256:8edfe4beaef13f9d1300619fa264ef250a3688df9cc54d24ca830ca31cb475ec
     restart: always
     env_file:
       - .env
