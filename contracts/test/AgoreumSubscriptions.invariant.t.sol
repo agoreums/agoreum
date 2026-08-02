@@ -80,6 +80,14 @@ contract SubscriptionsHandler is Test {
         secondsForward = bound(secondsForward, 1, 40 days);
         vm.warp(block.timestamp + secondsForward);
     }
+
+    function planCount() external view returns (uint256) {
+        return planIds.length;
+    }
+
+    function actorCount() external view returns (uint256) {
+        return actors.length;
+    }
 }
 
 contract AgoreumSubscriptionsInvariantTest is StdInvariant, Test {
@@ -111,5 +119,41 @@ contract AgoreumSubscriptionsInvariantTest is StdInvariant, Test {
     function invariant_allRevenueReachedTreasury() public view {
         assertEq(usdc.balanceOf(treasury), handler.ghostTotalPaid(), "treasury vs ghost");
         assertEq(subs.revenueRouted(address(usdc)), handler.ghostTotalPaid(), "routed vs ghost");
+    }
+
+    /// @notice Every plan that exists stays well formed: a real token, a positive
+    ///         price, and a period inside the allowed bounds. No create or update
+    ///         path may leave a degenerate plan behind, which would either break
+    ///         `subscribe` or sell coverage for nothing.
+    function invariant_plansAreWellFormed() public view {
+        uint64 minPeriod = subs.MIN_PERIOD();
+        uint64 maxPeriod = subs.MAX_PERIOD();
+        uint256 n = handler.planCount();
+        for (uint256 i = 0; i < n; i++) {
+            AgoreumSubscriptions.Plan memory p = subs.getPlan(handler.planIds(i));
+            assertTrue(p.exists, "plan missing");
+            assertTrue(p.token != address(0), "plan token is zero");
+            assertGt(p.price, 0, "plan price is zero");
+            assertGe(p.period, minPeriod, "period below minimum");
+            assertLe(p.period, maxPeriod, "period above maximum");
+        }
+    }
+
+    /// @notice Any subscription that has ever been paid keeps coverage that ends
+    ///         strictly after it began. The extend-or-restart arithmetic in
+    ///         `subscribe` must never move expiry back to, or before, the start of
+    ///         the coverage it represents.
+    function invariant_coverageEndsAfterItBegins() public view {
+        uint256 na = handler.actorCount();
+        uint256 np = handler.planCount();
+        for (uint256 a = 0; a < na; a++) {
+            for (uint256 p = 0; p < np; p++) {
+                AgoreumSubscriptions.Subscription memory s =
+                    subs.getSubscription(handler.actors(a), handler.planIds(p));
+                if (s.expiresAt != 0) {
+                    assertGt(s.expiresAt, s.startedAt, "coverage ends at or before it starts");
+                }
+            }
+        }
     }
 }
