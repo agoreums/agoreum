@@ -16,14 +16,23 @@ import { defaultNetwork, networks, projectId, wagmiAdapter } from "@/lib/wagmi";
  * imports, which leaves AppKit silently uninitialised and the wallet modal unable
  * to open. Configuration travels; the side effect stays put.
  *
- * The intent is wallet-only, with Reown's own analytics off because the site runs
- * its own cookieless analytics and does not need a second tracker. Note that
- * `features` is a *request*, not a guarantee: when AppKit successfully fetches the
- * project config from Reown it discards the local values and uses the dashboard's.
- * As of this change the dashboard has social login, swaps, onramp, and activity
- * enabled, so those views load despite what is asked for here. Turning them off at
- * dashboard.reown.com is the only thing that actually removes them, and it would
- * cut several more chunks off the modal.
+ * Wallet-only, and now actually wallet-only. Reown's own analytics stay off
+ * because the site runs its own cookieless analytics and does not need a second
+ * tracker.
+ *
+ * The extra `false`s are load-bearing, not defensive noise. AppKit builds the view
+ * set it will import from the project config it fetches from Reown, and the
+ * dashboard for this project reports social login, swaps, onramp and activity as
+ * enabled. It does not follow that they win. `ConfigUtil.processFeature` only
+ * prefers the remote answer when that feature arrives carrying a non-null `config`
+ * payload; when `config` is `null`, which is what every feature in this project's
+ * response has, it calls `processFallbackFeature` and the local value decides. So
+ * naming them here is what actually turns them off, and leaving them unset is what
+ * left them on: an unset feature falls through to AppKit's enabled-by-default.
+ *
+ * That matters because `loadModalComponents` awaits every enabled view before the
+ * modal renders anything, so each one left on is a chunk sitting between the tap
+ * and the wallet list. Note the key for activity is `history`, not `activity`.
  *
  * `--w3m-font-family` is not cosmetic. Without a custom font family AppKit injects
  * eight `<link rel="preload">` tags pointing at fonts.reown.com and downloads its
@@ -44,7 +53,14 @@ export const appKitConfig: CreateAppKit = {
     url: siteConfig.url,
     icons: [`${siteConfig.url}/icons/android-chrome-192x192.png`],
   },
-  features: { analytics: false, email: false, socials: [] },
+  features: {
+    analytics: false,
+    email: false,
+    socials: [],
+    swaps: false,
+    onramp: false,
+    history: false,
+  },
   themeMode: "dark",
   themeVariables: {
     "--w3m-accent": "#4b48e0",
@@ -65,11 +81,11 @@ let warming: Promise<unknown> | null = null;
  * connect screen waits on swap, onramp, and activity UI that a visitor choosing a
  * wallet never sees.
  *
- * The list below mirrors what `loadModalComponents` can import, so the warm-up
- * stays correct whatever the Reown dashboard has switched on. Prefetching a view
- * that turns out to be disabled costs some idle bandwidth; missing one that is
- * enabled would put that chunk back on the critical path, which is the thing this
- * exists to prevent. `send` and `receive` are on by AppKit's own defaults.
+ * The list below mirrors exactly what `loadModalComponents` imports for the
+ * feature set configured above: the modal shell and the two views AppKit enables
+ * by default. Everything else is switched off in `appKitConfig`, so prefetching it
+ * would download a chunk the modal never asks for. If a feature is turned back on
+ * there, add it here too, otherwise it lands straight back on the critical path.
  *
  * Importing the modules directly, rather than driving AppKit, is deliberate.
  * `injectModalUi` latches a module-level `isInitialized` flag and reads a feature
@@ -102,14 +118,8 @@ export function warmWalletModal(): Promise<unknown> {
     ApiController.prefetch(),
     import("@reown/appkit-scaffold-ui"),
     import("@reown/appkit-scaffold-ui/w3m-modal"),
-    import("@reown/appkit-scaffold-ui/embedded-wallet"),
-    import("@reown/appkit-scaffold-ui/email"),
-    import("@reown/appkit-scaffold-ui/socials"),
-    import("@reown/appkit-scaffold-ui/swaps"),
     import("@reown/appkit-scaffold-ui/send"),
     import("@reown/appkit-scaffold-ui/receive"),
-    import("@reown/appkit-scaffold-ui/onramp"),
-    import("@reown/appkit-scaffold-ui/transactions"),
   ]).catch(() => {
     warming = null;
   });
