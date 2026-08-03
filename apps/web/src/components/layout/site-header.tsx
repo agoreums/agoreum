@@ -1,11 +1,12 @@
 import { getTranslations } from "next-intl/server";
 
-import { LogoWordmark } from "@/components/brand/logo";
+import { LogoMarkStandalone } from "@/components/brand/logo";
 import { ConnectWalletButton } from "@/components/auth/connect-wallet";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Link } from "@/i18n/navigation";
+import { siteConfig } from "@/lib/site";
 
 /**
  * Primary navigation. Kept in one place so header and mobile drawer cannot diverge.
@@ -35,7 +36,7 @@ export async function SiteHeader() {
           href="/"
           className="rounded-lg transition-opacity hover:opacity-85"
         >
-          <LogoWordmark priority />
+          <LogoMarkStandalone label={siteConfig.name} priority />
         </Link>
 
         <nav

@@ -8,9 +8,10 @@ import { Icon } from "@/components/app/icons";
 import { UserMenu } from "@/components/app/user-menu";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ConnectWalletButton } from "@/components/auth/connect-wallet";
-import { LogoWordmark } from "@/components/brand/logo";
+import { LogoMarkStandalone, LogoWordmark } from "@/components/brand/logo";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { siteConfig } from "@/lib/site";
 
 /**
  * The persistent application shell.
@@ -113,8 +114,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Icon name="menu" />
             </button>
 
+            {/* Same treatment as the marketing header: the mark alone, at size.
+                The sidebar and the gate screens keep the full lockup, where the
+                name is doing real work rather than crowding the mark. */}
             <div className="lg:hidden">
-              <LogoWordmark />
+              <LogoMarkStandalone label={siteConfig.name} />
             </div>
 
             <div className="ms-auto flex items-center gap-2">

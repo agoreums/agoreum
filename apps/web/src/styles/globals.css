@@ -24,6 +24,23 @@
   --color-brand-900: #2e2c7d;
   --color-brand-950: #1c1a49;
 
+  /* --- Mark: literal values read off brand/logo.png -----------------------
+     Not a palette decision. These are the pixels of the loop itself, taken from
+     a weighted luminance histogram of the 1024px master: the specular peak, the
+     dominant body colour, and the two shading tones inside the loop. Anything
+     that is meant to read as *the mark's own colour* rather than as brand-family
+     styling should reference these directly, so the tie back to the logo stays
+     verifiable instead of being a matter of taste. The mark is a single hue
+     family, roughly 236-245 degrees, with no second chromatic note in it. */
+  --color-mark-peak: #5a63f0; /* brightest specular on the loop */
+  --color-mark-body: #464bcd; /* dominant colour by pixel count */
+  --color-mark-shade: #2d257f; /* inner shading where the loop turns */
+  --color-mark-core: #1a1675; /* deepest tone in the mark */
+  /* The same peak lifted over white, so the ramp keeps contrast on a near-black
+     field without leaving the mark's hue. */
+  --color-mark-peak-45: #b5b9f8;
+  --color-mark-peak-18: #e1e3fc;
+
   /* --- Neutrals: cooled toward the brand so greys never look muddy -------- */
   --color-ink-50: #f6f7fb;
   --color-ink-100: #eceef6;
@@ -152,7 +169,11 @@
   }
 
   html {
+    /* Stops iOS Safari inflating text when a phone is turned to landscape. The
+       prefixed form is the one WebKit actually honours; the standard property is
+       what Chrome and Edge implement, so both are needed and neither is dead. */
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     scroll-behavior: smooth;
   }
 
@@ -256,18 +277,56 @@
       );
   }
 
-  /* Headline emphasis: indigo into cyan, not the flat indigo-to-white ramp. The
-     cyan endpoint is the identity's distinctive note. */
+  /* Headline emphasis, drawn from the mark itself.
+     -------------------------------------------------------------------------
+     This previously ended on the cyan signal tone, a colour that appears nowhere
+     in the logo, so the hero's accent read as an unrelated decision sitting next
+     to the mark rather than as the mark's own colour. Both ramps now terminate on
+     literal sampled values.
+
+     Light mode traverses the loop's real shading, specular to body to inner
+     shadow, which is exactly how the mark itself falls. Dark mode cannot use the
+     shadow tones (1.6:1 on the near-black field), so it runs the same specular
+     lifted over white and lands on the unmodified peak: same hue, contrast
+     preserved. Measured against their own fields the stops are 15.6/10.6/4.2 dark
+     and 4.7/6.7/12.5 light, all clear of AA for large text. The old ramp also
+     opened on --color-ink-50 in *both* modes, which was very nearly white text on
+     white in light mode; that is fixed here too. */
+  /* Resolution mirrors the base layer exactly: dark is the default field, "light"
+     and "system" opt into the light ramp, then "system" is handed back to dark on
+     a device that prefers it. Keeping the same shape means the headline can never
+     disagree with the surface it is painted on. */
   .text-gradient-brand {
     background-image: linear-gradient(
       104deg,
-      var(--color-ink-50) 0%,
-      var(--color-brand-300) 42%,
-      var(--color-signal-400) 100%
+      var(--color-mark-peak-18) 0%,
+      var(--color-mark-peak-45) 46%,
+      var(--color-mark-peak) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  :root[data-theme="light"] .text-gradient-brand,
+  :root[data-theme="system"] .text-gradient-brand {
+    background-image: linear-gradient(
+      104deg,
+      var(--color-mark-peak) 0%,
+      var(--color-mark-body) 48%,
+      var(--color-mark-shade) 100%
+    );
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] .text-gradient-brand {
+      background-image: linear-gradient(
+        104deg,
+        var(--color-mark-peak-18) 0%,
+        var(--color-mark-peak-45) 46%,
+        var(--color-mark-peak) 100%
+      );
+    }
   }
 
   /* Thin hairline that traces the how-it-works flow as it comes into view. */
