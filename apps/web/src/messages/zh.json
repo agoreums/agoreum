@@ -315,7 +315,10 @@
     "switchNetwork": "切换到 {network}",
     "walletConnectUnavailable": "本部署未配置 WalletConnect，因此此处不提供该选项。",
     "nonCustodialNotice": "Agoreum 从不持有您的私钥，也不托管您的资金。",
-    "cancel": "取消"
+    "cancel": "取消",
+    "slowOpening": "钱包打开时间比平常更长。",
+    "retry": "重试",
+    "dismiss": "关闭"
   },
   "marketplace": {
     "title": "市场",

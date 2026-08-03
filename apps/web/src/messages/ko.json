@@ -315,7 +315,10 @@
     "switchNetwork": "{network}(으)로 전환",
     "walletConnectUnavailable": "이 배포 환경에는 WalletConnect가 구성되어 있지 않아 제공되지 않습니다.",
     "nonCustodialNotice": "Agoreum은 사용자의 키를 보관하지 않으며 자금을 수탁하지 않습니다.",
-    "cancel": "취소"
+    "cancel": "취소",
+    "slowOpening": "지갑을 여는 데 평소보다 오래 걸리고 있습니다.",
+    "retry": "다시 시도",
+    "dismiss": "닫기"
   },
   "marketplace": {
     "title": "마켓플레이스",

@@ -125,3 +125,29 @@ export function warmWalletModal(): Promise<unknown> {
   });
   return warming ?? Promise.resolve();
 }
+
+/**
+ * How long the connect tap is allowed to look like nothing is happening.
+ *
+ * Production medians sit around 700ms, so this only trips on the genuinely stuck
+ * case and never on the fast path.
+ */
+export const WALLET_MODAL_DEADLINE_MS = 3500;
+
+/**
+ * Drop Reown's memoised prefetch promises so a retry starts fresh requests.
+ *
+ * Without this a retry is theatre. `ModalController.open()` begins with
+ * `await ApiController.prefetch()`, and `initPromise` memoises each fetch by key
+ * in `ApiController.state.promises`, returning the stored promise forever after.
+ * Those fetches are issued with no `AbortSignal`, so one that hangs is cached in
+ * its pending state and every later `open()` awaits that same dead promise.
+ * Calling `open()` again without clearing it would simply queue behind the hang.
+ *
+ * `state` and `promises` are both part of ApiController's published surface
+ * (`promises: Record<string, Promise<unknown>>` in its type declaration), so this
+ * reaches for nothing private and needs no patched copy of AppKit.
+ */
+export function clearWalletModalFetchCache(): void {
+  ApiController.state.promises = {};
+}

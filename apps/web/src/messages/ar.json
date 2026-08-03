@@ -315,7 +315,10 @@
     "switchNetwork": "التبديل إلى {network}",
     "walletConnectUnavailable": "WalletConnect غير مُهيّأ في هذا النشر، لذا لا يُعرض هنا.",
     "nonCustodialNotice": "لا يحتفظ أغوريم بمفاتيحك أبداً ولا يحتجز أموالك.",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "slowOpening": "تستغرق محفظتك وقتًا أطول من المعتاد للفتح.",
+    "retry": "إعادة المحاولة",
+    "dismiss": "إغلاق"
   },
   "marketplace": {
     "title": "السوق",

@@ -315,7 +315,10 @@
     "switchNetwork": "Mudar para {network}",
     "walletConnectUnavailable": "O WalletConnect não está configurado nesta instalação, pelo que não é oferecido aqui.",
     "nonCustodialNotice": "O Agoreum nunca detém as suas chaves nem assume a custódia dos seus fundos.",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "slowOpening": "A sua carteira está a demorar mais do que o habitual a abrir.",
+    "retry": "Tentar novamente",
+    "dismiss": "Dispensar"
   },
   "marketplace": {
     "title": "Mercado",

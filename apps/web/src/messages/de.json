@@ -315,7 +315,10 @@
     "switchNetwork": "Zu {network} wechseln",
     "walletConnectUnavailable": "WalletConnect ist in dieser Umgebung nicht konfiguriert und wird daher nicht angeboten.",
     "nonCustodialNotice": "Agoreum hält niemals Ihre Schlüssel und nimmt Ihre Mittel nie in Verwahrung.",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "slowOpening": "Ihre Wallet braucht länger als gewöhnlich zum Öffnen.",
+    "retry": "Erneut versuchen",
+    "dismiss": "Schließen"
   },
   "marketplace": {
     "title": "Marktplatz",

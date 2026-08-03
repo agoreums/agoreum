@@ -2,16 +2,69 @@
 
 import { useAppKit } from "@reown/appkit/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 
 import { useAuth } from "@/components/auth/auth-provider";
-import { warmWalletModal } from "@/lib/appkit";
+import {
+  WALLET_MODAL_DEADLINE_MS,
+  clearWalletModalFetchCache,
+  warmWalletModal,
+} from "@/lib/appkit";
 import { defaultChain } from "@/lib/wagmi";
 
 /** Shortens an address for display: 0x1234…abcd. */
 export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+/**
+ * Shown when the wallet modal has not appeared within the deadline.
+ *
+ * A toast rather than something in the header, because the header on a phone has
+ * no room for an explanation and this has to be readable exactly where the
+ * problem shows up. It is `role="status"` with a polite live region so the
+ * message is announced rather than only drawn.
+ */
+function SlowOpenNotice({
+  message,
+  retryLabel,
+  dismissLabel,
+  onRetry,
+  onDismiss,
+}: {
+  message: string;
+  retryLabel: string;
+  dismissLabel: string;
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-3 shadow-[var(--shadow-lifted)]"
+    >
+      <p className="flex-1 text-sm leading-snug text-[var(--text-secondary)]">
+        {message}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-500"
+      >
+        {retryLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label={dismissLabel}
+        className="shrink-0 rounded-lg px-2 py-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        &times;
+      </button>
+    </div>
+  );
 }
 
 /**
@@ -31,6 +84,43 @@ export function ConnectWalletButton() {
   const { switchChain } = useSwitchChain();
   const { status, user, signIn, signOut, error } = useAuth();
   const [opening, setOpening] = useState(false);
+  const [slow, setSlow] = useState(false);
+  const deadline = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // `open()` is never abandoned, only raced. AppKit owns the modal, so cancelling
+  // its promise is not ours to do and would not help: the work is a fetch with no
+  // AbortSignal behind it. Instead the deadline only decides when to *say*
+  // something. If the call lands late the modal still appears, and the `finally`
+  // below clears the notice, so a late success resolves the whole thing on its
+  // own with no second tap.
+  const startOpen = useCallback(() => {
+    if (deadline.current) clearTimeout(deadline.current);
+    setOpening(true);
+    setSlow(false);
+
+    deadline.current = setTimeout(() => setSlow(true), WALLET_MODAL_DEADLINE_MS);
+
+    void Promise.resolve(open()).finally(() => {
+      if (deadline.current) clearTimeout(deadline.current);
+      deadline.current = null;
+      setOpening(false);
+      setSlow(false);
+    });
+  }, [open]);
+
+  // Retrying has to drop Reown's memoised fetches first, otherwise the second
+  // attempt just awaits the same stuck promise the first one is already stuck on.
+  const retryOpen = useCallback(() => {
+    clearWalletModalFetchCache();
+    startOpen();
+  }, [startOpen]);
+
+  useEffect(
+    () => () => {
+      if (deadline.current) clearTimeout(deadline.current);
+    },
+    [],
+  );
 
   const onWrongChain =
     isConnected && chainId !== undefined && chainId !== defaultChain.id;
@@ -87,31 +177,32 @@ export function ConnectWalletButton() {
     );
   }
 
-  // `open()` resolves only once AppKit's modal UI has been imported, so on a cold
-  // cache the tap is followed by a stretch of nothing at all. Warming on pointer
-  // intent starts that import a beat before the click lands, and the pending label
-  // covers the case where it is somehow still in flight, so the button is never
-  // silently unresponsive.
-  //
-  // The button is deliberately not disabled while opening: a disabled control loses
-  // focus and reads as broken rather than busy, and AppKit's `open()` is safe to
-  // call twice.
-  const openModal = () => {
-    setOpening(true);
-    void Promise.resolve(open()).finally(() => setOpening(false));
-  };
-
+  // The button is deliberately not disabled while opening: a disabled control
+  // loses focus and reads as broken rather than busy, and AppKit's `open()` is
+  // safe to call twice.
   return (
-    <button
-      type="button"
-      onPointerEnter={() => void warmWalletModal()}
-      onPointerDown={() => void warmWalletModal()}
-      onFocus={() => void warmWalletModal()}
-      onClick={openModal}
-      aria-busy={opening}
-      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-500"
-    >
-      {opening ? tAuth("connecting") : t("connectWallet")}
-    </button>
+    <>
+      <button
+        type="button"
+        onPointerEnter={() => void warmWalletModal()}
+        onPointerDown={() => void warmWalletModal()}
+        onFocus={() => void warmWalletModal()}
+        onClick={startOpen}
+        aria-busy={opening}
+        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-500"
+      >
+        {opening ? tAuth("connecting") : t("connectWallet")}
+      </button>
+
+      {slow ? (
+        <SlowOpenNotice
+          message={tAuth("slowOpening")}
+          retryLabel={tAuth("retry")}
+          dismissLabel={tAuth("dismiss")}
+          onRetry={retryOpen}
+          onDismiss={() => setSlow(false)}
+        />
+      ) : null}
+    </>
   );
 }

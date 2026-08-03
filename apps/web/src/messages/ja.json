@@ -315,7 +315,10 @@
     "switchNetwork": "{network} に切り替える",
     "walletConnectUnavailable": "この環境では WalletConnect が設定されていないため、選択肢に表示されません。",
     "nonCustodialNotice": "Agoreum が鍵を預かることも、資金を保管することもありません。",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "slowOpening": "ウォレットの起動に通常より時間がかかっています。",
+    "retry": "再試行",
+    "dismiss": "閉じる"
   },
   "marketplace": {
     "title": "マーケットプレイス",

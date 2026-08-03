@@ -315,7 +315,10 @@
     "switchNetwork": "Cambiar a {network}",
     "walletConnectUnavailable": "WalletConnect no está configurado en este despliegue, por lo que no se ofrece aquí.",
     "nonCustodialNotice": "Agoreum nunca guarda tus claves ni toma custodia de tus fondos.",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "slowOpening": "Tu cartera está tardando más de lo habitual en abrirse.",
+    "retry": "Reintentar",
+    "dismiss": "Descartar"
   },
   "marketplace": {
     "title": "Mercado",
