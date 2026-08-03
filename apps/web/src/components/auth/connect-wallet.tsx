@@ -25,6 +25,11 @@ export function truncateAddress(address: string): string {
  * no room for an explanation and this has to be readable exactly where the
  * problem shows up. It is `role="status"` with a polite live region so the
  * message is announced rather than only drawn.
+ *
+ * Anchored under the header rather than at the bottom of the viewport. The cookie
+ * consent banner is `fixed bottom-0 z-50`, so a bottom-anchored toast would cover
+ * it for precisely the first-time visitor this is most likely to reach. Sitting
+ * below the header also puts the message next to the button it is about.
  */
 function SlowOpenNotice({
   message,
@@ -43,7 +48,7 @@ function SlowOpenNotice({
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-3 shadow-[var(--shadow-lifted)]"
+      className="fixed inset-x-4 top-20 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] px-4 py-3 shadow-[var(--shadow-lifted)]"
     >
       <p className="flex-1 text-sm leading-snug text-[var(--text-secondary)]">
         {message}
