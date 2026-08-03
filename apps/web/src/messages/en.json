@@ -309,6 +309,7 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "signing": "Check your wallet…",
+    "connecting": "Opening…",
     "connectTitle": "Connect a wallet",
     "connectBody": "Agoreum uses your wallet as your identity. You will be asked to sign a message. This costs no gas and authorises no transaction.",
     "switchNetwork": "Switch to {network}",

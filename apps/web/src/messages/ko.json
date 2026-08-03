@@ -309,6 +309,7 @@
     "signIn": "로그인",
     "signOut": "로그아웃",
     "signing": "지갑을 확인하세요…",
+    "connecting": "여는 중…",
     "connectTitle": "지갑 연결",
     "connectBody": "Agoreum은 지갑을 신원으로 사용합니다. 메시지 서명을 요청받게 되며, 가스비가 들지 않고 어떤 거래도 승인되지 않습니다.",
     "switchNetwork": "{network}(으)로 전환",

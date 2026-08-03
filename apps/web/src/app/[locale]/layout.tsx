@@ -161,6 +161,13 @@ export default async function LocaleLayout(props: {
       suppressHydrationWarning
     >
       <head>
+        {/* Opening the wallet modal makes a serial round trip to Reown's API
+            before it can render a wallet list, and on a phone the DNS lookup and
+            TLS handshake for a cold host are a meaningful share of that wait.
+            Warming the connections during idle time removes that from the tap. */}
+        <link rel="preconnect" href="https://api.web3modal.org" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://api.web3modal.org" />
+        <link rel="preconnect" href="https://pulse.walletconnect.org" crossOrigin="" />
         <ThemeScript />
       </head>
       <body

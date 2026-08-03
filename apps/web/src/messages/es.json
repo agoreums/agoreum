@@ -309,6 +309,7 @@
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
     "signing": "Revisa tu cartera…",
+    "connecting": "Abriendo…",
     "connectTitle": "Conectar una cartera",
     "connectBody": "Agoreum usa tu cartera como identidad. Se te pedirá firmar un mensaje: no cuesta gas ni autoriza ninguna transacción.",
     "switchNetwork": "Cambiar a {network}",

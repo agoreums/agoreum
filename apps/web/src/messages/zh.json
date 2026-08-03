@@ -309,6 +309,7 @@
     "signIn": "登录",
     "signOut": "退出登录",
     "signing": "请查看您的钱包…",
+    "connecting": "正在打开…",
     "connectTitle": "连接钱包",
     "connectBody": "Agoreum 使用您的钱包作为身份标识。系统会请您签名一条消息。这不消耗 Gas，也不会授权任何交易。",
     "switchNetwork": "切换到 {network}",

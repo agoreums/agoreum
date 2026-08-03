@@ -2,9 +2,11 @@
 
 import { useAppKit } from "@reown/appkit/react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { warmWalletModal } from "@/lib/appkit";
 import { defaultChain } from "@/lib/wagmi";
 
 /** Shortens an address for display: 0x1234…abcd. */
@@ -28,6 +30,7 @@ export function ConnectWalletButton() {
   const { address, isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
   const { status, user, signIn, signOut, error } = useAuth();
+  const [opening, setOpening] = useState(false);
 
   const onWrongChain =
     isConnected && chainId !== undefined && chainId !== defaultChain.id;
@@ -84,13 +87,31 @@ export function ConnectWalletButton() {
     );
   }
 
+  // `open()` resolves only once AppKit's modal UI has been imported, so on a cold
+  // cache the tap is followed by a stretch of nothing at all. Warming on pointer
+  // intent starts that import a beat before the click lands, and the pending label
+  // covers the case where it is somehow still in flight, so the button is never
+  // silently unresponsive.
+  //
+  // The button is deliberately not disabled while opening: a disabled control loses
+  // focus and reads as broken rather than busy, and AppKit's `open()` is safe to
+  // call twice.
+  const openModal = () => {
+    setOpening(true);
+    void Promise.resolve(open()).finally(() => setOpening(false));
+  };
+
   return (
     <button
       type="button"
-      onClick={() => open()}
+      onPointerEnter={() => void warmWalletModal()}
+      onPointerDown={() => void warmWalletModal()}
+      onFocus={() => void warmWalletModal()}
+      onClick={openModal}
+      aria-busy={opening}
       className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-500"
     >
-      {t("connectWallet")}
+      {opening ? tAuth("connecting") : t("connectWallet")}
     </button>
   );
 }

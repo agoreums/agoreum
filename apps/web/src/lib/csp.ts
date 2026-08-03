@@ -48,9 +48,13 @@ export const contentSecurityPolicy = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "img-src 'self' data: blob: https:",
-  // Reown AppKit pulls its KHTeka webfont from fonts.reown.com; without it the
-  // wallet modal logs a CSP violation on every page and falls back to a system font.
-  "font-src 'self' data: https://fonts.reown.com",
+  // Self only. AppKit would otherwise pull its KHTeka faces from fonts.reown.com,
+  // 136 KB over seven requests sitting directly between the connect tap and the
+  // modal painting; setting `--w3m-font-family` makes it render in the site's own
+  // Inter instead and stops the fetch at source. Dropping the allowance here means
+  // a future upgrade that reintroduces the download fails loudly rather than
+  // quietly restoring the delay.
+  "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   ["connect-src 'self'", "https://api.agoreum.xyz", ...WALLET_CONNECT_SRC].join(" "),

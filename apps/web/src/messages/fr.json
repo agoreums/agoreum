@@ -309,6 +309,7 @@
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
     "signing": "Vérifiez votre portefeuille…",
+    "connecting": "Ouverture…",
     "connectTitle": "Connecter un portefeuille",
     "connectBody": "Agoreum utilise votre portefeuille comme identité. Il vous sera demandé de signer un message : cela ne coûte pas de gas et n'autorise aucune transaction.",
     "switchNetwork": "Basculer sur {network}",
