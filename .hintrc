@@ -1,0 +1,19 @@
+{
+  "extends": ["development"],
+  "browserslist": [
+    "chrome >= 111",
+    "edge >= 111",
+    "firefox >= 128",
+    "safari >= 16.4",
+    "ios_saf >= 16.4",
+    "and_chr >= 111"
+  ],
+  "hints": {
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": ["text-size-adjust", "-webkit-text-size-adjust"]
+      }
+    ]
+  }
+}
