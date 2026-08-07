@@ -308,6 +308,48 @@ jobs:
           fi
           echo "No environment files tracked."
 
+  # Dependency advisories. Its own job rather than a step inside backend or
+  # frontend, because a newly published advisory is not a regression in the
+  # commit that happens to be pushed that day and must not block a release. It
+  # reports; a human decides. Both `npm ci` calls pass --no-audit deliberately,
+  # so without this nothing looked at advisories at all: the postcss and sharp
+  # findings sat unnoticed until an audit went looking by hand.
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-24.04
+    # Advisory only. Never gates the deploy.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Audit web dependencies
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm audit --audit-level=high || true
+          echo "--- machine readable counts ---"
+          npm audit --json 2>/dev/null             | python -c "import sys,json; v=json.load(sys.stdin)['metadata']['vulnerabilities']; print(v)"             || echo "no audit summary available"
+
+      - name: Audit API dependencies
+        working-directory: apps/api
+        # Resolves from pyproject the same way the production image does, rather
+        # than auditing a developer virtualenv that ships nowhere.
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip install -e .
+          pip-audit --progress-spinner off || true
+
   nginx:
     name: Nginx config
     runs-on: ubuntu-24.04

@@ -28,7 +28,7 @@ contract DeployEscrow is Script {
         address admin = _requireAddress("ESCROW_ADMIN_ADDRESS");
         address arbiter = _requireAddress("ESCROW_ARBITER_ADDRESS");
         address feeRecipient = _requireAddress("ESCROW_FEE_RECIPIENT");
-        uint256 feeBps = vm.envOr("ESCROW_FEE_BPS", uint256(250));
+        uint256 feeBps = _configuredFeeBps();
 
         if (chainId == BASE_MAINNET) {
             if (!_mainnetDeploymentAllowed()) {
@@ -67,8 +67,28 @@ contract DeployEscrow is Script {
     }
 
     function _requireAddress(string memory name) internal view returns (address value) {
-        value = vm.envOr(name, address(0));
+        value = _configuredAddress(name);
         if (value == address(0)) revert MissingConfiguration(name);
+    }
+
+    /// @dev The fee, in basis points. Virtual for the same reason as
+    ///      `_configuredAddress`: a test that reads this from the environment would
+    ///      pass or fail depending on what happens to be in the developer's `.env`,
+    ///      which Foundry loads automatically.
+    function _configuredFeeBps() internal view virtual returns (uint256) {
+        return vm.envOr("ESCROW_FEE_BPS", uint256(250));
+    }
+
+    /// @dev Where a configured address comes from. Split out and virtual for the
+    ///      same reason as `_mainnetDeploymentAllowed` below: `vm.setEnv` writes to
+    ///      the process environment, which every test in the run shares, and
+    ///      Foundry executes tests in parallel. A suite where one test needs a
+    ///      missing address and another needs a valid one is then racing itself,
+    ///      and the loser fails with whichever error the other test's value
+    ///      produced. Overriding this lets a test supply addresses directly, so no
+    ///      global state is touched at all.
+    function _configuredAddress(string memory name) internal view virtual returns (address) {
+        return vm.envOr(name, address(0));
     }
 
     /// @dev Whether a Base mainnet deployment is authorized. Reads the deliberate

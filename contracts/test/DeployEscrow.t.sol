@@ -6,34 +6,61 @@ import {Test} from "forge-std/Test.sol";
 import {AgoreumEscrow} from "../src/AgoreumEscrow.sol";
 import {DeployEscrow} from "../script/DeployEscrow.s.sol";
 
-/// @dev A deploy script that authorizes mainnet, exercising the opt-in branch
-///      without toggling a process-global env var (which races under Foundry's
-///      parallel test execution).
-contract DeployEscrowMainnetAllowed is DeployEscrow {
-    function _mainnetDeploymentAllowed() internal pure override returns (bool) {
-        return true;
+/// @dev A deploy script whose configuration is supplied directly rather than read
+///      from the environment.
+///
+///      `vm.setEnv` writes to the process environment, which every test in the run
+///      shares, and Foundry executes tests in parallel. Namespacing the variables
+///      per contract stopped the escrow and subscriptions suites fighting each
+///      other, but not the tests *inside* one suite: one needs a missing arbiter,
+///      another needs a valid one, and whichever wrote last decided what both saw.
+///      That produced a real intermittent failure in
+///      `test_mainnetRefusesUnseparatedRoles`, which reverted with
+///      MissingConfiguration instead of RolesNotSeparated.
+///
+///      Holding the values here removes the shared state instead of racing for it,
+///      so these tests are order-independent by construction.
+contract DeployEscrowHarness is DeployEscrow {
+    mapping(string => address) private _addresses;
+    bool private _allowMainnet;
+
+    function configure(address admin_, address arbiter_, address feeRecipient_) external {
+        _addresses["ESCROW_ADMIN_ADDRESS"] = admin_;
+        _addresses["ESCROW_ARBITER_ADDRESS"] = arbiter_;
+        _addresses["ESCROW_FEE_RECIPIENT"] = feeRecipient_;
+    }
+
+    function allowMainnet(bool allowed) external {
+        _allowMainnet = allowed;
+    }
+
+    function _configuredAddress(string memory name) internal view override returns (address) {
+        return _addresses[name];
+    }
+
+    function _configuredFeeBps() internal pure override returns (uint256) {
+        return 250;
+    }
+
+    function _mainnetDeploymentAllowed() internal view override returns (bool) {
+        return _allowMainnet;
     }
 }
 
 /// @notice Tests the deployment script's own safety rails.
-/// @dev Address env vars are namespaced per contract (ESCROW_*), so setting them
-///      here does not race with the subscriptions deploy tests running in parallel.
 contract DeployEscrowTest is Test {
-    DeployEscrow internal script;
+    DeployEscrowHarness internal script;
 
     address internal admin = makeAddr("admin");
     address internal arbiter = makeAddr("arbiter");
     address internal feeRecipient = makeAddr("feeRecipient");
 
     function setUp() public {
-        script = new DeployEscrow();
+        script = new DeployEscrowHarness();
     }
 
     function _configure(address admin_, address arbiter_, address feeRecipient_) internal {
-        vm.setEnv("ESCROW_ADMIN_ADDRESS", vm.toString(admin_));
-        vm.setEnv("ESCROW_ARBITER_ADDRESS", vm.toString(arbiter_));
-        vm.setEnv("ESCROW_FEE_RECIPIENT", vm.toString(feeRecipient_));
-        vm.setEnv("ESCROW_FEE_BPS", "250");
+        script.configure(admin_, arbiter_, feeRecipient_);
     }
 
     /// @dev The default that matters most: without the deliberate opt-in the script
@@ -48,10 +75,10 @@ contract DeployEscrowTest is Test {
     }
 
     function test_deploysToBaseMainnetWithExplicitOptIn() public {
-        DeployEscrow allowed = new DeployEscrowMainnetAllowed();
         _configure(admin, arbiter, feeRecipient);
+        script.allowMainnet(true);
         vm.chainId(8453);
-        AgoreumEscrow escrow = allowed.run();
+        AgoreumEscrow escrow = script.run();
         assertEq(escrow.feeBps(), 250);
         assertEq(escrow.feeRecipient(), feeRecipient);
         assertTrue(escrow.hasRole(escrow.ARBITER_ROLE(), arbiter));
@@ -59,9 +86,9 @@ contract DeployEscrowTest is Test {
     }
 
     function test_mainnetRefusesUnseparatedRoles() public {
-        DeployEscrow allowed = new DeployEscrowMainnetAllowed();
         // Fee recipient collapsed onto the admin: separation of duties refused.
         _configure(admin, arbiter, admin);
+        script.allowMainnet(true);
         vm.chainId(8453);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -70,7 +97,7 @@ contract DeployEscrowTest is Test {
                 "ESCROW_FEE_RECIPIENT"
             )
         );
-        allowed.run();
+        script.run();
     }
 
     function test_deploysToBaseSepolia() public {

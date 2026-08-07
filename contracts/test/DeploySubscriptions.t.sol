@@ -6,29 +6,44 @@ import {Test} from "forge-std/Test.sol";
 import {AgoreumSubscriptions} from "../src/AgoreumSubscriptions.sol";
 import {DeploySubscriptions} from "../script/DeploySubscriptions.s.sol";
 
-/// @dev A deploy script that authorizes mainnet, exercising the opt-in branch
-///      without toggling a process-global env var (which races under Foundry's
-///      parallel test execution).
-contract DeploySubscriptionsMainnetAllowed is DeploySubscriptions {
-    function _mainnetDeploymentAllowed() internal pure override returns (bool) {
-        return true;
+/// @dev A deploy script whose configuration is supplied directly rather than read
+///      from the environment. See the equivalent harness in DeployEscrow.t.sol for
+///      the full reasoning: `vm.setEnv` writes to the shared process environment
+///      and Foundry runs tests in parallel, so tests within one suite race each
+///      other even when the variables are namespaced per contract.
+contract DeploySubscriptionsHarness is DeploySubscriptions {
+    mapping(string => address) private _addresses;
+    bool private _allowMainnet;
+
+    function configure(address admin_, address treasury_) external {
+        _addresses["SUBSCRIPTIONS_ADMIN_ADDRESS"] = admin_;
+        _addresses["SUBSCRIPTIONS_TREASURY_ADDRESS"] = treasury_;
+    }
+
+    function allowMainnet(bool allowed) external {
+        _allowMainnet = allowed;
+    }
+
+    function _configuredAddress(string memory name) internal view override returns (address) {
+        return _addresses[name];
+    }
+
+    function _mainnetDeploymentAllowed() internal view override returns (bool) {
+        return _allowMainnet;
     }
 }
 
-/// @dev Address env vars are namespaced per contract (SUBSCRIPTIONS_*), so setting
-///      them here does not race with the escrow deploy tests running in parallel.
 contract DeploySubscriptionsTest is Test {
-    DeploySubscriptions internal deployer;
+    DeploySubscriptionsHarness internal deployer;
     address internal admin = makeAddr("admin");
     address internal treasury = makeAddr("treasury");
 
     function setUp() public {
-        deployer = new DeploySubscriptions();
+        deployer = new DeploySubscriptionsHarness();
     }
 
     function _configure(address admin_, address treasury_) internal {
-        vm.setEnv("SUBSCRIPTIONS_ADMIN_ADDRESS", vm.toString(admin_));
-        vm.setEnv("SUBSCRIPTIONS_TREASURY_ADDRESS", vm.toString(treasury_));
+        deployer.configure(admin_, treasury_);
     }
 
     function test_refusesToDeployToBaseMainnet() public {
@@ -43,19 +58,19 @@ contract DeploySubscriptionsTest is Test {
     }
 
     function test_deploysToBaseMainnetWithExplicitOptIn() public {
-        DeploySubscriptions allowed = new DeploySubscriptionsMainnetAllowed();
         _configure(admin, treasury);
+        deployer.allowMainnet(true);
         vm.chainId(8453);
-        AgoreumSubscriptions subs = allowed.run();
+        AgoreumSubscriptions subs = deployer.run();
         assertEq(subs.treasury(), treasury);
         assertTrue(subs.hasRole(subs.GOVERNOR_ROLE(), admin));
         assertTrue(subs.hasRole(subs.DEFAULT_ADMIN_ROLE(), admin));
     }
 
     function test_mainnetRefusesUnseparatedAdminAndTreasury() public {
-        DeploySubscriptions allowed = new DeploySubscriptionsMainnetAllowed();
         // Governor and revenue address collapsed onto one address: refused.
         _configure(admin, admin);
+        deployer.allowMainnet(true);
         vm.chainId(8453);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -64,7 +79,7 @@ contract DeploySubscriptionsTest is Test {
                 "SUBSCRIPTIONS_TREASURY_ADDRESS"
             )
         );
-        allowed.run();
+        deployer.run();
     }
 
     function test_deploysToBaseSepolia() public {
