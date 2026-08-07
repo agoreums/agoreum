@@ -95,3 +95,9 @@ apps/api/tests/anvil_fixture.json
 # A private key in version control is compromised the moment the repo is cloned.
 infra/nginx/certs/
 *.crt
+
+# A CA certificate is not a secret. It is the public half that clients use to
+# verify a server, and it has to travel with the code that does the verifying.
+# The blanket *.crt rule above exists to stop origin certificates and private
+# keys being committed, which is right; this one file is the exception.
+!infra/certs/digitalocean-db-ca.crt

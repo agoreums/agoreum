@@ -222,15 +222,24 @@ services:
       # effect at runtime; nginx strips /insights instead, and the tracker's
       # data-host-url keeps collection under that path.
       DISABLE_TELEMETRY: "1"
-      # The connection to the managed database is encrypted but its DigitalOcean
-      # CA is self-signed in-chain, which Prisma rejects by default (the API's
-      # asyncpg client only encrypts, it does not verify, so it connects fine).
-      # The database is reachable only from this droplet over the private VPC, so
-      # matching that posture here, TLS on, chain not verified, is the right
-      # trade rather than the connection failing outright.
-      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      # The managed database presents a DigitalOcean-issued certificate that is
+      # self-signed in-chain, so Node rejects it against the public trust store.
+      #
+      # This used to be NODE_TLS_REJECT_UNAUTHORIZED=0, which disables certificate
+      # verification for the whole process rather than for the database
+      # connection it was meant to fix. Umami also talks to the outside world, and
+      # every one of those connections was unverified too, which was never the
+      # intent.
+      #
+      # Trusting DigitalOcean's CA explicitly keeps verification on everywhere.
+      # The certificate is public by design and is committed at
+      # infra/certs/digitalocean-db-ca.crt; refresh it from
+      # GET /v2/databases/{id}/ca if the cluster is ever rotated.
+      NODE_EXTRA_CA_CERTS: /etc/ssl/digitalocean-db-ca.crt
     expose:
       - "3000"
+    volumes:
+      - ./infra/certs/digitalocean-db-ca.crt:/etc/ssl/digitalocean-db-ca.crt:ro
     networks:
       - internal
     deploy:
