@@ -69,8 +69,13 @@ int_types = "long"
 # Point at the variable names that actually exist in .env. These previously read
 # BASE_SEPOLIA_RPC_URL and BASE_RPC_URL, which are defined nowhere in the repo or
 # the environment, so `--rpc-url base` expanded to an empty string and the
-# documented deploy command could not work. Foundry loads .env automatically, so
-# these resolve without exporting anything by hand.
+# documented deploy command could not work.
+#
+# Foundry reads .env from the directory it runs in, and this repo keeps its .env
+# at the root, one level above contracts/. Running `forge script` from contracts/
+# therefore does NOT pick it up: the alias expands to nothing and the error says
+# "environment variable not found" rather than anything about paths. Either run
+# forge from the repo root, or export the variable for that one command.
 [rpc_endpoints]
 base_sepolia = "${ALCHEMY_BASE_URL_SEPOLIA}"
 base = "${ALCHEMY_BASE_URL_MAINNET}"
