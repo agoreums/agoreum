@@ -30,13 +30,16 @@ branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None
 
 TABLE = "notification_deliveries"
-NAME = "ck_notification_deliveries_email_requires_destination"
+# The bare name. Alembic applies the metadata naming convention
+# ("ck_%(table_name)s_%(constraint_name)s") itself, so passing the expanded
+# name here gets it prefixed a second time and then truncated to a hash.
+NAME = "email_requires_destination"
 
 
 def upgrade() -> None:
     op.drop_constraint(NAME, TABLE, type_="check")
     op.create_check_constraint(
-        "email_requires_destination",
+        NAME,
         TABLE,
         "channel <> 'email' OR destination IS NOT NULL OR status = 'suppressed'",
     )
@@ -52,7 +55,7 @@ def downgrade() -> None:
     )
     op.drop_constraint(NAME, TABLE, type_="check")
     op.create_check_constraint(
-        "email_requires_destination",
+        NAME,
         TABLE,
         "channel <> 'email' OR destination IS NOT NULL",
     )
