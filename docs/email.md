@@ -65,19 +65,38 @@ provider dashboard, because what matters is what the world can actually see.
 | DKIM `resend._domainkey` | published, matches Resend |
 | SPF `send.agoreum.xyz` | `v=spf1 include:amazonses.com ~all` |
 | DMARC `_dmarc` | `v=DMARC1; p=none; rua=mailto:dmarc@agoreum.xyz; fo=1; adkim=r; aspf=r` |
-| MX at the apex | **absent** |
+| MX at the apex | `inbound-smtp.eu-west-1.amazonaws.com`, priority 10 |
 
 `p=none` is monitoring only. It asks receivers to report on mail claiming to be
 from this domain and changes nothing about delivery. Move to `p=quarantine` and
 then `p=reject` once the aggregate reports arrive and look clean; going straight
 to `reject` on an unmonitored domain is how legitimate mail disappears.
 
-The missing MX means **`support@agoreum.xyz` cannot receive mail**. That address
-is published on five public pages and named in `docs/security.md` as the
-vulnerability disclosure channel, so security reports sent there currently
-bounce. Cloudflare Email Routing is the straightforward fix: it provisions the MX
-records and forwards to a real inbox. Its SPF entry sits at the apex and does not
-disturb the `send.` subdomain Resend uses for outbound.
+## Inbound: mail arrives, and nobody is told
+
+`support@agoreum.xyz` **does receive mail**. Resend's receiving feature is enabled
+on the domain and the apex MX points at its AWS inbound host. Verified by the
+first real message to arrive: an external report about compiler warnings, sent
+2026-08-07 and answered in `docs/solidity-compiler-bugs.md`.
+
+An earlier version of this page said the apex MX was absent and that mail bounced.
+That was true when written and is not true now. Nothing bounced.
+
+The remaining gap is not delivery, it is attention. Received mail sits in the
+Resend dashboard and nothing announces it. That address is published on five
+public pages and named in `docs/security.md` as the vulnerability disclosure
+channel, so the realistic failure is a disclosure sitting unread for weeks. The
+first one sat unread until it was found by accident while checking something else.
+
+Cloudflare Email Routing would be the alternative, forwarding to a real mailbox,
+but it cannot be added alongside this: both want the apex MX, and configuring it
+would take receiving away from Resend. Choosing between them is a decision, not a
+task.
+
+A notification on `email.received` is the smaller fix, and it need not involve
+sending any mail: Telegram and Discord credentials already exist in the
+deployment, so an inbound security report can raise an alert through a channel
+that has nothing to do with the email flag.
 
 ## Before enabling sending
 
@@ -93,7 +112,8 @@ disturb the `send.` subdomain Resend uses for outbound.
    secret it issues put in `RESEND_WEBHOOK_SECRET`. Until that happens the
    suppression list stays empty, and sending from a cold domain with no bounce
    feedback is how a sending reputation is destroyed quietly.
-4. **Add inbound for the support address**, as above.
+4. ~~**Add inbound for the support address.**~~ Already working, see above. What
+   is left is being told when something arrives.
 5. **Turn off open and click tracking** for this domain. Both are currently on,
    with the tracking subdomain named `security`. Rewriting links in security mail
    through a redirector trains users to click redirectors in exactly the messages
