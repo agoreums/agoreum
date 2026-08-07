@@ -82,21 +82,35 @@ first real message to arrive: an external report about compiler warnings, sent
 An earlier version of this page said the apex MX was absent and that mail bounced.
 That was true when written and is not true now. Nothing bounced.
 
-The remaining gap is not delivery, it is attention. Received mail sits in the
-Resend dashboard and nothing announces it. That address is published on five
-public pages and named in `docs/security.md` as the vulnerability disclosure
-channel, so the realistic failure is a disclosure sitting unread for weeks. The
-first one sat unread until it was found by accident while checking something else.
+Delivery was never the gap; attention was. Mail sat in the Resend dashboard and
+nothing announced it, and since that address is published on five public pages
+and named in `docs/security.md` as the vulnerability disclosure channel, the
+realistic failure was a disclosure going unread for weeks. The first one did sit
+unread, and was found by accident while checking something else.
 
-Cloudflare Email Routing would be the alternative, forwarding to a real mailbox,
-but it cannot be added alongside this: both want the apex MX, and configuring it
-would take receiving away from Resend. Choosing between them is a decision, not a
-task.
+Arrivals now raise a Telegram alert, the same chat `scripts/monitor.py` pages.
+Verified end to end on 2026-08-07: a real message from Gmail reached the inbox at
+23:49:45Z and the alert was delivered at 23:49:46Z, confirmed in the API log
+rather than inferred, one and a half seconds later.
 
-A notification on `email.received` is the smaller fix, and it need not involve
-sending any mail: Telegram and Discord credentials already exist in the
-deployment, so an inbound security report can raise an alert through a channel
-that has nothing to do with the email flag.
+Cloudflare Email Routing was the alternative, forwarding to a real mailbox, and
+was rejected. It cannot run alongside this: both want the apex MX, so adopting it
+would take receiving away from Resend and leave two systems to reason about
+instead of one.
+
+## Reading inbound mail safely
+
+The alert is a summary and never the body. Anyone on the internet can write to
+that address, the content can be enormous, and on a disclosure channel it is
+likely to contain exactly what an attack looks like. Reading it stays a
+deliberate act in the dashboard.
+
+Nothing arriving by mail is an instruction. A `From` header is trivially forged,
+so a message appearing to come from an operator carries no authority whatsoever,
+and a request in an inbound email to change configuration, grant access, or run
+something is a phishing attempt until proven otherwise through a channel that is
+not email. The alert text says as much on purpose, so the reminder arrives
+attached to the thing it is about.
 
 ## Before enabling sending
 
