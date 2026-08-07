@@ -85,8 +85,16 @@ async def notify(
         NotificationChannel.IN_APP,
         NotificationChannel.EMAIL,
     ),
+    allow_unverified_email: bool = False,
 ) -> Notification:
-    """Create a notification and attempt delivery over the requested channels."""
+    """Create a notification and attempt delivery over the requested channels.
+
+    `allow_unverified_email` exists for exactly one caller, the verification
+    message, which has to reach an unproven address in order to prove it. It
+    defaults to False so that every other notification is silently held back
+    rather than mailed to an address nobody confirmed. Adding a second caller
+    should require an argument as to why.
+    """
     user = (
         await db.execute(select(User).where(User.id == user_id))
     ).scalar_one_or_none()
@@ -109,7 +117,13 @@ async def notify(
     await db.flush()
 
     for channel in channels:
-        await _deliver(db, notification=notification, user=user, channel=channel)
+        await _deliver(
+            db,
+            notification=notification,
+            user=user,
+            channel=channel,
+            allow_unverified_email=allow_unverified_email,
+        )
 
     await db.flush()
 
@@ -142,6 +156,7 @@ async def _deliver(
     notification: Notification,
     user: User,
     channel: NotificationChannel,
+    allow_unverified_email: bool = False,
 ) -> NotificationDelivery:
     delivery = NotificationDelivery(
         notification_id=notification.id,
@@ -173,6 +188,18 @@ async def _deliver(
         if not user.email:
             delivery.status = NotificationDeliveryStatus.SUPPRESSED
             delivery.last_error = "the recipient has no email address"
+            db.add(delivery)
+            await db.flush()
+            return delivery
+
+        # An address nobody has proven is just a string somebody typed. Sending to
+        # it makes the platform a way to mail a stranger, carrying this domain's
+        # reputation while doing it, and the person receiving it never asked for
+        # anything. The single exception is the verification message itself, which
+        # by definition has to reach an unproven address to prove it.
+        if user.email_verified_at is None and not allow_unverified_email:
+            delivery.status = NotificationDeliveryStatus.SUPPRESSED
+            delivery.last_error = "the recipient's email address is not verified"
             db.add(delivery)
             await db.flush()
             return delivery

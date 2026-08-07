@@ -39,6 +39,7 @@ from app.db.enums import (
     TransactionStatus,
     TransactionType,
 )
+from app.modules.notifications import events as notification_events
 from app.modules.orders.models import ChainTransaction, Escrow, Order, OrderEvent
 
 logger = get_logger(__name__)
@@ -247,7 +248,14 @@ async def _apply_event(db: AsyncSession, event: contract.DecodedEvent) -> str:
         await db.execute(
             select(Order)
             .where(Order.id == order_id)
-            .options(selectinload(Order.escrow), selectinload(Order.buyer))
+            .options(
+                selectinload(Order.escrow),
+                selectinload(Order.buyer),
+                # Needed to resolve who owns the providing agent when a
+                # notification goes out. Without it the relationship is
+                # unloaded and the provider is told nothing at all.
+                selectinload(Order.provider_agent),
+            )
         )
     ).scalar_one_or_none()
 
@@ -397,6 +405,25 @@ async def _apply_to_escrow(
             order.cancelled_at = now
 
     await db.flush()
+
+    # Tell the people affected that money moved. Deliberately after the flush, so
+    # the state the chain reported is already durable before anyone is told about
+    # it, and never before: a notification about a transition that then failed to
+    # persist would be worse than no notification.
+    #
+    # Every one of these swallows its own errors. Indexing must continue whatever
+    # happens here, because an order that silently stays unfunded is a buyer whose
+    # money is committed and whose work never starts.
+    if event.name == "EscrowCreated":
+        await notification_events.order_funded(db, order=order)
+    elif event.name in {"EscrowReleased", "EscrowSettled"}:
+        await notification_events.order_released(db, order=order)
+    elif event.name == "EscrowRefunded":
+        await notification_events.order_refunded(db, order=order)
+    elif event.name == "EscrowDisputed":
+        await notification_events.order_disputed(
+            db, order=order, raised_by_address=str(event.args.get("raisedBy", "")) or None
+        )
 
 
 async def _record_order_event(

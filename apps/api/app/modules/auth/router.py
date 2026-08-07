@@ -34,6 +34,8 @@ from app.modules.auth.schemas import (
     UserProfile,
     WalletSummary,
 )
+from app.modules.notifications import events as notification_events
+from app.modules.notifications import service as notifications_service
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -189,12 +191,20 @@ async def request_email_verification(
     claiming a message went out, because reporting a send that did not happen is
     how someone ends up waiting for a link that will never arrive.
     """
-    _raw, _row = await service.issue_email_verification(db, user=user)
+    raw, _row = await service.issue_email_verification(db, user=user)
+    await notification_events.email_verification_requested(db, user=user, token=raw)
+
+    # Reports what actually happened rather than assuming. Delivery is gated on
+    # EMAIL_SENDING_ENABLED and a configured key, so on a deployment without them
+    # the notification row is written and suppressed. Saying "sent" there would
+    # leave someone waiting for a link that was never going to arrive.
+    can_send, reason = notifications_service.email_sending_available()
     return EmailVerificationStatus(
-        sent=False,
+        sent=can_send,
         detail=(
-            "Verification token created. Email delivery is not yet enabled on "
-            "this deployment, so no message has been sent."
+            "Check your inbox for a confirmation link. It expires in 24 hours."
+            if can_send
+            else f"No message was sent: {reason}."
         ),
     )
 

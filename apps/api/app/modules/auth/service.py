@@ -156,6 +156,11 @@ async def sign_in(
 
     user.last_seen_at = datetime.now(UTC)
 
+    # Decided before the new session exists, or it would always match itself.
+    unrecognised = await _is_unrecognised_session(
+        db, user=user, ip_address=ip_address, user_agent=user_agent
+    )
+
     tokens = await _create_session(
         db,
         user=user,
@@ -165,11 +170,57 @@ async def sign_in(
         ip_address=ip_address,
     )
 
+    if unrecognised:
+        # Imported here rather than at module scope: notifications import the auth
+        # models, so a top-level import closes a cycle.
+        from app.modules.notifications import events as notification_events
+
+        await notification_events.new_session_signin(
+            db, user=user, ip_address=ip_address, user_agent=user_agent
+        )
+
     logger.info(
         "signin_succeeded",
         extra={"user_id": str(user.id), "chain_id": chain_id},
     )
     return user, tokens
+
+
+async def _is_unrecognised_session(
+    db: AsyncSession,
+    *,
+    user: User,
+    ip_address: str | None,
+    user_agent: str | None,
+) -> bool:
+    """Whether this looks like a sign-in the account has not made before.
+
+    Deliberately silent on a first-ever sign-in. Somebody creating an account has
+    no prior sessions, so every signal says "unrecognised", and telling them their
+    brand new account was just accessed by them is noise. Worse than noise: a
+    security notice that fires when nothing is wrong is one people learn to
+    dismiss, and then it fails on the day it matters.
+
+    Matching is on address and user agent together. Either alone is weak, a
+    mobile network reassigns addresses constantly and user agents are far from
+    unique, but a pair neither of which has been seen before is worth one message.
+    """
+    prior = (
+        await db.execute(
+            select(Session.ip_address, Session.user_agent)
+            .where(Session.user_id == user.id)
+            .limit(50)
+        )
+    ).all()
+
+    if not prior:
+        return False
+
+    trimmed_agent = (user_agent or "")[:512] or None
+    return not any(
+        row_ip == ip_address and row_agent == trimmed_agent
+        for row_ip, row_agent in prior
+    )
 
 
 async def _get_or_create_user(db: AsyncSession, *, address: str) -> User:
