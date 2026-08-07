@@ -110,8 +110,11 @@ would hand over the contract.
 
 ## Testing
 
-**73 tests. `AgoreumEscrow.sol`: 97.56% of lines, 96.89% of statements,
-88.00% of branches, 100% of functions.**
+**125 tests**, all passing, including fuzz suites at 2000 runs, invariant suites
+at 512 sequences of depth 64, and six fork tests against the real USDC contract
+on Base rather than a mock. Coverage percentages are not quoted here: they were
+last measured at an earlier revision and are not re-measured on every change, so
+a number in this file would be a claim nobody is checking.
 
 The uncovered branches are defensive checks that the other invariants make
 unreachable, they are kept because "unreachable" is a property of today's

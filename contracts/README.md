@@ -62,7 +62,10 @@ forge coverage --ir-minimum
 FOUNDRY_PROFILE=deep forge test   # 50k fuzz runs, 2k invariant runs
 ```
 
-**67 tests**, covering 97.5% of lines and 100% of functions in the escrow.
+**125 tests**, all passing. That count is verified by a full run; the coverage
+percentages previously quoted here were measured at an earlier revision and are
+not re-measured on every change, so they have been removed rather than left to
+drift quietly.
 
 Beyond the happy path, the suite specifically exercises the ways money is lost:
 
@@ -118,4 +121,9 @@ should not also be able to change the fee or pause the contract.
 
 ## Status
 
-Not yet deployed to any network. No audit has been performed.
+Deployed to Base Sepolia and exercised end to end with real testnet USDC. Not on
+Base mainnet, and **no audit has been performed**, which is the blocking item
+rather than anything technical.
+
+  escrow        0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D  (block 44531775)
+  subscriptions 0x509d50f826067452447cb24449a34b497e010017  (block 44628596)

@@ -203,13 +203,25 @@ Stated plainly rather than omitted.
 
 | Gap | Impact | Status |
 | --- | --- | --- |
-| No contract audit | Unknown contract risk | Required before mainnet |
-| Not on mainnet | Testnet-proven only; mainnet unexercised | Deploy blocked pending audit + separate roles |
+| No contract audit | Unknown contract risk | **Required before mainnet.** The single blocking item; everything else on this list is smaller. |
+| Not on mainnet | Testnet-proven only; mainnet unexercised | Blocked pending the audit and two Safe multisigs. The deploy script now refuses a mainnet admin that is not a contract, so this cannot be skipped by accident. |
+| Governance is immediate | A compromised admin can change the fee or repoint the recipient with no delay | No timelock. Bounded by a hard 10% fee ceiling, and the admin cannot move principal. Governance events are now alerted on, so it would be noticed rather than discovered by a user. |
+| Separation is deploy-time only | `DEFAULT_ADMIN` can grant itself `ARBITER_ROLE` afterwards | Enforced at deployment, an operational commitment thereafter. Covered by tests in `AgoreumEscrow.governance.t.sol`. |
 | Tokens in `sessionStorage` | XSS could exfiltrate a session | Mitigated by CSP; httpOnly cookies planned once API and site share a domain |
 | No 2FA | Wallet compromise is total account compromise | Inherent to wallet-based identity |
-| Single arbiter key | Compromise allows unfair dispute settlement | Multisig planned |
-| No automated dependency scanning | A vulnerable dependency could go unnoticed | Dependabot planned |
+| Single arbiter key | Compromise allows unfair dispute settlement | Multisig planned. The arbiter cannot raise a dispute, so it cannot act on a healthy escrow unilaterally. |
+| Email recipients unverified | Any address set on a profile becomes a delivery destination | Inert today, since nothing calls `notify()`. Must be fixed before sending is enabled, see [email.md](email.md). |
 | No admin role-granting path | No way to become admin | Deliberate, see [architecture.md](architecture.md) |
+
+Closed since this table was written:
+
+| Was | Now |
+| --- | --- |
+| No automated dependency scanning | `npm audit` and `pip-audit` run in CI as an advisory job. Deliberately not gating the deploy: an advisory published today is not a regression in whatever commit is pushed today. |
+| Origin reachable directly, bypassing the CDN | 80 and 443 are restricted to Cloudflare's ranges by a DigitalOcean Cloud Firewall. Verified: a direct request to the droplet address times out. |
+| `CF-Connecting-IP` forwarded from the client | nginx sets it from `$remote_addr` behind `set_real_ip_from`, so a forged header is discarded. This also repaired the edge rate limits, which were keyed on the Cloudflare edge rather than the visitor. |
+| Per-user rate limiting | Was dead code: the limiter read `request.state.user_id`, which nothing ever assigned, so every authenticated request fell through to the IP bucket. |
+| Governance changes unmonitored | Fee changes, treasury changes, pauses and role grants alert to Telegram. |
 
 ## Verification
 
