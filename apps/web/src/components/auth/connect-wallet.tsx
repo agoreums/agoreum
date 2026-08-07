@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import {
   WALLET_MODAL_DEADLINE_MS,
   clearWalletModalFetchCache,
+  subscribeWalletModalOpen,
   warmWalletModal,
 } from "@/lib/appkit";
 import { defaultChain } from "@/lib/wagmi";
@@ -94,10 +95,14 @@ export function ConnectWalletButton() {
 
   // `open()` is never abandoned, only raced. AppKit owns the modal, so cancelling
   // its promise is not ours to do and would not help: the work is a fetch with no
-  // AbortSignal behind it. Instead the deadline only decides when to *say*
-  // something. If the call lands late the modal still appears, and the `finally`
-  // below clears the notice, so a late success resolves the whole thing on its
-  // own with no second tap.
+  // AbortSignal behind it. The deadline only decides when to *say* something.
+  //
+  // What clears the notice is AppKit's modal state below, not this promise
+  // settling. That distinction is the whole fix: `open()` can resolve while the
+  // modal never becomes visible, and an earlier version cleared the deadline in a
+  // `finally`, so those runs showed no modal *and* no notice, which is precisely
+  // the dead end this exists to prevent. Measured at 2 of 8 taps against production.
+  // Settling the promise now only stops the button reading as busy.
   const startOpen = useCallback(() => {
     if (deadline.current) clearTimeout(deadline.current);
     setOpening(true);
@@ -105,13 +110,25 @@ export function ConnectWalletButton() {
 
     deadline.current = setTimeout(() => setSlow(true), WALLET_MODAL_DEADLINE_MS);
 
-    void Promise.resolve(open()).finally(() => {
-      if (deadline.current) clearTimeout(deadline.current);
-      deadline.current = null;
-      setOpening(false);
-      setSlow(false);
-    });
+    void Promise.resolve(open()).finally(() => setOpening(false));
   }, [open]);
+
+  // Success is taken from AppKit's modal state, not from the promise, and it is
+  // taken through a subscription because the modal is an external system. Clearing
+  // on the open edge rather than deriving from `!modalOpen` matters: a derived
+  // notice would spring back the moment the visitor dismissed a modal that had
+  // opened late, because `slow` would still be set from that attempt.
+  useEffect(
+    () =>
+      subscribeWalletModalOpen((isOpen) => {
+        if (!isOpen) return;
+        if (deadline.current) clearTimeout(deadline.current);
+        deadline.current = null;
+        setOpening(false);
+        setSlow(false);
+      }),
+    [],
+  );
 
   // Retrying has to drop Reown's memoised fetches first, otherwise the second
   // attempt just awaits the same stuck promise the first one is already stuck on.

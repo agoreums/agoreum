@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiController } from "@reown/appkit-controllers";
+import { ApiController, ModalController } from "@reown/appkit-controllers";
 import type { CreateAppKit } from "@reown/appkit/react";
 
 import { siteConfig } from "@/lib/site";
@@ -150,4 +150,22 @@ export const WALLET_MODAL_DEADLINE_MS = 3500;
  */
 export function clearWalletModalFetchCache(): void {
   ApiController.state.promises = {};
+}
+
+/**
+ * Subscribe to whether the wallet modal is actually on screen.
+ *
+ * The modal is an external system, so this is the shape React asks for: a
+ * subscription that calls back on change, rather than a component reading a value
+ * and mirroring it into its own state. It is also the only trustworthy success
+ * signal. `open()` can resolve while the modal never becomes visible, so anything
+ * keyed on that promise reports success where the visitor sees nothing.
+ *
+ * `subscribeKey` is part of ModalController's published surface and returns its
+ * own unsubscribe, so no patched copy of AppKit is involved.
+ */
+export function subscribeWalletModalOpen(
+  callback: (open: boolean) => void,
+): () => void {
+  return ModalController.subscribeKey("open", callback);
 }
