@@ -81,7 +81,7 @@ review is still refused.
 | Backend | Python 3.12 · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async · Alembic |
 | Database | PostgreSQL 16 (managed service in production) |
 | Cache | Redis |
-| Chain | EVM (Base) via Alchemy · USDC · Solidity 0.8.28 · Foundry · OpenZeppelin 5.1 |
+| Chain | EVM (Base) via Alchemy · USDC · Solidity 0.8.36 · Foundry · OpenZeppelin 5.1 |
 | Auth | Sign-In With Ethereum · WalletConnect, Coinbase Wallet, MetaMask |
 | Email | Resend |
 | Infra | Docker · Nginx · Cloudflare · GitHub Actions |

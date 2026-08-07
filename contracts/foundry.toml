@@ -7,7 +7,7 @@ script = "script"
 
 # Base runs the Cancun instruction set. Pinning both the compiler and the EVM
 # version keeps local builds byte-identical to what gets deployed and verified.
-solc_version = "0.8.28"
+solc_version = "0.8.36"
 evm_version = "cancun"
 
 optimizer = true
@@ -18,6 +18,18 @@ optimizer_runs = 10_000
 # Treat warnings as errors. In a contract that holds funds, an unused variable
 # or a shadowed declaration is a signal worth stopping for.
 deny_warnings = true
+
+# ...but only for code we own. forge-std 1.9.6 names several parameters `error`,
+# which solc 0.8.36 flags because `error` becomes a keyword in a future release.
+# That is the dependency's warning to fix, not ours, and it must not be able to
+# stop a build of contracts that are themselves warning-free.
+ignored_warnings_from = ["lib"]
+
+# 4591 is solc's own "there are more than 256 warnings" notice. It carries no
+# source location, so it cannot be attributed to `lib` and slips past the filter
+# above even though every warning it is counting comes from forge-std. Ignored
+# here for the same reason. Individual warnings in our own code are still fatal.
+ignored_error_codes = [4591]
 
 via_ir = false
 bytecode_hash = "none"

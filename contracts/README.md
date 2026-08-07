@@ -1,6 +1,6 @@
 # contracts, Agoreum Smart Contracts
 
-Solidity 0.8.28 · Foundry · OpenZeppelin 5.1.0 · target: Base
+Solidity 0.8.36 · Foundry · OpenZeppelin 5.1.0 · target: Base
 
 ## AgoreumEscrow
 
