@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import httpx
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -29,6 +29,7 @@ from app.db.enums import (
     NotificationDeliveryStatus,
 )
 from app.modules.notifications.models import (
+    EmailSuppression,
     Notification,
     NotificationDelivery,
     NotificationPreference,
@@ -64,6 +65,58 @@ def email_sending_available() -> tuple[bool, str | None]:
     if not settings.RESEND_API_KEY.get_secret_value():
         return False, "no Resend API key is configured"
     return True, None
+
+
+# --- Suppression ------------------------------------------------------------
+
+
+async def suppression_for(
+    db: AsyncSession, *, email: str | None
+) -> EmailSuppression | None:
+    """The suppression covering this address, if any."""
+    if not email:
+        return None
+    return (
+        await db.execute(
+            select(EmailSuppression).where(EmailSuppression.email == email.lower())
+        )
+    ).scalar_one_or_none()
+
+
+async def suppress_email(
+    db: AsyncSession, *, email: str, reason: str, detail: str | None = None
+) -> EmailSuppression:
+    """Record that an address must not be mailed again.
+
+    Idempotent. A provider may deliver the same webhook more than once, and a
+    second bounce for an address already suppressed is not new information, so
+    the first reason is kept rather than overwritten: it is the one that
+    explains why sending stopped.
+    """
+    existing = await suppression_for(db, email=email)
+    if existing is not None:
+        return existing
+
+    row = EmailSuppression(
+        email=email.lower(), reason=reason, detail=(detail or None)
+    )
+    db.add(row)
+    await db.flush()
+    logger.info("email_suppressed_permanently", extra={"reason": reason})
+    return row
+
+
+async def unsuppress_email(db: AsyncSession, *, email: str) -> bool:
+    """Lift a suppression. Returns whether anything was removed.
+
+    Deliberately manual. An address comes off this list because a human decided
+    it should, not because time passed: a mailbox that hard bounced yesterday is
+    still gone today, and a complaint does not expire.
+    """
+    result = await db.execute(
+        delete(EmailSuppression).where(EmailSuppression.email == email.lower())
+    )
+    return (result.rowcount or 0) > 0
 
 
 # --- Creation ---------------------------------------------------------------
@@ -204,6 +257,21 @@ async def _deliver(
             await db.flush()
             return delivery
 
+        # A hard bounce or a spam complaint applies to every message, including
+        # the verification one. There is no exception here: continuing to mail an
+        # address that bounced is the clearest signal to a provider of a sender
+        # who is not paying attention, and the reputation damage lands on the
+        # security notices that most need to arrive.
+        suppression = await suppression_for(db, email=user.email)
+        if suppression is not None:
+            delivery.status = NotificationDeliveryStatus.SUPPRESSED
+            delivery.last_error = (
+                f"this address is suppressed after a {suppression.reason}"
+            )
+            db.add(delivery)
+            await db.flush()
+            return delivery
+
         db.add(delivery)
         await db.flush()
         await _send_email(db, delivery=delivery, notification=notification)
@@ -303,7 +371,16 @@ async def _send_email(
         )
         return
 
-    body = response.json() if response.content else {}
+    # A 2xx carrying something that is not JSON must not become an exception
+    # here. This runs inside the caller's transaction, so raising would roll back
+    # whatever action triggered the notification, turning a cosmetic provider
+    # quirk into lost work. The message was accepted either way.
+    try:
+        body = response.json() if response.content else {}
+    except ValueError:
+        body = {}
+        logger.warning("email_send_response_unparseable")
+
     delivery.status = NotificationDeliveryStatus.SENT
     delivery.sent_at = datetime.now(UTC)
     delivery.provider_message_id = body.get("id")

@@ -10,12 +10,50 @@ the verified domain `agoreum.xyz`.
 `RESEND_API_KEY`. An unset value is off, and a malformed one fails at startup
 rather than defaulting on. That gate is correct.
 
-The more important fact is that **turning it on today would change nothing
-observable**. `notify()` in `apps/api/app/modules/notifications/service.py` is the
-only path to the Resend call, and it has no call sites anywhere in the codebase.
-The infrastructure is built, the domain is genuinely verified, and no code sends
-mail. Anyone reading `EMAIL_SENDING_ENABLED=false` and assuming email is merely
-switched off has the wrong picture.
+`notify()` in `apps/api/app/modules/notifications/service.py` is the only path to
+the Resend call. It now has real call sites, listed under "What would send" below,
+so the flag is no longer inert: flipping it would produce actual mail. Everything
+in this document assumes it stays off until that list has been reviewed by a
+person.
+
+## What would send, and to whom
+
+The complete set. Every entry is triggered by a platform event, none are
+marketing, and all of them require `email_verified_at` to be set on the recipient.
+
+| Trigger | Recipient | Category |
+| --- | --- | --- |
+| `account.email_verification` | the address being proven | security |
+| `account.new_signin` from an unrecognised session | the account owner | security |
+| `order.funded` | owners of the provider organization | order |
+| `order.released` | buyer and provider owners | payment |
+| `order.refunded` | buyer and provider owners | payment |
+| `order.disputed` | the counterparty only | order |
+
+`account.email_verification` is the single documented exception to the verified
+address rule, since proving the address is its purpose. It is enforced by an
+explicit `allow_unverified_email` argument rather than by a special case on the
+event name, so nothing else can acquire the exemption by accident.
+
+Security notices are non-suppressible by preference. Someone must always be able
+to learn that another person signed in as them.
+
+## Bounces and complaints
+
+`POST /notifications/webhooks/resend` receives Resend's delivery events and
+records permanent failures in `email_suppressions`. A suppressed address is
+refused by `_deliver` before any provider call, including for verification mail.
+
+The endpoint is unauthenticated, because a provider cannot hold a session, so the
+Svix signature over the raw request body is its entire security. That matters
+more than it looks: an attacker able to forge one could suppress any address and
+silently stop that person receiving security notices. `RESEND_WEBHOOK_SECRET`
+unset means reject everything, which fails closed.
+
+Soft bounces are ignored. A full mailbox fixes itself, and cutting somebody off
+for a transient failure is worse than retrying. Suppression is lifted only by a
+human calling `unsuppress_email`: an address does not come back because time
+passed.
 
 ## DNS: authentication complete, inbound missing
 
@@ -43,17 +81,18 @@ disturb the `send.` subdomain Resend uses for outbound.
 
 ## Before enabling sending
 
-1. **Wire up a caller.** Nothing invokes `notify()`. Until something does, the
-   flag is inert.
-2. **Verify recipient addresses.** `email_verified_at` is written in exactly one
-   place, `apps/api/app/modules/auth/service.py`, where it is set to `None`. It is
-   never set to a timestamp, there is no verification endpoint, and any address
-   typed into `PATCH /auth/me` becomes a live delivery destination. Without
-   verification, one account can point its profile email at a stranger and drive
-   mail to them.
-3. **Handle bounces and complaints.** Resend has no webhook configured and there
-   is no suppression list. Sending from a cold domain with no bounce feedback is
-   how a sending reputation is destroyed quietly.
+1. ~~**Wire up a caller.**~~ Done. See "What would send" above.
+2. ~~**Verify recipient addresses.**~~ Done. `POST /auth/me/email/verify` issues a
+   single-use token, `POST /auth/me/email/confirm` consumes it with an atomic
+   conditional update, and `_deliver` refuses any address without
+   `email_verified_at`. Without this, one account could point its profile email at
+   a stranger and drive mail to them.
+3. ~~**Handle bounces and complaints.**~~ Code is done, see above. **The webhook
+   still has to be registered in the Resend dashboard** pointing at
+   `https://<api host>/api/v1/notifications/webhooks/resend`, and the signing
+   secret it issues put in `RESEND_WEBHOOK_SECRET`. Until that happens the
+   suppression list stays empty, and sending from a cold domain with no bounce
+   feedback is how a sending reputation is destroyed quietly.
 4. **Add inbound for the support address**, as above.
 5. **Turn off open and click tracking** for this domain. Both are currently on,
    with the tracking subdomain named `security`. Rewriting links in security mail

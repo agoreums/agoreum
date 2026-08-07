@@ -73,6 +73,12 @@ LIMITS: dict[str, Limit] = {
     "agents:verify_github": Limit(requests=10, window_seconds=300),
     # Search hits the database with a full-text query.
     "marketplace:search": Limit(requests=120, window_seconds=60),
+    # An unauthenticated endpoint a provider posts to. Deliberately generous:
+    # every event arrives from a small set of provider addresses, so they all
+    # share one bucket, and refusing a genuine bounce report is worse than
+    # absorbing a forged one, which costs a single HMAC to reject. Turning
+    # somebody away is recoverable either way, since a non-2xx makes Svix retry.
+    "notifications:resend_webhook": Limit(requests=600, window_seconds=60),
 }
 
 

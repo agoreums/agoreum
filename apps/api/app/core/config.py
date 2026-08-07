@@ -118,6 +118,11 @@ class Settings(BaseSettings):
 
     # --- Email (Resend) ------------------------------------------------------
     RESEND_API_KEY: SecretStr = SecretStr("")
+    # Svix signing secret for Resend's webhooks, shaped whsec_<base64>. Unset
+    # means the webhook endpoint rejects everything, which is the safe default:
+    # an unverified bounce report is a way for anyone to suppress any address and
+    # silently stop that person receiving security notices.
+    RESEND_WEBHOOK_SECRET: SecretStr = SecretStr("")
     EMAIL_FROM: str = "support@agoreum.xyz"
     SUPPORT_EMAIL: str = "support@agoreum.xyz"
 

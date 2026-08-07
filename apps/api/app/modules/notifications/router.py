@@ -1,14 +1,24 @@
 """Notification endpoints."""
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.config import settings
-from app.modules.notifications import service
+from app.core.rate_limit import limiter
+from app.modules.notifications import resend_webhook, service
 from app.modules.notifications.schemas import (
     EmailStatus,
     NotificationList,
@@ -105,3 +115,55 @@ async def email_status() -> EmailStatus:
     return EmailStatus(
         enabled=enabled, reason=reason, from_address=settings.EMAIL_FROM
     )
+
+
+@router.post(
+    "/webhooks/resend",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Bounce and complaint events from Resend",
+    include_in_schema=False,
+    dependencies=[Depends(limiter("notifications:resend_webhook"))],
+)
+async def resend_events(
+    request: Request,
+    db: DbSession,
+    svix_id: Annotated[str | None, Header(alias="svix-id")] = None,
+    svix_timestamp: Annotated[str | None, Header(alias="svix-timestamp")] = None,
+    svix_signature: Annotated[str | None, Header(alias="svix-signature")] = None,
+) -> None:
+    """Suppress addresses that hard bounced or generated a spam complaint.
+
+    Unauthenticated by necessity, since a provider cannot hold a session. The
+    Svix signature over the raw body is therefore the only thing separating a
+    real bounce report from anyone on the internet claiming an address bounced,
+    and an attacker who could forge one could suppress any address and silently
+    stop that person receiving security notices.
+
+    The raw bytes are read before parsing, because the signature covers exactly
+    what was sent. Re-serialising parsed JSON would change the bytes and the
+    check would never pass.
+
+    Every rejection is a flat 401 with no detail. Telling a caller which check
+    failed helps them iterate towards a forgery.
+    """
+    body = await request.body()
+
+    try:
+        resend_webhook.verify(
+            body=body,
+            svix_id=svix_id,
+            svix_timestamp=svix_timestamp,
+            svix_signature=svix_signature,
+        )
+    except resend_webhook.WebhookRejected:
+        raise HTTPException(status_code=401, detail="unauthorised") from None
+
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        # Verified as genuinely from Resend but unparseable. Accepting it stops
+        # an infinite retry loop over something a retry cannot fix.
+        return
+
+    if isinstance(payload, dict):
+        await resend_webhook.handle(db, payload=payload)
