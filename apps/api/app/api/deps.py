@@ -35,6 +35,7 @@ bearer_scheme = HTTPBearer(auto_error=False, scheme_name="SIWE session token")
 
 
 async def get_current_user(
+    request: Request,
     credentials: Annotated[
         HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
     ],
@@ -90,10 +91,21 @@ async def get_current_user(
             code="account_suspended",
         )
 
+    # Publish the identity for the rate limiter. `client_identity` in
+    # core/rate_limit.py reads `request.state.user_id` to bucket an authenticated
+    # caller by account, and nothing anywhere assigned it, so that branch was dead
+    # and every authenticated request fell through to the IP bucket. That is the
+    # opposite of the documented intent: one abusive account could exhaust the
+    # quota for everyone behind the same NAT, and an attacker could dodge their own
+    # limit by rotating source addresses. Set here, after the session and account
+    # status checks, so only a fully authorised principal is ever counted as one.
+    request.state.user_id = str(user.id)
+
     return user
 
 
 async def get_optional_user(
+    request: Request,
     credentials: Annotated[
         HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
     ],
@@ -104,11 +116,15 @@ async def get_optional_user(
     For endpoints that serve everyone but personalise for signed-in users. An
     invalid token yields None rather than an error, so a stale token in a browser
     cannot make public pages fail.
+
+    `request` is threaded through so a signed-in caller on a public endpoint is
+    still rate limited by account rather than by address, exactly as on a private
+    one. Anonymous callers set nothing and keep the IP bucket.
     """
     if credentials is None or not credentials.credentials:
         return None
     try:
-        return await get_current_user(credentials, db)
+        return await get_current_user(request, credentials, db)
     except (AuthenticationError, PermissionDeniedError):
         return None
 
@@ -203,10 +219,13 @@ async def get_principal(
     )
     if key_token:
         user, key = await apikey_service.authenticate(db, token=key_token)
+        # API key traffic is bucketed by the owning account too, so a key cannot
+        # be used to spend everyone else's quota from a shared address.
+        request.state.user_id = str(user.id)
         return Principal(user=user, scopes=frozenset(key.scopes), api_key=key)
 
     if bearer:
-        user = await get_current_user(credentials, db)
+        user = await get_current_user(request, credentials, db)
         # A signed-in human acts with full authority; scopes only ever narrow a key.
         return Principal(user=user, scopes=ALL_SCOPES, api_key=None)
 
