@@ -41,8 +41,16 @@ depends_on: Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "email_verification_tokens",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("user_id", sa.Uuid(), nullable=False),
+        # gen_random_uuid() comes from UUIDPrimaryKeyMixin, and omitting it here
+        # is what `alembic check` caught: the table would have been created
+        # without a default, so every insert would have had to supply an id.
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
+        sa.Column("user_id", sa.UUID(), nullable=False),
         # 320 is the maximum length of an email address per RFC 3696: 64 for the
         # local part, 255 for the domain, plus the @.
         sa.Column("email", app.db.types.LowercaseString(length=320), nullable=False),
