@@ -66,9 +66,14 @@ tab_width = 4
 bracket_spacing = false
 int_types = "long"
 
+# Point at the variable names that actually exist in .env. These previously read
+# BASE_SEPOLIA_RPC_URL and BASE_RPC_URL, which are defined nowhere in the repo or
+# the environment, so `--rpc-url base` expanded to an empty string and the
+# documented deploy command could not work. Foundry loads .env automatically, so
+# these resolve without exporting anything by hand.
 [rpc_endpoints]
-base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
-base = "${BASE_RPC_URL}"
+base_sepolia = "${ALCHEMY_BASE_URL_SEPOLIA}"
+base = "${ALCHEMY_BASE_URL_MAINNET}"
 
 [etherscan]
 base_sepolia = {key = "${BASESCAN_API_KEY}", chain = 84532}
