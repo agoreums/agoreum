@@ -94,10 +94,16 @@ reached, so the suite cannot pass vacuously without that being visible.
 
 ## Deployment
 
-`script/DeployEscrow.s.sol` **refuses to deploy to Base mainnet.** That is a
-compile-time guard, not a flag: mainnet deployment is an explicit human decision
-to be taken after reviewing testnet results, and removing the guard is itself a
-reviewable change.
+`script/DeployEscrow.s.sol` **refuses to deploy to Base mainnet** unless
+`ALLOW_MAINNET_DEPLOY=true` is set deliberately at the command line, and even
+then it requires the admin, arbiter, and fee recipient to be three distinct
+addresses.
+
+This used to be a compile-time guard, and the docs said so long after it stopped
+being true. It is an environment flag. That matters: the old wording told a
+reader a mainnet deploy needed a reviewed code change, when it needs one variable
+typed into a shell. Scope the flag to the single command that uses it and never
+write it into a file.
 
 ```bash
 forge script script/DeployEscrow.s.sol \

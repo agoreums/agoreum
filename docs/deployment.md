@@ -173,8 +173,10 @@ See [contracts.md](contracts.md). Two rules:
 
 1. **Testnet first.** Base Sepolia, with real transactions settling, before
    mainnet is discussed.
-2. **The deploy script refuses mainnet** as a compile-time guard. Removing it is
-   a reviewable code change, not a flag.
+2. **The deploy script refuses mainnet** unless `ALLOW_MAINNET_DEPLOY=true` is
+   set for that one command, and then still requires the admin, arbiter, and fee
+   recipient to be three distinct addresses. It is a flag, not a compile-time
+   guard: treat the flag itself as the reviewable decision.
 
 After deploying, set two values from the deployment receipt and restart:
 

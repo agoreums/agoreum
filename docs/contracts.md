@@ -173,16 +173,25 @@ unauthorised traffic.
 
 ## Deployment
 
-`script/DeployEscrow.s.sol` **refuses to deploy to Base mainnet**:
+`script/DeployEscrow.s.sol` **refuses to deploy to Base mainnet** unless the
+deploy is deliberately authorised:
 
 ```solidity
-if (chainId == BASE_MAINNET) revert MainnetDeploymentNotAuthorized(chainId);
+if (chainId == BASE_MAINNET) {
+    if (!_mainnetDeploymentAllowed()) revert MainnetDeploymentNotAuthorized(chainId);
+    // then: admin, arbiter and feeRecipient must be pairwise distinct
+}
 ```
 
-A compile-time guard, not a flag. Mainnet deployment is an explicit human
-decision to be taken after reviewing testnet results, and removing the guard is
-itself a reviewable change rather than something set under time pressure. There
-is a test for it.
+`_mainnetDeploymentAllowed()` reads `ALLOW_MAINNET_DEPLOY` from the environment.
+This is an environment flag, not a compile-time guard. Earlier revisions of this
+document claimed the latter and quoted an unconditional revert; that has been
+untrue since the opt-in landed, and the difference is not cosmetic. It is the
+difference between "a mainnet deploy requires a reviewed code change" and "a
+mainnet deploy requires one variable typed at a prompt".
+
+Both guards are tested, including that mainnet is refused by default and that
+collapsed roles are rejected even when the opt-in is set.
 
 ```bash
 cd contracts
