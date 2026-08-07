@@ -58,13 +58,15 @@ contract DeploySubscriptionsTest is Test {
     }
 
     function test_deploysToBaseMainnetWithExplicitOptIn() public {
-        _configure(admin, treasury);
+        // Mainnet now requires a contract admin, as above.
+        address contractAdmin = address(new DeploySubscriptionsHarness());
+        _configure(contractAdmin, treasury);
         deployer.allowMainnet(true);
         vm.chainId(8453);
         AgoreumSubscriptions subs = deployer.run();
         assertEq(subs.treasury(), treasury);
-        assertTrue(subs.hasRole(subs.GOVERNOR_ROLE(), admin));
-        assertTrue(subs.hasRole(subs.DEFAULT_ADMIN_ROLE(), admin));
+        assertTrue(subs.hasRole(subs.GOVERNOR_ROLE(), contractAdmin));
+        assertTrue(subs.hasRole(subs.DEFAULT_ADMIN_ROLE(), contractAdmin));
     }
 
     function test_mainnetRefusesUnseparatedAdminAndTreasury() public {
@@ -83,12 +85,35 @@ contract DeploySubscriptionsTest is Test {
     }
 
     function test_deploysToBaseSepolia() public {
+        // Testnet deliberately still accepts an EOA admin, so the rehearsal
+        // stays cheap. The code requirement is mainnet only.
         _configure(admin, treasury);
         vm.chainId(84532);
         AgoreumSubscriptions subs = deployer.run();
         assertEq(subs.treasury(), treasury);
         assertTrue(subs.hasRole(subs.GOVERNOR_ROLE(), admin));
         assertTrue(subs.hasRole(subs.DEFAULT_ADMIN_ROLE(), admin));
+    }
+
+    /// @dev Same reasoning as the escrow: the admin can redirect all future
+    ///      revenue in one transaction, so mainnet requires it to have code.
+    function test_mainnetRefusesAnEoaAdmin() public {
+        _configure(admin, treasury);
+        deployer.allowMainnet(true);
+        vm.chainId(8453);
+        vm.expectRevert(
+            abi.encodeWithSelector(DeploySubscriptions.AdminMustBeAContract.selector, admin)
+        );
+        deployer.run();
+    }
+
+    function test_mainnetAcceptsAContractAdmin() public {
+        address contractAdmin = address(new DeploySubscriptionsHarness());
+        _configure(contractAdmin, treasury);
+        deployer.allowMainnet(true);
+        vm.chainId(8453);
+        AgoreumSubscriptions subs = deployer.run();
+        assertTrue(subs.hasRole(subs.GOVERNOR_ROLE(), contractAdmin));
     }
 
     function test_refusesWithoutRequiredConfiguration() public {

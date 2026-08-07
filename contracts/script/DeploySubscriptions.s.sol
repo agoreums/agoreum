@@ -20,6 +20,7 @@ contract DeploySubscriptions is Script {
     error MainnetDeploymentNotAuthorized(uint256 chainId);
     error MissingConfiguration(string name);
     error RolesNotSeparated(string roleA, string roleB);
+    error AdminMustBeAContract(address admin);
 
     function run() external returns (AgoreumSubscriptions subscriptions) {
         uint256 chainId = block.chainid;
@@ -37,6 +38,13 @@ contract DeploySubscriptions is Script {
                 revert RolesNotSeparated(
                     "SUBSCRIPTIONS_ADMIN_ADDRESS", "SUBSCRIPTIONS_TREASURY_ADDRESS"
                 );
+            }
+            // The admin can redirect every future payment to a new treasury in a
+            // single transaction, with no delay. Requiring code here is what
+            // stops that sitting behind one private key. See the equivalent
+            // check in DeployEscrow for the full reasoning.
+            if (admin.code.length == 0) {
+                revert AdminMustBeAContract(admin);
             }
         }
 

@@ -21,6 +21,7 @@ contract DeployEscrow is Script {
     error MainnetDeploymentNotAuthorized(uint256 chainId);
     error MissingConfiguration(string name);
     error RolesNotSeparated(string roleA, string roleB);
+    error AdminMustBeAContract(address admin);
 
     function run() external returns (AgoreumEscrow escrow) {
         uint256 chainId = block.chainid;
@@ -43,6 +44,23 @@ contract DeployEscrow is Script {
             }
             if (arbiter == feeRecipient) {
                 revert RolesNotSeparated("ESCROW_ARBITER_ADDRESS", "ESCROW_FEE_RECIPIENT");
+            }
+            // The admin receives DEFAULT_ADMIN_ROLE and GOVERNOR_ROLE: it can move
+            // the fee to the ceiling, repoint the fee recipient, pause new
+            // escrows, and grant itself any role including arbiter. Requiring it
+            // to have code is what stops that authority landing on a single
+            // private key.
+            //
+            // Distinctness alone does not achieve this. Three fresh EOAs from one
+            // seed phrase satisfy the checks above perfectly while leaving one
+            // person, and one compromised machine, in control of everything. This
+            // check is the difference between separation on paper and in custody.
+            //
+            // Mainnet only, so a testnet rehearsal stays cheap. It is not a proof
+            // of multisig, since any contract passes, but it makes handing
+            // governance to a bare EOA a deliberate act rather than an oversight.
+            if (admin.code.length == 0) {
+                revert AdminMustBeAContract(admin);
             }
         }
 

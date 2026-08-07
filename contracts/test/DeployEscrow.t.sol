@@ -75,14 +75,17 @@ contract DeployEscrowTest is Test {
     }
 
     function test_deploysToBaseMainnetWithExplicitOptIn() public {
-        _configure(admin, arbiter, feeRecipient);
+        // Mainnet now requires the admin to have code, so this uses a contract
+        // rather than the EOA it used before the guard existed.
+        address contractAdmin = address(new DeployEscrowHarness());
+        _configure(contractAdmin, arbiter, feeRecipient);
         script.allowMainnet(true);
         vm.chainId(8453);
         AgoreumEscrow escrow = script.run();
         assertEq(escrow.feeBps(), 250);
         assertEq(escrow.feeRecipient(), feeRecipient);
         assertTrue(escrow.hasRole(escrow.ARBITER_ROLE(), arbiter));
-        assertTrue(escrow.hasRole(escrow.GOVERNOR_ROLE(), admin));
+        assertTrue(escrow.hasRole(escrow.GOVERNOR_ROLE(), contractAdmin));
     }
 
     function test_mainnetRefusesUnseparatedRoles() public {
@@ -98,6 +101,38 @@ contract DeployEscrowTest is Test {
             )
         );
         script.run();
+    }
+
+    /// @dev Distinctness is satisfied by three fresh EOAs from one seed phrase,
+    ///      which is separation on paper and none in custody. Mainnet requires the
+    ///      admin to have code so that handing governance to a bare key is a
+    ///      deliberate act rather than something nobody noticed.
+    function test_mainnetRefusesAnEoaAdmin() public {
+        _configure(admin, arbiter, feeRecipient);
+        script.allowMainnet(true);
+        vm.chainId(8453);
+        vm.expectRevert(abi.encodeWithSelector(DeployEscrow.AdminMustBeAContract.selector, admin));
+        script.run();
+    }
+
+    function test_mainnetAcceptsAContractAdmin() public {
+        // Any contract satisfies the check. It is not a proof of multisig, and is
+        // not claimed to be: it rules out the bare-EOA case, which is the one
+        // that happens by accident.
+        address contractAdmin = address(new DeployEscrowHarness());
+        _configure(contractAdmin, arbiter, feeRecipient);
+        script.allowMainnet(true);
+        vm.chainId(8453);
+        AgoreumEscrow escrow = script.run();
+        assertTrue(escrow.hasRole(escrow.GOVERNOR_ROLE(), contractAdmin));
+    }
+
+    /// @dev The check is mainnet only, so a testnet rehearsal stays cheap.
+    function test_testnetStillAcceptsAnEoaAdmin() public {
+        _configure(admin, arbiter, feeRecipient);
+        vm.chainId(84532);
+        AgoreumEscrow escrow = script.run();
+        assertTrue(escrow.hasRole(escrow.GOVERNOR_ROLE(), admin));
     }
 
     function test_deploysToBaseSepolia() public {
