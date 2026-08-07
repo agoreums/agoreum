@@ -252,6 +252,11 @@ services:
       MONITOR_SITE_URL: https://agoreum.xyz/en
       MONITOR_API_BASE: http://api:8000/api/v1
       MONITOR_INTERVAL: "60"
+      # Governance watch on the escrow: a fee change, a fee recipient change, or
+      # any role granted or revoked. ESCROW_CONTRACT_ADDRESS arrives from
+      # env_file. Without an RPC URL the check disables itself rather than
+      # failing, so the rest of the monitor is unaffected.
+      MONITOR_RPC_URL: ${ALCHEMY_BASE_URL_MAINNET:-${ALCHEMY_BASE_URL_SEPOLIA:-}}
     volumes:
       - ./scripts/monitor.py:/monitor.py:ro
     command: ["python", "/monitor.py"]
