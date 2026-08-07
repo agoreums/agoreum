@@ -34,6 +34,9 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-24.04
+    # A test that waits on a database lock waits forever, and the default job
+    # limit is six hours. One such run burned 107 minutes before anyone noticed.
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -112,7 +115,10 @@ jobs:
 
       - name: Test
         working-directory: apps/api
-        run: pytest -q
+        # The whole suite runs in about a minute, so any single test over 60
+        # seconds is stuck rather than slow. Without this a blocked test hangs
+        # the job silently and the log never says which one it was.
+        run: pytest -q --timeout=60
 
   frontend:
     name: Frontend

@@ -32,6 +32,9 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    # So a test blocked on a database lock fails with a name and a stack rather
+    # than hanging the run until the job limit.
+    "pytest-timeout>=2.3",
     "ruff>=0.8",
     "mypy>=1.13",
 ]
