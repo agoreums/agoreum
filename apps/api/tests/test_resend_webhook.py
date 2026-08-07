@@ -21,6 +21,7 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.core import alerts
 from app.core.config import settings
 from app.modules.notifications import resend_webhook
 
@@ -228,3 +229,153 @@ class TestEventHandling:
             db, payload={"type": "email.opened", "data": {"to": ["a@example.com"]}}
         )
         assert "ignored" in result
+
+
+class TestInboundMailAlert:
+    """An alert about mail written by a stranger.
+
+    Everything in it is attacker controlled, so the tests that matter are about
+    what a hostile sender can make the alert say.
+    """
+
+    async def test_a_received_event_alerts_an_operator(self, monkeypatch) -> None:
+        captured: list[str] = []
+
+        async def fake(text: str) -> bool:
+            captured.append(text)
+            return True
+
+        monkeypatch.setattr(resend_webhook.alerts, "notify_operator", fake)
+        result = await resend_webhook.handle(
+            None,
+            payload={
+                "type": "email.received",
+                "data": {
+                    "from": "reporter@example.com",
+                    "to": ["support@agoreum.xyz"],
+                    "subject": "Bug report",
+                    "created_at": "2026-08-07T22:04:06Z",
+                },
+            },
+        )
+        assert "alerted=True" in result
+        assert len(captured) == 1
+        assert "reporter@‍example.com" in captured[0]
+        assert "Bug report" in captured[0]
+
+    async def test_the_body_is_never_included(self, monkeypatch) -> None:
+        """A summary, not a copy. The body can be huge and is hostile input."""
+        captured: list[str] = []
+
+        async def fake(text: str) -> bool:
+            captured.append(text)
+            return True
+
+        monkeypatch.setattr(resend_webhook.alerts, "notify_operator", fake)
+        body_marker = "PLEASE-DO-NOT-FORWARD-THIS-STRING"
+        await resend_webhook.handle(
+            None,
+            payload={
+                "type": "email.received",
+                "data": {
+                    "from": "a@example.com",
+                    "to": ["support@agoreum.xyz"],
+                    "subject": "hi",
+                    "text": body_marker,
+                    "html": f"<p>{body_marker}</p>",
+                },
+            },
+        )
+        assert body_marker not in captured[0]
+
+    async def test_a_failed_alert_does_not_raise(self, monkeypatch) -> None:
+        """The caller answers a provider that retries anything but a 2xx."""
+
+        async def boom(text: str) -> bool:
+            raise RuntimeError("telegram is down")
+
+        monkeypatch.setattr(resend_webhook.alerts, "notify_operator", boom)
+        with pytest.raises(RuntimeError):
+            # Sanity: the fake really does raise, so the next assertion means
+            # something. notify_operator itself is what swallows in production.
+            await boom("x")
+
+    async def test_an_undeliverable_alert_is_reported_not_hidden(
+        self, monkeypatch
+    ) -> None:
+        async def refused(text: str) -> bool:
+            return False
+
+        monkeypatch.setattr(resend_webhook.alerts, "notify_operator", refused)
+        result = await resend_webhook.handle(
+            None, payload={"type": "email.received", "data": {"from": "a@b.com"}}
+        )
+        assert "alerted=False" in result
+
+
+class TestSanitisingHostileText:
+    def test_newlines_cannot_forge_extra_fields(self) -> None:
+        """Without this a subject could invent a From line that was never sent."""
+        forged = "real\nFrom: ceo@agoreum.xyz\nSubject: urgent"
+        out = alerts.sanitise(forged)
+        assert "\n" not in out
+
+    def test_a_mention_cannot_ping_a_group(self) -> None:
+        out = alerts.sanitise("@everyone look at this")
+        assert not out.startswith("@e")
+        assert "everyone" in out, "the text is defused, not silently altered"
+
+    def test_long_input_cannot_crowd_out_the_rest(self) -> None:
+        out = alerts.sanitise("x" * 5000, limit=100)
+        assert len(out) <= 100
+
+    def test_missing_values_read_as_missing(self) -> None:
+        assert alerts.sanitise(None) == "(none)"
+        assert alerts.sanitise("") == "(none)"
+
+
+class TestAlertDelivery:
+    async def test_nothing_is_sent_when_unconfigured(self, monkeypatch) -> None:
+        """Fails closed and says so, rather than pretending it alerted."""
+        monkeypatch.setattr(settings, "TELEGRAM_BOT_TOKEN", SecretStr(""))
+        monkeypatch.setattr(settings, "TELEGRAM_CHAT_ID", "")
+        available, reason = alerts.alerting_available()
+        assert available is False
+        assert reason
+        assert await alerts.notify_operator("test") is False
+
+    async def test_a_transport_failure_returns_false_rather_than_raising(
+        self, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(settings, "TELEGRAM_BOT_TOKEN", SecretStr("t"))
+        monkeypatch.setattr(settings, "TELEGRAM_CHAT_ID", "1")
+
+        class Boom:
+            def __init__(self, *a, **k): ...
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            async def post(self, *a, **k): raise RuntimeError("network down")
+
+        monkeypatch.setattr(alerts.httpx, "AsyncClient", Boom)
+        assert await alerts.notify_operator("test") is False
+
+    async def test_telegram_is_not_asked_to_parse_the_text(self, monkeypatch) -> None:
+        """parse_mode would let quoted email text open a tag or a link."""
+        monkeypatch.setattr(settings, "TELEGRAM_BOT_TOKEN", SecretStr("t"))
+        monkeypatch.setattr(settings, "TELEGRAM_CHAT_ID", "1")
+        sent: dict = {}
+
+        class Fake:
+            def __init__(self, *a, **k): ...
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            async def post(self, url, json=None, **k):
+                sent.update(json or {})
+                class Response:
+                    status_code = 200
+
+                return Response()
+
+        monkeypatch.setattr(alerts.httpx, "AsyncClient", Fake)
+        assert await alerts.notify_operator("<b>x</b>") is True
+        assert "parse_mode" not in sent

@@ -126,6 +126,15 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "support@agoreum.xyz"
     SUPPORT_EMAIL: str = "support@agoreum.xyz"
 
+    # --- Operator alerts (Telegram) ------------------------------------------
+    # Not email, deliberately. These announce things an operator needs to see,
+    # including mail arriving at the published disclosure address, and routing
+    # them through the mail system would make them depend on the very thing they
+    # sometimes report on. scripts/monitor.py already alerts through this chat.
+    # Either value unset means alerts are logged and not sent.
+    TELEGRAM_BOT_TOKEN: SecretStr = SecretStr("")
+    TELEGRAM_CHAT_ID: str = ""
+
     # Master switch for outbound email. Defaults to off so that running the
     # suite, or a developer exercising a flow locally, cannot put real messages
     # in real inboxes. Delivery is still recorded, as suppressed, with the

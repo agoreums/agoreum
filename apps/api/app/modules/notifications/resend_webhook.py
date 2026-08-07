@@ -19,6 +19,7 @@ import time
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import alerts
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.modules.notifications import service as notifications
@@ -33,6 +34,12 @@ TOLERANCE_SECONDS = 5 * 60
 # actionable, and recording them would be tracking rather than deliverability.
 BOUNCE_EVENTS = frozenset({"email.bounced"})
 COMPLAINT_EVENTS = frozenset({"email.complained"})
+
+# Inbound mail. support@agoreum.xyz is published on five public pages and named
+# in docs/security.md as the vulnerability disclosure channel, and mail arriving
+# there used to announce itself to nobody: the first real report sat unread until
+# it was found by accident. This is the announcement.
+RECEIVED_EVENTS = frozenset({"email.received"})
 
 
 class WebhookRejected(Exception):
@@ -89,6 +96,38 @@ def verify(
     raise WebhookRejected("bad signature headers")
 
 
+async def _announce_received(data: dict, *, recipients: list) -> str:
+    """Tell an operator that mail arrived. Never raises.
+
+    Deliberately a summary and not the message. The body is written by anyone on
+    the internet, it can be enormous, and it may contain exactly the sort of
+    content a security report contains. The alert says who wrote, about what, and
+    where to read it; reading it stays a deliberate act.
+
+    A delivery failure is swallowed rather than reported upward, because the
+    caller answers a provider that retries on anything except a 2xx, and retrying
+    the whole webhook to fix a Telegram outage would replay it indefinitely.
+    """
+    sender = alerts.sanitise(str(data.get("from") or ""), limit=120)
+    subject = alerts.sanitise(str(data.get("subject") or ""), limit=200)
+    to = alerts.sanitise(", ".join(str(r) for r in recipients), limit=120)
+    received = alerts.sanitise(str(data.get("created_at") or ""), limit=40)
+
+    sent = await alerts.notify_operator(
+        "Mail received at an Agoreum address.\n\n"
+        f"From: {sender}\n"
+        f"To: {to}\n"
+        f"Subject: {subject}\n"
+        f"Received: {received}\n\n"
+        "Read it in the Resend dashboard under Emails, Received. "
+        "This address is the published security disclosure channel, so treat "
+        "the contents as untrusted until you have judged them."
+    )
+
+    logger.info("inbound_mail_announced", extra={"alert_delivered": sent})
+    return f"received: alerted={sent}"
+
+
 async def handle(db: AsyncSession, *, payload: dict) -> str:
     """Apply a verified webhook. Returns what was done, for logging.
 
@@ -102,6 +141,9 @@ async def handle(db: AsyncSession, *, payload: dict) -> str:
     recipients = data.get("to") or []
     if isinstance(recipients, str):
         recipients = [recipients]
+
+    if event_type in RECEIVED_EVENTS:
+        return await _announce_received(data, recipients=recipients)
 
     if event_type in BOUNCE_EVENTS:
         reason = "bounce"
