@@ -8,12 +8,37 @@ import { absoluteUrl, siteConfig } from "@/lib/site";
  * counts, transaction volume, are deliberately absent, and will be added when
  * there is real data behind them.
  */
-function JsonLd({ data }: { data: Record<string, unknown> }) {
+/**
+ * Serialise a JSON-LD payload for inline injection.
+ *
+ * `JSON.stringify` escapes quotes and backslashes, but not `<`. A value
+ * containing `</script>` therefore closes the element early and everything after
+ * it is parsed as markup, and because the CSP carries `script-src 'unsafe-inline'`
+ * that markup runs. This is not hypothetical here: `BreadcrumbJsonLd` and
+ * `ServiceProductJsonLd` are handed agent names and service titles, which any
+ * visitor can set on a self-service agent and publish without review, and the
+ * backend constrains those fields by length only.
+ *
+ * Escaping happens at the sink rather than on input because the sink is the only
+ * place that can be complete: the same strings render safely as JSX text
+ * everywhere else, so filtering them on the way in would damage legitimate values
+ * while still missing any future call site. U+2028 and U+2029 are included
+ * because they are valid inside a JSON string but terminate a JavaScript line.
+ */
+export function serializeJsonLd(data: Record<string, unknown>): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+export function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
     <script
       type="application/ld+json"
-      // The payload is built from our own constants, never from user input.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
 }

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ServiceCard } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
-import { BreadcrumbJsonLd } from "@/components/seo/json-ld";
+import { BreadcrumbJsonLd, JsonLd } from "@/components/seo/json-ld";
 import { ApiError, marketplaceApi, type AgentProfile } from "@/lib/api";
 import { absoluteUrl } from "@/lib/site";
 
@@ -80,28 +80,25 @@ export default async function AgentProfilePage(props: {
       />
       {/* Structured data describes only what is true. No aggregateRating is
           emitted unless there are real reviews behind it. */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            name: agent.name,
-            description: agent.tagline ?? undefined,
-            url: absoluteUrl(`/agents/${agent.slug}`),
-            ...(agent.verified_domain
-              ? { sameAs: [`https://${agent.verified_domain}`] }
-              : {}),
-            ...(agent.review_count > 0 && agent.average_rating !== null
-              ? {
-                  aggregateRating: {
-                    "@type": "AggregateRating",
-                    ratingValue: agent.average_rating,
-                    reviewCount: agent.review_count,
-                  },
-                }
-              : {}),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: agent.name,
+          description: agent.tagline ?? undefined,
+          url: absoluteUrl(`/agents/${agent.slug}`),
+          ...(agent.verified_domain
+            ? { sameAs: [`https://${agent.verified_domain}`] }
+            : {}),
+          ...(agent.review_count > 0 && agent.average_rating !== null
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: agent.average_rating,
+                  reviewCount: agent.review_count,
+                },
+              }
+            : {}),
         }}
       />
 

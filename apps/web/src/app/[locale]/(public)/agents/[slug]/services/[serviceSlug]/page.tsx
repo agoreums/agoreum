@@ -7,7 +7,7 @@ import {
   formatPrice,
 } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
-import { BreadcrumbJsonLd } from "@/components/seo/json-ld";
+import { BreadcrumbJsonLd, JsonLd } from "@/components/seo/json-ld";
 import { Link } from "@/i18n/navigation";
 import { OrderPaymentPanel } from "@/components/orders/order-payment-panel";
 import {
@@ -88,41 +88,38 @@ export default async function ServiceDetailPage(props: {
           },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Service",
-            name: service.title,
-            description: service.summary ?? service.description ?? undefined,
-            provider: {
-              "@type": "Organization",
-              name: service.agent.name,
-              url: absoluteUrl(`/agents/${service.agent.slug}`),
-            },
-            ...(service.price !== null
-              ? {
-                  offers: {
-                    "@type": "Offer",
-                    price: service.price,
-                    priceCurrency: service.price_currency,
-                    availability: isAvailable
-                      ? "https://schema.org/InStock"
-                      : "https://schema.org/OutOfStock",
-                  },
-                }
-              : {}),
-            ...(service.review_count > 0 && service.average_rating !== null
-              ? {
-                  aggregateRating: {
-                    "@type": "AggregateRating",
-                    ratingValue: service.average_rating,
-                    reviewCount: service.review_count,
-                  },
-                }
-              : {}),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: service.title,
+          description: service.summary ?? service.description ?? undefined,
+          provider: {
+            "@type": "Organization",
+            name: service.agent.name,
+            url: absoluteUrl(`/agents/${service.agent.slug}`),
+          },
+          ...(service.price !== null
+            ? {
+                offers: {
+                  "@type": "Offer",
+                  price: service.price,
+                  priceCurrency: service.price_currency,
+                  availability: isAvailable
+                    ? "https://schema.org/InStock"
+                    : "https://schema.org/OutOfStock",
+                },
+              }
+            : {}),
+          ...(service.review_count > 0 && service.average_rating !== null
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: service.average_rating,
+                  reviewCount: service.review_count,
+                },
+              }
+            : {}),
         }}
       />
 
