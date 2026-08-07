@@ -10,6 +10,8 @@ The sign-in flow is:
 """
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, Request, status
 
 from app.api.deps import CurrentUser, DbSession, client_ip, user_agent
@@ -138,12 +140,30 @@ async def refresh(
     "/logout", status_code=status.HTTP_204_NO_CONTENT, summary="End session(s)"
 )
 async def logout(
-    payload: LogoutRequest, user: CurrentUser, db: DbSession
+    request: Request, payload: LogoutRequest, user: CurrentUser, db: DbSession
 ) -> None:
+    """End the caller's session, or every session they have.
+
+    The third branch is not a nicety. With neither field set this used to fall
+    through and return 204, reporting success while revoking nothing, which is
+    the opposite of what LogoutRequest documents and the worst possible answer
+    for a security endpoint. The site always sends the refresh token so browsers
+    were unaffected, but any SDK that did not hold one was told it had signed out
+    while the session stayed valid for its full thirty days.
+
+    An access token is proof enough to end its own session, so the current
+    session id is used when no refresh token is supplied.
+    """
     if payload.all_sessions:
         await service.revoke_all_sessions(db, user_id=user.id)
     elif payload.refresh_token:
         await service.revoke_session(db, refresh_token=payload.refresh_token)
+    else:
+        session_id = getattr(request.state, "session_id", None)
+        if session_id:
+            await service.revoke_session_by_id(
+                db, session_id=uuid.UUID(session_id), user_id=user.id
+            )
 
 
 @router.get("/me", response_model=UserProfile, summary="The signed-in user")

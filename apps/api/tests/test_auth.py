@@ -547,6 +547,56 @@ class TestLogout:
         assert response.status_code == 204
         assert await service.list_active_sessions(db, user_id=user_id) == []
 
+    async def test_logout_without_a_refresh_token_still_ends_the_session(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet
+    ) -> None:
+        """An empty body must revoke the calling session, not quietly succeed.
+
+        This returned 204 while revoking nothing, so a client holding only an
+        access token was told it had signed out while the session stayed valid
+        for its full lifetime. The access token is proof enough to end its own
+        session, which is what LogoutRequest has always documented.
+        """
+        body = await _sign_in(client, wallet)
+        access = body["tokens"]["access_token"]
+        refresh = body["tokens"]["refresh_token"]
+        user_id = uuid.UUID(body["user"]["id"])
+
+        response = await client.post(
+            "/api/v1/auth/logout",
+            json={},
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert response.status_code == 204
+
+        assert await service.list_active_sessions(db, user_id=user_id) == []
+        after = await client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": refresh}
+        )
+        assert after.status_code == 401
+
+    async def test_logout_cannot_end_another_users_session(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet
+    ) -> None:
+        """The empty-body path is scoped to the caller.
+
+        revoke_session_by_id puts user_id in the predicate rather than trusting
+        the session id alone, so one account can never end another's session.
+        """
+        victim = await _sign_in(client, wallet)
+        victim_id = uuid.UUID(victim["user"]["id"])
+
+        other = Account.create()
+        attacker = await _sign_in(client, other)
+
+        response = await client.post(
+            "/api/v1/auth/logout",
+            json={},
+            headers={"Authorization": f"Bearer {attacker['tokens']['access_token']}"},
+        )
+        assert response.status_code == 204
+        assert len(await service.list_active_sessions(db, user_id=victim_id)) == 1
+
     async def test_logout_requires_authentication(self, client: AsyncClient) -> None:
         response = await client.post("/api/v1/auth/logout", json={})
         assert response.status_code == 401

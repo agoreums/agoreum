@@ -364,6 +364,28 @@ async def revoke_session(db: AsyncSession, *, refresh_token: str) -> bool:
     return (result.rowcount or 0) > 0
 
 
+async def revoke_session_by_id(
+    db: AsyncSession, *, session_id: uuid.UUID, user_id: uuid.UUID
+) -> bool:
+    """Sign out one session by its id. Returns whether anything was revoked.
+
+    For logging out with only an access token in hand, which is the position an
+    SDK is in when it never stored the refresh token. `user_id` is part of the
+    predicate rather than assumed from the session id, so a caller can only ever
+    end a session that is genuinely their own.
+    """
+    result = await db.execute(
+        update(Session)
+        .where(
+            Session.id == session_id,
+            Session.user_id == user_id,
+            Session.revoked_at.is_(None),
+        )
+        .values(revoked_at=datetime.now(UTC), revoked_reason="logout")
+    )
+    return (result.rowcount or 0) > 0
+
+
 async def revoke_all_sessions(
     db: AsyncSession, *, user_id: uuid.UUID, reason: str = "logout_all"
 ) -> int:

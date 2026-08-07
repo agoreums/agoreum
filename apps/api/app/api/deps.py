@@ -100,6 +100,10 @@ async def get_current_user(
     # limit by rotating source addresses. Set here, after the session and account
     # status checks, so only a fully authorised principal is ever counted as one.
     request.state.user_id = str(user.id)
+    # The session this token belongs to, so a handler can act on the caller's own
+    # session without being handed the refresh token. Logout uses it to end the
+    # current session when the caller only has an access token.
+    request.state.session_id = str(session_id)
 
     return user
 
