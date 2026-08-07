@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
@@ -16,7 +16,13 @@ from app.core.logging import get_logger
 from app.db.enums import AccountStatus, WalletProvider, WalletVerificationStatus
 from app.modules.auth import siwe_verifier
 from app.modules.organizations import service as organizations_service
-from app.modules.users.models import Session, SiweNonce, User, Wallet
+from app.modules.users.models import (
+    EmailVerificationToken,
+    Session,
+    SiweNonce,
+    User,
+    Wallet,
+)
 
 logger = get_logger(__name__)
 
@@ -480,3 +486,131 @@ def build_challenge(*, address: str, nonce: str, chain_id: int | None = None) ->
         nonce=nonce,
         chain_id=chain_id or settings.CHAIN_ID,
     )
+
+
+# --- Email verification -----------------------------------------------------
+#
+# An address on a profile is only a string somebody typed until it is proven.
+# Everything below exists so that "we have an email for this user" and "this user
+# controls that email" stop being the same claim.
+
+# A day is long enough for someone to find the message and short enough that a
+# link sitting in an old inbox stops working.
+EMAIL_VERIFICATION_TTL_HOURS = 24
+
+
+async def issue_email_verification(
+    db: AsyncSession, *, user: User
+) -> tuple[str, EmailVerificationToken]:
+    """Mint a verification token for the user's current address.
+
+    Returns the raw token, which is the only time it exists in plaintext, and the
+    stored row. The caller is responsible for delivering it; nothing here sends
+    anything.
+
+    Any earlier unused token for this user is consumed first. Otherwise asking for
+    a fresh link would leave the previous one live, so a link captured from an old
+    message would keep working after the user requested a replacement, which is
+    usually exactly when they suspect the first one went astray.
+    """
+    if not user.email:
+        raise ConflictError(
+            "Add an email address before requesting verification.",
+            code="email_missing",
+        )
+    if user.email_verified_at is not None:
+        raise ConflictError(
+            "That email address is already verified.", code="email_already_verified"
+        )
+
+    now = datetime.now(UTC)
+
+    await db.execute(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.consumed_at.is_(None),
+        )
+        .values(consumed_at=now)
+    )
+
+    raw = security.generate_email_verification_token()
+    row = EmailVerificationToken(
+        user_id=user.id,
+        email=user.email,
+        token_hash=security.hash_token(raw),
+        expires_at=now + timedelta(hours=EMAIL_VERIFICATION_TTL_HOURS),
+    )
+    db.add(row)
+    await db.flush()
+
+    logger.info("email_verification_issued", extra={"user_id": str(user.id)})
+    return raw, row
+
+
+async def confirm_email_verification(db: AsyncSession, *, token: str) -> User:
+    """Spend a verification token and mark the address proven.
+
+    The conditional UPDATE is what makes this safe under concurrency, the same
+    reasoning as `consume_nonce`: two requests racing with one token cannot both
+    match `consumed_at IS NULL`, so exactly one wins.
+
+    The address is then compared against the one the token was issued for. A token
+    proves control of that address and no other, so if the profile changed in the
+    meantime this refuses rather than verifying an address nobody proved.
+    """
+    now = datetime.now(UTC)
+
+    result = await db.execute(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.token_hash == security.hash_token(token),
+            EmailVerificationToken.consumed_at.is_(None),
+            EmailVerificationToken.expires_at > now,
+        )
+        .values(consumed_at=now)
+        .returning(EmailVerificationToken.user_id, EmailVerificationToken.email)
+    )
+    row = result.first()
+
+    if row is None:
+        logger.warning("email_verification_rejected")
+        raise AuthenticationError(
+            "That verification link is invalid or has expired. Request a new one.",
+            code="verification_invalid",
+        )
+
+    user_id, issued_for = row
+    user = await db.get(User, user_id)
+    if user is None:
+        raise AuthenticationError(
+            "That verification link is invalid or has expired.",
+            code="verification_invalid",
+        )
+
+    if not user.email or user.email != issued_for:
+        # The address moved after the link was sent. Committing the spend is
+        # deliberate: the token is burned either way, so a stale link cannot be
+        # held and retried later.
+        await db.commit()
+        logger.warning("email_verification_address_changed", extra={"user_id": str(user.id)})
+        raise ConflictError(
+            "This link was sent to a different address than the one on your "
+            "account. Request a new one.",
+            code="verification_address_changed",
+        )
+
+    user.email_verified_at = now
+    await db.flush()
+    logger.info("email_verified", extra={"user_id": str(user.id)})
+    return user
+
+
+async def purge_expired_email_verifications(db: AsyncSession) -> int:
+    """Delete tokens that can no longer be used. Safe to run repeatedly."""
+    result = await db.execute(
+        delete(EmailVerificationToken).where(
+            EmailVerificationToken.expires_at < datetime.now(UTC)
+        )
+    )
+    return result.rowcount or 0

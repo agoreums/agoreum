@@ -20,6 +20,8 @@ from app.core.rate_limit import limiter
 from app.modules.auth import service, siwe_verifier
 from app.modules.auth.schemas import (
     AuthCapabilities,
+    EmailVerificationConfirm,
+    EmailVerificationStatus,
     LogoutRequest,
     NonceRequest,
     NonceResponse,
@@ -164,6 +166,56 @@ async def logout(
             await service.revoke_session_by_id(
                 db, session_id=uuid.UUID(session_id), user_id=user.id
             )
+
+
+@router.post(
+    "/me/email/verify",
+    response_model=EmailVerificationStatus,
+    summary="Request an email verification link",
+    dependencies=[Depends(limiter("auth:verify-email"))],
+)
+async def request_email_verification(
+    user: CurrentUser, db: DbSession
+) -> EmailVerificationStatus:
+    """Send a verification link to the address on your profile.
+
+    Rate limited hard, because this is the one endpoint that causes mail to be
+    sent to an address the caller chose. Without a tight limit it is a way to
+    repeatedly mail a stranger using this domain's reputation.
+
+    Nothing is delivered yet: no code calls the notifier, and email sending is
+    off. The token is minted and stored so the flow is complete and testable, and
+    delivery is wired separately. Until then this returns sent=false rather than
+    claiming a message went out, because reporting a send that did not happen is
+    how someone ends up waiting for a link that will never arrive.
+    """
+    _raw, _row = await service.issue_email_verification(db, user=user)
+    return EmailVerificationStatus(
+        sent=False,
+        detail=(
+            "Verification token created. Email delivery is not yet enabled on "
+            "this deployment, so no message has been sent."
+        ),
+    )
+
+
+@router.post(
+    "/me/email/confirm",
+    response_model=UserProfile,
+    summary="Confirm an email address",
+)
+async def confirm_email_verification(
+    payload: EmailVerificationConfirm, db: DbSession
+) -> UserProfile:
+    """Spend a verification token and mark the address proven.
+
+    Deliberately unauthenticated. The token is the proof, and requiring a session
+    as well would break the ordinary case of opening the link in whichever browser
+    the inbox happens to be in. It is single use, expiring, and bound to the exact
+    address it was issued for.
+    """
+    user = await service.confirm_email_verification(db, token=payload.token)
+    return UserProfile.model_validate(user)
 
 
 @router.get("/me", response_model=UserProfile, summary="The signed-in user")

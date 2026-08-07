@@ -56,6 +56,12 @@ LIMITS: dict[str, Limit] = {
     # endpoint an attacker would hammer.
     "auth:signin": Limit(requests=10, window_seconds=60),
     "auth:refresh": Limit(requests=30, window_seconds=60),
+    # Deliberately far tighter than the others, because this one causes mail to
+    # be sent to an address the caller chose. Loose limits here would make the
+    # platform a way to repeatedly mail somebody, using this domain's sending
+    # reputation to do it. Three an hour is ample for a real person who mistyped
+    # their address or lost the first message.
+    "auth:verify-email": Limit(requests=3, window_seconds=3600),
     # Writes that create durable records.
     "agents:create": Limit(requests=5, window_seconds=300),
     "services:create": Limit(requests=20, window_seconds=300),

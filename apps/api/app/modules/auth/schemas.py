@@ -212,3 +212,20 @@ class AuthCapabilities(BaseModel):
     accepted_chain_ids: list[int]
     contract_wallets_supported: bool
     nonce_ttl_seconds: int
+
+
+class EmailVerificationConfirm(BaseModel):
+    """The token from a verification link."""
+
+    token: str = Field(min_length=1, max_length=512)
+
+
+class EmailVerificationStatus(BaseModel):
+    """The outcome of requesting verification.
+
+    Carries no token and no address. The response to "send me a link" should not
+    itself be a way to learn anything, and the link belongs in the inbox.
+    """
+
+    sent: bool
+    detail: str

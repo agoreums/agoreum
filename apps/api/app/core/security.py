@@ -64,6 +64,16 @@ def generate_api_key() -> str:
     return API_KEY_PREFIX + secrets.token_urlsafe(TOKEN_ENTROPY_BYTES)
 
 
+def generate_email_verification_token() -> str:
+    """A single-use token proving control of an email address.
+
+    URL-safe because it travels in a link. Same entropy as a refresh token: it is
+    short-lived and single-use, but it is also emailed, so it passes through more
+    hands than a token the client holds privately.
+    """
+    return secrets.token_urlsafe(TOKEN_ENTROPY_BYTES)
+
+
 def hash_token(token: str) -> str:
     """SHA-256 of an opaque token, hex-encoded.
 

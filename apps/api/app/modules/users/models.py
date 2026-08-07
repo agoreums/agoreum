@@ -286,3 +286,49 @@ class SiweNonce(Base, UUIDPrimaryKeyMixin):
 
     def __repr__(self) -> str:
         return f"<SiweNonce {self.nonce[:8]}...>"
+
+
+class EmailVerificationToken(Base, UUIDPrimaryKeyMixin):
+    """A single-use token proving control of an email address.
+
+    Until an address is proven, it is only a string somebody typed. Without this,
+    anyone could set another person's address on their own profile and have the
+    platform send mail there, which is an open relay for harassment wearing the
+    sender reputation of the domain.
+
+    Only the SHA-256 of the token is stored. A leaked database backup should not
+    hand out working verification links, and the same reasoning already applies to
+    refresh tokens elsewhere in this schema.
+
+    `email` is recorded alongside the token rather than read from the user at
+    confirmation time. A token proves control of *the address it was sent to*, so
+    if the profile address changes between issue and confirmation the token must
+    not silently verify the new one.
+    """
+
+    __tablename__ = "email_verification_tokens"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    # The address this token was issued for. Verification applies to this value
+    # and no other.
+    email: Mapped[str] = mapped_column(LowercaseString(320), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    consumed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_email_verification_tokens_user_id", "user_id"),
+        Index("ix_email_verification_tokens_expires_at", "expires_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<EmailVerificationToken user={self.user_id} used={self.consumed_at is not None}>"
