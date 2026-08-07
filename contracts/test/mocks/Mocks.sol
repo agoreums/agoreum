@@ -142,3 +142,37 @@ contract SilentlyFailingToken is ERC20 {
         return super.transferFrom(from, to, value);
     }
 }
+
+/// @notice A token that refuses transfers touching a blacklisted address.
+/// @dev Models the behaviour of real USDC on Base, which is an upgradeable proxy
+///      with an issuer-controlled blacklist. Every escrow test otherwise runs
+///      against a plain ERC20 that can never refuse a transfer, so the whole
+///      class of "a participant is blocked by the token itself" went unexercised.
+///      That matters more than a contrived rejecting-recipient mock: a plain
+///      ERC20 `transfer` never calls the recipient, so a contract that reverts in
+///      its fallback cannot block a payout, whereas a blacklist genuinely can.
+contract BlacklistingToken is ERC20 {
+    mapping(address => bool) public blacklisted;
+
+    error Blacklisted(address account);
+
+    constructor() ERC20("Blacklisting USD", "bUSDC") {}
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
+    function setBlacklisted(address account, bool value) external {
+        blacklisted[account] = value;
+    }
+
+    function _update(address from, address to, uint256 value) internal override {
+        if (blacklisted[from]) revert Blacklisted(from);
+        if (blacklisted[to]) revert Blacklisted(to);
+        super._update(from, to, value);
+    }
+}
