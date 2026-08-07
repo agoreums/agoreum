@@ -51,8 +51,31 @@ ufw enable
 
 Postgres and Redis are never exposed: Redis lives on the internal Docker network
 and is not published, and the managed database is reached over its private
-endpoint. Consider restricting 80/443 to the [CDN's IP ranges](https://www.cloudflare.com/ips/)
-so the origin cannot be reached directly, bypassing the WAF.
+endpoint.
+
+**80 and 443 are restricted to Cloudflare's ranges**, enforced by a DigitalOcean
+Cloud Firewall named `agoreum-origin-cloudflare-only` attached to the droplet.
+This is no longer optional, and it is load-bearing rather than defence in depth.
+The API treats `CF-Connecting-IP` as the client identity, so while the origin
+answered anyone, that identity was chosen by whoever connected: every per-IP rate
+limit could be bypassed by rotating a made-up address, and every recorded session
+IP was attacker-controlled. nginx no longer relays that header
+(`infra/nginx/cloudflare_realip.conf`), and the firewall is what stops a request
+reaching nginx at all without passing the edge first.
+
+Verified after applying: the site continues to serve through Cloudflare, and a
+direct request to the droplet address on 80 and 443 now times out with no
+response rather than being answered.
+
+SSH stays open deliberately. Narrowing it is a separate decision, and hardening
+the web ports at the cost of locking yourself out of the droplet is a poor trade.
+
+The firewall is managed through the DigitalOcean API and is removed with a single
+`DELETE /v2/firewalls/{id}` if it ever needs reverting. `scripts/update_cloudflare_ips.sh`
+regenerates the nginx range list; the firewall's own list needs the same refresh
+when Cloudflare publishes changes. `scripts/restrict_origin_to_cloudflare.sh`
+does the equivalent with `ufw` on the host, kept as an alternative for a machine
+without a cloud firewall in front of it.
 
 ## Environment
 
