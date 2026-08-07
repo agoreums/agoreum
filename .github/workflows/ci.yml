@@ -321,11 +321,25 @@ jobs:
       # here instead, where the only cost is a red build.
       - name: Validate the nginx configuration
         run: |
+          # nginx -t resolves upstream hostnames and opens the TLS certificate
+          # while parsing, so a bare run fails on "host not found in upstream"
+          # and on the missing origin certificate rather than on anything about
+          # the config itself. Both are supplied here so the test exercises the
+          # directives and nothing else. The certificate is a throwaway
+          # generated in this step; the real one is provisioned on the droplet
+          # and is not in the repository.
+          certs="$(mktemp -d)"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout "$certs/origin.key" -out "$certs/origin.pem" \
+            -subj "/CN=agoreum.xyz" 2>/dev/null
           docker run --rm \
+            --add-host api:127.0.0.1 \
+            --add-host web:127.0.0.1 \
             -v "$PWD/infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
             -v "$PWD/infra/nginx/agoreum.conf:/etc/nginx/conf.d/default.conf:ro" \
             -v "$PWD/infra/nginx/proxy_headers.conf:/etc/nginx/conf.d/proxy_headers.conf:ro" \
             -v "$PWD/infra/nginx/cloudflare_realip.conf:/etc/nginx/conf.d/cloudflare_realip.conf:ro" \
+            -v "$certs:/etc/nginx/certs:ro" \
             nginx:1.27-alpine nginx -t
 
       # The origin trusts CF-Connecting-IP as the client identity, so it must be
