@@ -331,6 +331,10 @@ services:
       # agoreum.conf includes this from each proxied location; it must be present
       # in the container or nginx refuses to start.
       - ./infra/nginx/proxy_headers.conf:/etc/nginx/conf.d/proxy_headers.conf:ro
+      # Picked up by the conf.d glob into the http context, which is where
+      # set_real_ip_from belongs. Without it nginx cannot tell a Cloudflare edge
+      # from any other peer, and CF-Connecting-IP becomes client controlled.
+      - ./infra/nginx/cloudflare_realip.conf:/etc/nginx/conf.d/cloudflare_realip.conf:ro
       # Cloudflare Origin certificates, provisioned on the host.
       - ./infra/nginx/certs:/etc/nginx/certs:ro
       - nginx_cache:/var/cache/nginx

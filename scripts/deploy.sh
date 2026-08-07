@@ -44,6 +44,19 @@ if [ "$ok" != true ]; then
   exit 1
 fi
 
+# Apply container-level changes before reloading, because a reload cannot make
+# one. Config files are bind mounted, so edits to a file that is *already*
+# mounted take effect on reload, but adding a *new* mount needs the container
+# recreated. Reloading first would therefore apply half a change: the edited
+# files would go live while the new file stayed absent. That is worse than
+# either state on its own. Concretely, pointing CF-Connecting-IP at $remote_addr
+# without cloudflare_realip.conf present would resolve every visitor to the
+# Cloudflare edge and collapse every rate limit bucket onto a handful of
+# addresses. `up -d` recreates only when the service definition actually
+# changed, so this is a no-op on an ordinary deploy.
+log "apply any nginx mount or service changes"
+$COMPOSE up -d nginx
+
 # nginx resolves upstream container IPs once, at load time. Recreating api/web
 # gives them new IPs, so nginx must re-read its config or it keeps proxying to the
 # old, now-dead containers and every request 502s. A reload re-resolves without a
