@@ -21,6 +21,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -33,6 +34,7 @@ from app.db.enums import (
     NotificationDeliveryStatus,
     pg_enum,
 )
+from app.db.types import LowercaseString
 
 if TYPE_CHECKING:
     from app.modules.users.models import User
@@ -167,9 +169,16 @@ class NotificationDelivery(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             "status NOT IN ('sent', 'delivered') OR sent_at IS NOT NULL",
             name="sent_states_require_sent_at",
         ),
-        # Email must have somewhere to go.
+        # Email that goes anywhere must record where. A suppressed row is the
+        # exception, because it is the record of a message that deliberately went
+        # nowhere: the recipient has no address, has not proven the one they
+        # gave, or bounced. Requiring a destination there forced the code to
+        # either invent one or refuse to write the row at all, and the second is
+        # what happened: the insert violated this constraint and took sign-in
+        # down with a 503 for every account without an email.
         CheckConstraint(
-            "channel <> 'email' OR destination IS NOT NULL",
+            "channel <> 'email' OR destination IS NOT NULL "
+            "OR status = 'suppressed'",
             name="email_requires_destination",
         ),
         Index("ix_notification_deliveries_notification_id", "notification_id"),
@@ -224,3 +233,40 @@ class NotificationPreference(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<NotificationPreference {self.category}/{self.channel}={self.enabled}>"
+
+
+class EmailSuppression(Base, UUIDPrimaryKeyMixin):
+    """An address the platform must stop mailing.
+
+    Sending to an address that has hard bounced, or whose owner marked a previous
+    message as spam, is how a domain's sending reputation is destroyed. Providers
+    treat repeat sends to known-bad addresses as the clearest signal of a sender
+    who is not paying attention, and the damage lands on every later message,
+    including the security notices that most need to arrive.
+
+    A complaint is also a person saying they do not want this. Honouring that is
+    not only reputation management.
+
+    Keyed on the address rather than the user: the same address can belong to
+    different accounts over time, and it is the mailbox that bounced.
+    """
+
+    __tablename__ = "email_suppressions"
+
+    email: Mapped[str] = mapped_column(
+        LowercaseString(320), nullable=False, unique=True
+    )
+    # "bounced" or "complained". Kept as free text rather than an enum because it
+    # records what a third party told us, and a provider adding a category should
+    # not require a migration to write it down.
+    reason: Mapped[str] = mapped_column(String(32), nullable=False)
+    # The provider's own description, for a human deciding whether to lift it.
+    detail: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (Index("ix_email_suppressions_created_at", "created_at"),)
+
+    def __repr__(self) -> str:
+        return f"<EmailSuppression {self.reason}>"

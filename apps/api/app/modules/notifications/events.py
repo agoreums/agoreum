@@ -63,9 +63,20 @@ async def _safe_notify(db: AsyncSession, **kwargs) -> None:
     The swallow is the point. These are called from the indexer, which must keep
     projecting chain state whatever happens here, and from request handlers where
     a failed notification must not undo the user's action.
+
+    The savepoint is what makes the swallow true. Catching an exception does not
+    repair a session whose flush already failed: every later statement on it
+    raises PendingRollbackError, so the caller's own work dies anyway and the
+    handler above merely hides the reason. Rolling back to a savepoint discards
+    only what this notification wrote and hands the caller a usable transaction.
+
+    This was not theoretical. A delivery row that violated a check constraint
+    took down sign-in with a 503 for every returning account, and the swallow
+    here reported nothing.
     """
     try:
-        await notifications.notify(db, **kwargs)
+        async with db.begin_nested():
+            await notifications.notify(db, **kwargs)
     except Exception as exc:  # noqa: BLE001 - see docstring
         logger.warning(
             "notification_failed",

@@ -50,7 +50,14 @@ def wallet() -> Wallet:
 
 @pytest_asyncio.fixture
 async def engine():
-    eng = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+    eng = create_async_engine(
+        settings.DATABASE_URL,
+        poolclass=NullPool,
+        # Fail fast when nothing is listening. The default waits out a full
+        # TCP timeout per test, which turns a skipped suite on a machine with
+        # no database into an hour of nothing.
+        connect_args={"timeout": 5},
+    )
     try:
         async with eng.connect() as conn:
             await conn.execute(sa.text("SELECT 1"))
@@ -228,6 +235,88 @@ class TestNothingLeavesThisDeployment:
         for row in email:
             assert row.status != NotificationDeliveryStatus.SENT
             assert row.sent_at is None
+
+
+class TestAnAddresslessAccount:
+    """The regression that took sign-in down.
+
+    Almost every account has no email address, and a notification for one has
+    nowhere to send the email copy. Writing that delivery row violated a check
+    constraint, the error escaped the notification code into the sign-in handler,
+    and every returning sign-in answered 503.
+    """
+
+    async def test_signing_in_twice_still_works_without_an_email(
+        self, client: AsyncClient, wallet: Wallet
+    ) -> None:
+        """The second sign-in is the one that notifies, so it is the one that broke."""
+        first = await _sign_in(client, wallet)
+        assert first["user"]["email"] is None
+
+        second = await client.post(
+            "/api/v1/auth/nonce",
+            json={"address": wallet.address, "chain_id": settings.CHAIN_ID},
+        )
+        assert second.status_code == 201
+        body = second.json()
+        resp = await client.post(
+            "/api/v1/auth/signin",
+            json={
+                "message": body["message"],
+                "signature": wallet.sign(body["message"]),
+                "nonce": body["nonce"],
+            },
+            headers={"User-Agent": "a-different-client/1.0"},
+        )
+        assert resp.status_code == 200, resp.text
+
+    async def test_the_email_copy_is_recorded_as_suppressed(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet
+    ) -> None:
+        """The row is kept rather than skipped, because it is the record of why
+        nothing was sent."""
+        body = await _sign_in(client, wallet)
+        user = await db.get(User, uuid.UUID(body["user"]["id"]))
+        assert user.email is None
+
+        await notifications.notify(
+            db,
+            user_id=user.id,
+            category=NotificationCategory.ORDER,
+            event_type="order.funded",
+            title="Test",
+        )
+
+        email = await _deliveries(db, user.id, NotificationChannel.EMAIL)
+        assert len(email) == 1
+        assert email[0].status == NotificationDeliveryStatus.SUPPRESSED
+        assert email[0].destination is None
+        assert "no email address" in (email[0].last_error or "")
+
+
+class TestAFailureCannotPoisonTheCallersTransaction:
+    async def test_the_caller_can_still_write_after_a_failed_notification(
+        self, db: AsyncSession
+    ) -> None:
+        """Swallowing the exception is not enough on its own.
+
+        Once a flush fails, every later statement on that session raises
+        PendingRollbackError, so the indexer's own work dies anyway and the
+        handler that caught the error only hides the reason. The savepoint is
+        what makes the promise true.
+        """
+        from app.modules.notifications import events
+
+        await events._safe_notify(
+            db,
+            user_id=uuid.uuid4(),
+            category=NotificationCategory.ORDER,
+            event_type="order.funded",
+            title="Test",
+        )
+
+        # The session must still be usable. Without the savepoint this raises.
+        assert (await db.execute(sa.select(sa.literal(1)))).scalar_one() == 1
 
 
 class TestSignInNotice:

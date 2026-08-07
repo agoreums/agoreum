@@ -107,7 +107,14 @@ class Wallet:
 
 @pytest_asyncio.fixture
 async def engine():
-    eng = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+    eng = create_async_engine(
+        settings.DATABASE_URL,
+        poolclass=NullPool,
+        # Fail fast when nothing is listening. The default waits out a full
+        # TCP timeout per test, which turns a skipped suite on a machine with
+        # no database into an hour of nothing.
+        connect_args={"timeout": 5},
+    )
     try:
         async with eng.connect() as conn:
             await conn.execute(sa.text("SELECT 1"))

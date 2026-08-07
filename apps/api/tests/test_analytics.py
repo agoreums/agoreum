@@ -48,7 +48,14 @@ async def test_views_unavailable_when_umami_not_configured() -> None:
 
 @pytest_asyncio.fixture
 async def db() -> AsyncSession:
-    engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        poolclass=NullPool,
+        # Fail fast when nothing is listening. The default waits out a full
+        # TCP timeout per test, which turns a skipped suite on a machine with
+        # no database into an hour of nothing.
+        connect_args={"timeout": 5},
+    )
     try:
         async with engine.connect() as probe:
             await probe.execute(sa.text("SELECT 1"))

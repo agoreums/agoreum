@@ -52,7 +52,14 @@ def wallet() -> Wallet:
 
 @pytest_asyncio.fixture
 async def engine():
-    eng = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+    eng = create_async_engine(
+        settings.DATABASE_URL,
+        poolclass=NullPool,
+        # Fail fast when nothing is listening. The default waits out a full
+        # TCP timeout per test, which turns a skipped suite on a machine with
+        # no database into an hour of nothing.
+        connect_args={"timeout": 5},
+    )
     try:
         async with eng.connect() as conn:
             await conn.execute(sa.text("SELECT 1"))
@@ -65,16 +72,27 @@ async def engine():
 
 @pytest_asyncio.fixture
 async def db(engine) -> AsyncSession:
-    """A session rolled back after every test, so nothing persists between them."""
-    connection = await engine.connect()
-    transaction = await connection.begin()
-    session = async_sessionmaker(bind=connection, expire_on_commit=False)()
+    """A session that really commits, bound to the engine rather than to a
+    connection held open in a transaction.
+
+    The rollback-on-teardown fixture used elsewhere in this suite cannot work
+    here. Tests in this file write a verification token and then ask the API to
+    consume it, and the API runs on its own connections. Under an outer
+    transaction, `commit()` only releases a savepoint: the token stays invisible
+    to every other connection, so confirmation fails, and the locks that the
+    still-open transaction holds make any request touching the same user row wait
+    until the test that is waiting for that request gives up. Both happened, one
+    as a wrong answer and one as a hang.
+
+    Rows therefore persist for the life of the test database. That is already
+    true of everything the application itself writes during these tests, and each
+    test signs in as a fresh wallet, so nothing is shared between them.
+    """
+    session = async_sessionmaker(bind=engine, expire_on_commit=False)()
     try:
         yield session
     finally:
         await session.close()
-        await transaction.rollback()
-        await connection.close()
 
 
 async def _sign_in(client: AsyncClient, wallet: Wallet) -> dict:
