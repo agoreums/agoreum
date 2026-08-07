@@ -586,8 +586,7 @@ class TestLogout:
         victim = await _sign_in(client, wallet)
         victim_id = uuid.UUID(victim["user"]["id"])
 
-        other = Account.create()
-        attacker = await _sign_in(client, other)
+        attacker = await _sign_in(client, Wallet())
 
         response = await client.post(
             "/api/v1/auth/logout",
