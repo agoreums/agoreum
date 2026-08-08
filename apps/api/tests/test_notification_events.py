@@ -116,6 +116,24 @@ async def _deliveries(
     return list(rows.scalars().all())
 
 
+def _enable_sending(monkeypatch) -> None:
+    """Make `email_sending_available()` true for one test.
+
+    Both halves are needed: the flag and a key. Patching only the flag makes the
+    row suppress for a missing key instead of queueing, which is what CI caught.
+
+    The key is a fake, so a call that escaped a test would be rejected by the
+    provider rather than delivered. Tests that could reach the network replace
+    the HTTP client outright as well.
+    """
+    from pydantic import SecretStr
+
+    monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+    monkeypatch.setattr(
+        settings, "RESEND_API_KEY", SecretStr("re_not_a_real_key_for_tests")
+    )
+
+
 class TestUnverifiedAddressesAreRefused:
     async def test_email_is_suppressed_for_an_unverified_address(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
@@ -471,7 +489,7 @@ class TestSendingIsOffTheRequestPath:
                 raise AssertionError("notify must not call the provider inline")
 
         monkeypatch.setattr(notifications.httpx, "AsyncClient", Forbidden)
-        monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+        _enable_sending(monkeypatch)
 
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
@@ -499,7 +517,7 @@ class TestSendingIsOffTheRequestPath:
     ) -> None:
         from datetime import UTC, datetime
 
-        monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+        _enable_sending(monkeypatch)
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
         user.email = "claimable@example.com"
@@ -548,7 +566,7 @@ class TestSendingIsOffTheRequestPath:
         """The window between queueing and sending is exactly when a bounce lands."""
         from datetime import UTC, datetime
 
-        monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+        _enable_sending(monkeypatch)
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
         user.email = "bounced-later@example.com"
@@ -568,6 +586,16 @@ class TestSendingIsOffTheRequestPath:
         await notifications.suppress_email(
             db, email="bounced-later@example.com", reason="bounce"
         )
+
+        # If the re-check regressed, this turns a silent send into a failure.
+        class Forbidden:
+            def __init__(self, *a, **k): ...
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            async def post(self, *a, **k):
+                raise AssertionError("a suppressed address must not be mailed")
+
+        monkeypatch.setattr(notifications.httpx, "AsyncClient", Forbidden)
 
         row = (await _deliveries(db, user.id, NotificationChannel.EMAIL))[0]
         status = await notifications.send_one(db, delivery=row)
