@@ -405,6 +405,58 @@ MESSAGES: dict[str, dict[str, tuple[str, str]]] = {
             "إضافة توضيحات من صفحة الطلب.",
         ),
     },
+    "order.dispute_decided": {
+        "en": (
+            "A decision has been made on order {reference}",
+            "The dispute on order {reference} has been decided. The order page shows "
+            "the split and the reasoning behind it. Funds move when the settlement "
+            "is submitted on chain.",
+        ),
+        "es": (
+            "Se ha tomado una decisión sobre el pedido {reference}",
+            "La disputa del pedido {reference} se ha resuelto. La página del pedido "
+            "muestra el reparto y el razonamiento. Los fondos se mueven cuando la "
+            "liquidación se envía en la cadena.",
+        ),
+        "fr": (
+            "Une décision a été prise sur la commande {reference}",
+            "Le litige sur la commande {reference} a été tranché. La page de la "
+            "commande indique la répartition et le raisonnement. Les fonds sont "
+            "déplacés lorsque le règlement est soumis sur la chaîne.",
+        ),
+        "de": (
+            "Zu Bestellung {reference} wurde entschieden",
+            "Der Streitfall zu Bestellung {reference} wurde entschieden. Die "
+            "Bestellseite zeigt die Aufteilung und die Begründung. Die Mittel bewegen "
+            "sich, sobald die Abwicklung on chain eingereicht wird.",
+        ),
+        "pt": (
+            "Foi tomada uma decisão sobre a encomenda {reference}",
+            "A disputa da encomenda {reference} foi decidida. A página da encomenda "
+            "mostra a divisão e o raciocínio. Os fundos movem-se quando a liquidação "
+            "for submetida na cadeia.",
+        ),
+        "ja": (
+            "注文 {reference} について決定がなされました",
+            "注文 {reference} の異議について決定が行われました。分配とその理由は注文"
+            "ページで確認できます。資金はチェーン上で清算が送信された時点で移動します。",
+        ),
+        "ko": (
+            "주문 {reference} 에 대한 결정이 내려졌습니다",
+            "주문 {reference} 의 분쟁이 결정되었습니다. 분배 내역과 그 이유는 주문 "
+            "페이지에서 확인할 수 있습니다. 자금은 체인에서 정산이 제출될 때 이동합니다.",
+        ),
+        "zh": (
+            "订单 {reference} 已作出裁定",
+            "订单 {reference} 的争议已裁定。订单页面显示分配方式及其理由。资金将在链上"
+            "提交结算时转移。",
+        ),
+        "ar": (
+            "تم اتخاذ قرار بشأن الطلب {reference}",
+            "تم البت في النزاع على الطلب {reference}. تعرض صفحة الطلب التقسيم "
+            "والأسباب. تنتقل الأموال عند إرسال التسوية على السلسلة.",
+        ),
+    },
     "organization.invitation": {
         "en": (
             "You have been invited to join an organization",

@@ -625,3 +625,88 @@ async def record_dispute_decision(
     )
     await db.flush()
     return escrow
+
+
+async def build_dispute_view(
+    db: AsyncSession, *, order: Order, escrow: Escrow | None
+):
+    """The dispute as the two parties and the arbiter all see it.
+
+    One view for all three on purpose. Divergent views would mean somebody is
+    deciding, or being decided about, on a different set of facts.
+    """
+    from app.modules.orders.schemas import DisputeStatementView, DisputeView
+
+    rows = (
+        await db.execute(
+            select(OrderEvent)
+            .where(
+                OrderEvent.order_id == order.id,
+                OrderEvent.event_type == "order.dispute_statement",
+            )
+            .order_by(OrderEvent.created_at)
+        )
+    ).scalars().all()
+
+    disputed_at = escrow.disputed_at if escrow else None
+    closes = (
+        disputed_at + DISPUTE_STATEMENT_WINDOW if disputed_at is not None else None
+    )
+    provider_amount = escrow.dispute_provider_amount if escrow else None
+    buyer_amount = (
+        escrow.amount - provider_amount
+        if escrow is not None and provider_amount is not None
+        else None
+    )
+
+    return DisputeView(
+        order_id=order.id,
+        order_reference=order.reference,
+        status=order.status.value,
+        disputed_at=disputed_at,
+        reason=escrow.dispute_reason if escrow else None,
+        statements_close_at=closes,
+        statements=[
+            DisputeStatementView(
+                id=r.id,
+                author_user_id=r.actor_user_id,
+                text=(r.detail or {}).get("text", ""),
+                created_at=r.created_at,
+            )
+            for r in rows
+        ],
+        resolution=(
+            escrow.dispute_resolution.value
+            if escrow and escrow.dispute_resolution
+            else None
+        ),
+        provider_amount=provider_amount,
+        buyer_amount=buyer_amount,
+        reasoning=escrow.dispute_reasoning if escrow else None,
+        decided_at=escrow.dispute_resolved_at if escrow else None,
+    )
+
+
+def build_settlement_instructions(*, order: Order, escrow: Escrow):
+    """The exact call the arbiter's wallet should send.
+
+    The buyer's share is derived here rather than accepted from the caller. The
+    contract computes it the same way and uses its own buyerAmount argument only
+    as a bounds check, so a supplied pair could pass validation while paying
+    something other than what was decided.
+    """
+    from app.modules.orders.schemas import SettlementInstructions
+
+    provider_amount = escrow.dispute_provider_amount or Decimal("0")
+    buyer_amount = escrow.amount - provider_amount
+    return SettlementInstructions(
+        order_id=order.id,
+        order_reference=order.reference,
+        chain_id=settings.CHAIN_ID,
+        escrow_contract=settings.ESCROW_CONTRACT_ADDRESS or "",
+        escrow_id=contract.escrow_id_for_order(str(order.id)),
+        provider_amount=provider_amount,
+        provider_amount_base_units=str(contract.to_base_units(provider_amount)),
+        buyer_amount=buyer_amount,
+        buyer_amount_base_units=str(contract.to_base_units(buyer_amount)),
+    )

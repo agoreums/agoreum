@@ -4,6 +4,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -163,3 +164,75 @@ class ReconciliationReport(BaseModel):
     chain_refunded: str
     in_sync: bool
     divergences: list[str]
+
+
+class DisputeStatementRequest(BaseModel):
+    """One party's account of what happened."""
+
+    text: Annotated[str, Field(min_length=1, max_length=4000)]
+
+
+class DisputeStatementView(BaseModel):
+    """A statement, as both parties and the arbiter see it."""
+
+    id: uuid.UUID
+    author_user_id: uuid.UUID | None
+    text: str
+    created_at: datetime
+
+
+class DisputeDecisionRequest(BaseModel):
+    """What the arbiter decided.
+
+    Only the provider's share. The contract derives the buyer's, and accepting a
+    second figure would allow a recorded decision that differs from what is paid.
+    """
+
+    provider_amount: Annotated[Decimal, Field(ge=0)]
+    reasoning: Annotated[str, Field(min_length=1, max_length=4000)]
+
+
+class DisputeView(BaseModel):
+    """The dispute as a whole, for the two parties and the arbiter.
+
+    The reasoning is included for those three and is not public, which is the
+    decision recorded in docs/dispute-resolution-design.md.
+    """
+
+    order_id: uuid.UUID
+    order_reference: str
+    status: str
+    disputed_at: datetime | None
+    reason: str | None
+    statements_close_at: datetime | None
+    statements: list[DisputeStatementView]
+
+    resolution: str | None
+    provider_amount: Decimal | None
+    buyer_amount: Decimal | None
+    reasoning: str | None
+    decided_at: datetime | None
+
+
+class SettlementInstructions(BaseModel):
+    """Everything the arbiter's wallet needs to settle, and nothing more.
+
+    The platform holds no keys, so it describes the call and the arbiter's own
+    wallet sends it, exactly as a buyer's wallet funds an order.
+
+    Both figures are returned even though only the provider's share was decided,
+    because the contract's settleDispute takes two arguments. The buyer's is
+    derived here so a caller cannot supply a pair that the contract would accept
+    while paying something other than what was recorded.
+    """
+
+    order_id: uuid.UUID
+    order_reference: str
+    chain_id: int
+    escrow_contract: str
+    escrow_id: str
+
+    provider_amount: Decimal
+    provider_amount_base_units: str
+    buyer_amount: Decimal
+    buyer_amount_base_units: str

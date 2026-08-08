@@ -19,18 +19,23 @@ from app.core.config import settings
 from app.core.errors import NotFoundError, PermissionDeniedError
 from app.core.rate_limit import limiter
 from app.modules.agents.models import Agent
+from app.modules.orders import events as dispute_events
 from app.modules.orders import service
 from app.modules.orders.schemas import (
     ChainStatus,
     ChainTransactionSummary,
     DeliverRequest,
+    DisputeDecisionRequest,
     DisputeRequest,
+    DisputeStatementRequest,
+    DisputeView,
     EscrowSummary,
     OrderCreate,
     OrderDetail,
     OrderSummary,
     PaymentInstructions,
     ReconciliationReport,
+    SettlementInstructions,
 )
 from app.modules.organizations.authz import OrgAction, require_permission
 
@@ -256,3 +261,91 @@ async def reconcile(
     async with ChainClient() as client:
         report = await reconcile_order(db, client, order)
     return ReconciliationReport(**report)
+
+
+async def _dispute_context(db, order_id, user):
+    """The order, its escrow, and whether this caller may see the dispute.
+
+    Visible to the two parties and to the arbiter. `require_visible_order` already
+    refuses anybody else, so arbiter access is added rather than party access
+    being re-derived.
+    """
+    if service.is_arbiter(user):
+        order = await service.get_order(db, order_id)
+        if order is None:
+            raise NotFoundError("No such order.")
+    else:
+        order = await service.require_visible_order(db, order_id, user=user)
+    return order, order.escrow
+
+
+@router.get(
+    "/orders/{order_id}/dispute",
+    response_model=DisputeView,
+    summary="The dispute on this order",
+)
+async def get_dispute(
+    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> DisputeView:
+    """Both parties and the arbiter see the same thing, including each other's
+    statements and, once decided, the reasoning. A decision made on evidence one
+    side never saw is not defensible."""
+    order, escrow = await _dispute_context(db, order_id, user)
+    return await service.build_dispute_view(db, order=order, escrow=escrow)
+
+
+@router.post(
+    "/orders/{order_id}/dispute-statements",
+    response_model=DisputeView,
+    status_code=status.HTTP_201_CREATED,
+    summary="State your case",
+)
+async def submit_dispute_statement(
+    order_id: uuid.UUID,
+    payload: DisputeStatementRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> DisputeView:
+    """Only the two parties. The arbiter reads; it does not testify."""
+    order = await service.require_visible_order(db, order_id, user=user)
+    await service.submit_dispute_statement(
+        db, order=order, actor=user, text=payload.text, escrow=order.escrow
+    )
+    return await service.build_dispute_view(db, order=order, escrow=order.escrow)
+
+
+@router.post(
+    "/orders/{order_id}/dispute-decision",
+    response_model=SettlementInstructions,
+    summary="Decide a dispute, and get what to send",
+)
+async def decide_dispute(
+    order_id: uuid.UUID,
+    payload: DisputeDecisionRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> SettlementInstructions:
+    """Records the decision and returns the call to make.
+
+    It does not settle. The platform holds no keys, so the arbiter's own wallet
+    sends the transaction and the indexer confirms the result. Recording first is
+    what lets an unexpected settlement be noticed at all.
+    """
+    if not service.is_arbiter(user):
+        raise PermissionDeniedError(
+            "Only the arbiter can decide a dispute.", code="not_arbiter"
+        )
+    order = await service.get_order(db, order_id)
+    if order is None:
+        raise NotFoundError("No such order.")
+
+    await service.record_dispute_decision(
+        db,
+        order=order,
+        escrow=order.escrow,
+        arbiter=user,
+        provider_amount=payload.provider_amount,
+        reasoning=payload.reasoning,
+    )
+    await dispute_events.dispute_decided(db, order=order, escrow=order.escrow)
+    return service.build_settlement_instructions(order=order, escrow=order.escrow)
