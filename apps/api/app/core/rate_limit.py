@@ -56,12 +56,18 @@ LIMITS: dict[str, Limit] = {
     # endpoint an attacker would hammer.
     "auth:signin": Limit(requests=10, window_seconds=60),
     "auth:refresh": Limit(requests=30, window_seconds=60),
-    # Deliberately far tighter than the others, because this one causes mail to
-    # be sent to an address the caller chose. Loose limits here would make the
-    # platform a way to repeatedly mail somebody, using this domain's sending
-    # reputation to do it. Three an hour is ample for a real person who mistyped
-    # their address or lost the first message.
-    "auth:verify-email": Limit(requests=3, window_seconds=3600),
+    # Tighter than the others, because this one causes mail to be sent to an
+    # address the caller chose. Loose limits here would make the platform a way to
+    # repeatedly mail somebody, using this domain's sending reputation to do it.
+    #
+    # Two buckets rather than one, because a single window cannot serve both
+    # cases. The burst window stops rapid-fire sending to a victim; the daily one
+    # stops a patient attacker trickling messages all day. A single "three an
+    # hour" did neither well: it locked out a real person for a full hour after
+    # three attempts, which is exactly what somebody does when the first message
+    # does not arrive, while still permitting seventy-two sends a day.
+    "auth:verify-email": Limit(requests=3, window_seconds=900),
+    "auth:verify-email:daily": Limit(requests=10, window_seconds=86_400),
     # Writes that create durable records.
     "agents:create": Limit(requests=5, window_seconds=300),
     "services:create": Limit(requests=20, window_seconds=300),
@@ -179,6 +185,20 @@ def client_identity(request: Request) -> str:
     return f"ip:{client_ip(request) or 'unknown'}"
 
 
+def retry_phrase(seconds: int) -> str:
+    """How long to wait, in words.
+
+    Said plainly rather than as "a moment". A refusal that hides the wait invites
+    the person to keep retrying, which is futile and is the behaviour the limit
+    exists to discourage in the first place.
+    """
+    if seconds >= 90:
+        return f"in about {round(seconds / 60)} minutes"
+    if seconds > 1:
+        return f"in {seconds} seconds"
+    return "shortly"
+
+
 async def enforce(request: Request, bucket: str) -> None:
     """Apply a limit, raising if the caller has exhausted it.
 
@@ -192,7 +212,7 @@ async def enforce(request: Request, bucket: str) -> None:
 
     if not decision.allowed:
         raise RateLimitError(
-            "Too many requests. Please wait a moment and try again.",
+            f"Too many requests. Try again {retry_phrase(decision.reset_after)}.",
             details={"retry_after_seconds": decision.reset_after},
         )
 

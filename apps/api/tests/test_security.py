@@ -321,3 +321,44 @@ class TestErrorDisclosure:
         serialised = str(body).lower()
         for leak in ("traceback", "select ", "sqlalchemy", "postgres", "/app/"):
             assert leak not in serialised
+
+
+class TestVerificationEmailLimits:
+    """The quota on a flow that mails an address the caller chose.
+
+    Both directions matter. Too loose and the platform becomes a way to
+    repeatedly mail a stranger using this domain's reputation. Too tight and a
+    real person whose first message did not arrive is locked out for an hour,
+    which is what happened.
+    """
+
+    def test_a_burst_recovers_in_minutes_not_an_hour(self) -> None:
+        burst = rate_limit.LIMITS["auth:verify-email"]
+        assert burst.window_seconds <= 900, "a lockout longer than this punishes a retry"
+        assert burst.requests >= 3, "one retry after a missing message must be allowed"
+
+    def test_sustained_sending_is_capped_per_day(self) -> None:
+        """The burst window alone would still permit dozens of messages a day."""
+        daily = rate_limit.LIMITS["auth:verify-email:daily"]
+        burst = rate_limit.LIMITS["auth:verify-email"]
+        per_day_from_burst = burst.requests * (86_400 / burst.window_seconds)
+        assert daily.requests < per_day_from_burst, (
+            "the daily cap has to bind, or it is decoration"
+        )
+        assert daily.window_seconds == 86_400
+
+    def test_both_buckets_guard_the_endpoint(self) -> None:
+        """A bucket that exists but is not applied protects nothing."""
+        from app.modules.auth import router as auth_router
+
+        route = next(
+            r for r in auth_router.router.routes
+            if getattr(r, "path", "").endswith("/me/email/verify")
+        )
+        assert len(route.dependencies) >= 2
+
+    def test_a_refusal_says_how_long_to_wait(self) -> None:
+        """"Please wait a moment" for a fifteen minute lockout invites retrying."""
+        assert rate_limit.retry_phrase(900) == "in about 15 minutes"
+        assert rate_limit.retry_phrase(45) == "in 45 seconds"
+        assert rate_limit.retry_phrase(0) == "shortly"

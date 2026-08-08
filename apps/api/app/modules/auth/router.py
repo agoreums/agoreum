@@ -174,7 +174,10 @@ async def logout(
     "/me/email/verify",
     response_model=EmailVerificationStatus,
     summary="Request an email verification link",
-    dependencies=[Depends(limiter("auth:verify-email"))],
+    dependencies=[
+        Depends(limiter("auth:verify-email")),
+        Depends(limiter("auth:verify-email:daily")),
+    ],
 )
 async def request_email_verification(
     user: CurrentUser, db: DbSession
