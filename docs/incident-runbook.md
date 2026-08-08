@@ -108,6 +108,36 @@ blacklist of that recipient would be unrecoverable.
 `hasRole`, and only then renounce.** Covered end to end by
 `test_fullHandoverToMultisigLeavesTheOldAdminPowerless`.
 
+## What is watched
+
+`scripts/monitor.py` alerts on the escrow's governance events, so a hostile or
+mistaken change is visible without waiting for somebody to complain:
+
+| Event | Alert |
+| --- | --- |
+| `FeeConfigUpdated` | fee config changed |
+| `TreasuryUpdated` | TREASURY REDIRECTED |
+| `RoleGranted` | ROLE GRANTED |
+| `RoleRevoked` | role revoked |
+| `Paused` / `Unpaused` | contract paused, contract unpaused |
+| `EscrowSettled` | DISPUTE SETTLED |
+
+Every topic is the keccak of the declaration in `contracts/src`, precomputed so
+the monitor keeps its standard-library-only promise. A wrong topic fails silently,
+the alert simply never fires, which is worse than having no alert because it looks
+like coverage; they are regenerated and checked against the source when an event
+signature changes.
+
+`EscrowSettled` alerts on every settlement rather than only an unexpected one.
+Settlements are rare, each divides somebody's money by a decision, and one nobody
+expected is the exact shape of a compromised arbiter key.
+
+An earlier version of this page said under "what is not covered" that governance
+events were unmonitored and that this should be fixed before mainnet. That has been
+untrue since the monitor gained those topics. A runbook is read during an incident
+by somebody deciding what to trust, so understating its own coverage is the wrong
+kind of wrong.
+
 ## What is not covered
 
 Stated plainly so nobody assumes otherwise:
@@ -117,10 +147,10 @@ Stated plainly so nobody assumes otherwise:
 - **Separation of duties is enforced at deploy time only.** `DEFAULT_ADMIN` can
   grant itself `ARBITER_ROLE` afterwards, so separation is an operational
   commitment the contract does not maintain for you.
-- **No monitoring of governance events yet.** `FeeConfigUpdated`,
-  `TreasuryUpdated` and the AccessControl role-change events are not alerted on.
-  Until they are, the first sign of a compromised admin would be a user
-  complaint. This should be fixed before mainnet.
+- **The arbiter is a single key on testnet.** It cannot steal, since
+  `settleDispute` pays only the escrow's own buyer and provider, but it decides
+  how a disputed escrow is divided and there is no timelock and no appeal. Making
+  it a multisig is a recorded mainnet blocker in `docs/contracts.md`.
 - **The subscriptions contract has one untested live-only revert:** if `treasury`
   equals the subscriber, `subscribe()` reverts with `UnsupportedToken`, because
   the balance-delta guard sees no net change on a self-transfer. Moot with a

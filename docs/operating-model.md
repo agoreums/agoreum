@@ -205,10 +205,11 @@ What has never happened is a restore. An untested backup is a hope, and the mome
 to discover the restore path is not during an incident. The database is also a
 single node, so a node failure is an outage rather than a failover.
 
-### 5. Documentation that has drifted from the code
+### 5. Documentation that has drifted from the code (done)
 
-`docs/incident-runbook.md` states under "What is not covered" that governance
-events are not monitored and that this should be fixed before mainnet. They are
+Corrected. The runbook now has a "What is watched" section listing every alerted
+event, and the stale claim is gone. It had stated under "What is not covered" that
+governance events were unmonitored and should be fixed before mainnet. They are
 monitored: `scripts/monitor.py` watches `FeeConfigUpdated`, `TreasuryUpdated`,
 role grants and revocations, and pause and unpause, and the monitor is running in
 production with both an RPC URL and the escrow address configured.
