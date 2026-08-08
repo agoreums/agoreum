@@ -46,6 +46,32 @@ someone else's returns 404.
 The API describes transactions; the user's wallet signs them. If you find a code
 path where the platform could move value on its own, it is a bug.
 
+### One exception, stated here rather than discovered
+
+**Disputes are arbitrated by the project.** When an order is disputed on chain,
+escrow can be split between buyer and provider by an address holding
+`ARBITER_ROLE`, and that address is held by Agoreum. This is a trust assumption
+and belongs next to the claim above rather than buried somewhere agreeable.
+
+What that role can and cannot do, from the contract rather than from intent:
+
+- It can decide how a **disputed** escrow is divided between that order's buyer
+  and provider.
+- It **cannot** send funds anywhere else. `settleDispute` pays only the escrow's
+  own buyer, its own provider, and the fee recipient. There is no path by which an
+  arbiter pays itself, so a compromised arbiter key misallocates one order rather
+  than draining the contract.
+- It cannot touch an escrow that is not in dispute.
+- It earns the platform nothing by deciding against a buyer: the fee is charged on
+  the provider's share alone, so a full refund carries **no fee at all**.
+
+Both parties see the same evidence and the same reasoning for the decision. The
+reasoning is shown to the buyer and the provider, and is not published publicly.
+
+The arbiter address is a single key on testnet. It must become a multisig before
+any mainnet deployment; that is recorded as a mainnet blocker in
+`docs/contracts.md`.
+
 ## Authentication
 
 Sign-In With Ethereum (EIP-4361). No passwords exist anywhere.

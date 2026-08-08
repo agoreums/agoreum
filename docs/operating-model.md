@@ -216,7 +216,7 @@ its own coverage is the wrong kind of wrong.
 
 | Item | Owner | State |
 | --- | --- | --- |
-| Two Safe multisigs on Base for the admin addresses | Owner | With the owner |
+| Three Safe multisigs on Base: the two admin addresses and the arbiter | Owner | With the owner. The arbiter joined this list when dispute resolution was built; see docs/contracts.md |
 | Security audit engagement | Owner | With the owner |
 | DMARC to quarantine, then reject | Infrastructure | Deliberately held at `p=none` |
-| Mainnet deployment | Owner | Blocked on the two above, by instruction |
+| Mainnet deployment | Owner | Blocked on the multisigs and the audit, by instruction |

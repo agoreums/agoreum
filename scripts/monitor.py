@@ -58,6 +58,13 @@ GOVERNANCE_TOPICS = {
     # TreasuryUpdated(address), on the subscriptions contract
     "0x7dae230f18360d76a040c81f050aa14eb9d6dc7901b20fc5d855e2a20fe814d1":
         "TREASURY REDIRECTED",
+    # EscrowSettled(bytes32,uint256,uint256,uint256,address)
+    # Every dispute settlement, not only an unexpected one. Settlements are rare
+    # and each is a person's money being split by a decision, so the operator
+    # should learn about all of them; a settlement nobody expected is the exact
+    # shape of a compromised arbiter key.
+    "0xd8d0a3f861feaff7f935ea1516957d14f952ec2fb9623e97562dfe939ea3fd5e":
+        "DISPUTE SETTLED",
     # RoleGranted(bytes32,address,address)
     "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d":
         "ROLE GRANTED",

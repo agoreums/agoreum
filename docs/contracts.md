@@ -196,6 +196,23 @@ mainnet deploy requires one variable typed at a prompt".
 Both guards are tested, including that mainnet is refused by default and that
 collapsed roles are rejected even when the opt-in is set.
 
+### Mainnet blockers
+
+Deliberate gates, not a wishlist. Every one is owner-held and none is satisfied by
+code alone.
+
+| Blocker | Why |
+| --- | --- |
+| `ESCROW_ADMIN_ADDRESS` is a Safe multisig | A single admin key can grant itself any role, including arbiter |
+| `SUBSCRIPTIONS_ADMIN_ADDRESS` is a Safe multisig | Same, and it can redirect the treasury |
+| `ESCROW_ARBITER_ADDRESS` is a Safe multisig | It decides how disputed escrow is split between two parties. A single key means one compromised key decides other people's money, and settlements are immediate with no timelock and no appeal |
+| A security audit has been performed | No third party has reviewed this code |
+
+The arbiter blocker was added when dispute resolution was built. It is the same
+gate as the other two roles and is not a lesser one: the admin keys can take a role
+they should not have, and the arbiter key can move money that is already in
+dispute.
+
 ```bash
 cd contracts
 forge script script/DeployEscrow.s.sol --rpc-url base_sepolia --broadcast --verify
