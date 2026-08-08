@@ -135,6 +135,13 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: SecretStr = SecretStr("")
     TELEGRAM_CHAT_ID: str = ""
 
+    # A second way out, used only when Telegram fails. An alert that can only
+    # travel one path is an alert that stops when that path does, and the thing
+    # it most often carries is mail arriving at the disclosure address.
+    # A channel id, not a server id: messages post to a channel.
+    DISCORD_BOT_TOKEN: SecretStr = SecretStr("")
+    DISCORD_CHANNEL_ID: str = ""
+
     # Master switch for outbound email. Defaults to off so that running the
     # suite, or a developer exercising a flow locally, cannot put real messages
     # in real inboxes. Delivery is still recorded, as suppressed, with the

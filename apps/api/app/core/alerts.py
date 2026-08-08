@@ -1,4 +1,4 @@
-"""Operator alerts, over Telegram.
+"""Operator alerts, over Telegram with Discord as a fallback.
 
 For things a person needs to look at rather than things a user is told about.
 `notifications.notify` is the wrong tool for those: it targets a user, respects
@@ -61,7 +61,24 @@ def sanitise(value: str | None, *, limit: int = 200) -> str:
 
 
 async def notify_operator(text: str) -> bool:
-    """Send an alert. Returns whether it was delivered.
+    """Send an alert, falling back to Discord if Telegram cannot take it.
+
+    Telegram is primary because it is where `scripts/monitor.py` already pages,
+    so alerts land where an operator is already looking. Discord is tried only
+    when Telegram fails, rather than always, because these are rare and low
+    volume and two copies of every alert teaches people to ignore both. The
+    fallback exists for the case that actually worries me: a Telegram outage
+    while a disclosure is sitting unread.
+
+    Returns True if any channel took it.
+    """
+    if await _send_telegram(text):
+        return True
+    return await _send_discord(text)
+
+
+async def _send_telegram(text: str) -> bool:
+    """Deliver over Telegram.
 
     No parse_mode is set, so Telegram renders the message literally. That is the
     point: with Markdown or HTML enabled, text quoted from an email could close a
@@ -100,5 +117,62 @@ async def notify_operator(text: str) -> bool:
         )
         return False
 
-    logger.info("operator_alert_sent")
+    logger.info("operator_alert_sent", extra={"channel": "telegram"})
+    return True
+
+
+def discord_available() -> tuple[bool, str]:
+    """Whether the fallback could deliver, and why not if it could not."""
+    if not settings.DISCORD_BOT_TOKEN.get_secret_value():
+        return False, "no Discord bot token is configured"
+    if not settings.DISCORD_CHANNEL_ID:
+        return False, "no Discord channel id is configured"
+    return True, ""
+
+
+async def _send_discord(text: str) -> bool:
+    """Deliver over Discord, used only when Telegram has already failed.
+
+    `allowed_mentions` is set to parse nothing, which is the Discord counterpart
+    of not setting parse_mode on Telegram. Alert text quotes email written by
+    strangers, and without it a subject containing @everyone would ping a whole
+    server. Suppressing it at the API level is stronger than filtering the text,
+    because it holds even for a mention this code did not anticipate.
+    """
+    available, reason = discord_available()
+    if not available:
+        logger.warning("operator_alert_fallback_unavailable", extra={"reason": reason})
+        return False
+
+    token = settings.DISCORD_BOT_TOKEN.get_secret_value()
+    channel = settings.DISCORD_CHANNEL_ID
+
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                f"https://discord.com/api/v10/channels/{channel}/messages",
+                headers={
+                    "Authorization": f"Bot {token}",
+                    "User-Agent": "agoreum-alerts/1.0 (https://agoreum.xyz, 1.0)",
+                },
+                json={
+                    "content": text[:MAX_ALERT_CHARS],
+                    "allowed_mentions": {"parse": []},
+                },
+            )
+    except Exception as exc:  # noqa: BLE001 - see module docstring
+        logger.warning(
+            "operator_alert_fallback_failed",
+            extra={"error": f"{type(exc).__name__}: {exc}"},
+        )
+        return False
+
+    if response.status_code >= 400:
+        logger.warning(
+            "operator_alert_fallback_rejected",
+            extra={"status": response.status_code},
+        )
+        return False
+
+    logger.info("operator_alert_sent", extra={"channel": "discord"})
     return True

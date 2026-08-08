@@ -379,3 +379,90 @@ class TestAlertDelivery:
         monkeypatch.setattr(alerts.httpx, "AsyncClient", Fake)
         assert await alerts.notify_operator("<b>x</b>") is True
         assert "parse_mode" not in sent
+
+
+class TestTheFallbackChannel:
+    """Discord is tried only when Telegram has already failed."""
+
+    @staticmethod
+    def _client(record, status=200):
+        class Fake:
+            def __init__(self, *a, **k): ...
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            async def post(self, url, json=None, headers=None, **k):
+                record.append({"url": url, "json": json or {}})
+                class Response:
+                    status_code = status
+
+                return Response()
+
+        return Fake
+
+    async def test_discord_is_not_used_when_telegram_works(self, monkeypatch) -> None:
+        """Two copies of every alert teaches people to ignore both."""
+        calls: list = []
+        monkeypatch.setattr(settings, "TELEGRAM_BOT_TOKEN", SecretStr("t"))
+        monkeypatch.setattr(settings, "TELEGRAM_CHAT_ID", "1")
+        monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr("d"))
+        monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "9")
+        monkeypatch.setattr(alerts.httpx, "AsyncClient", self._client(calls))
+
+        assert await alerts.notify_operator("hello") is True
+        assert len(calls) == 1
+        assert "telegram.org" in calls[0]["url"]
+
+    async def test_discord_takes_over_when_telegram_fails(self, monkeypatch) -> None:
+        calls: list = []
+        monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr("d"))
+        monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "9")
+        monkeypatch.setattr(alerts.httpx, "AsyncClient", self._client(calls))
+
+        async def telegram_down(text: str) -> bool:
+            return False
+
+        monkeypatch.setattr(alerts, "_send_telegram", telegram_down)
+        assert await alerts.notify_operator("hello") is True
+        assert len(calls) == 1
+        assert "discord.com" in calls[0]["url"]
+
+    async def test_discord_suppresses_every_mention(self, monkeypatch) -> None:
+        """A subject containing @everyone must not ping a server.
+
+        Suppressed at the API level rather than by filtering text, so it holds
+        for a mention this code never anticipated.
+        """
+        calls: list = []
+        monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr("d"))
+        monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "9")
+        monkeypatch.setattr(alerts.httpx, "AsyncClient", self._client(calls))
+
+        async def telegram_down(text: str) -> bool:
+            return False
+
+        monkeypatch.setattr(alerts, "_send_telegram", telegram_down)
+        await alerts.notify_operator("@everyone look")
+        assert calls[0]["json"]["allowed_mentions"] == {"parse": []}
+
+    async def test_an_unconfigured_fallback_reports_false(self, monkeypatch) -> None:
+        """Fails closed and says so, rather than claiming an alert was delivered."""
+        monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr(""))
+        monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "")
+
+        async def telegram_down(text: str) -> bool:
+            return False
+
+        monkeypatch.setattr(alerts, "_send_telegram", telegram_down)
+        assert await alerts.notify_operator("hello") is False
+
+    async def test_both_channels_down_reports_false(self, monkeypatch) -> None:
+        monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr("d"))
+        monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "9")
+        calls: list = []
+        monkeypatch.setattr(alerts.httpx, "AsyncClient", self._client(calls, status=500))
+
+        async def telegram_down(text: str) -> bool:
+            return False
+
+        monkeypatch.setattr(alerts, "_send_telegram", telegram_down)
+        assert await alerts.notify_operator("hello") is False
