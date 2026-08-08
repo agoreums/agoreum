@@ -117,7 +117,13 @@ class OrganizationInvitation(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     role: Mapped[OrgRole] = mapped_column(
-        pg_enum(OrgRole, "org_role"), nullable=False, default=OrgRole.MEMBER
+        pg_enum(OrgRole, "org_role"),
+        nullable=False,
+        default=OrgRole.MEMBER,
+        # Declared here as well as in the migration. Membership does the same, and
+        # a server default present in the database but absent from the model is a
+        # drift alembic check reports on every later run.
+        server_default=OrgRole.MEMBER.value,
     )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
