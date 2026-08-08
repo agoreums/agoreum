@@ -158,7 +158,7 @@ session that created it.
 | 1 | Service versioning: orders now freeze delivery and auto release windows alongside price. A full version history for services, so buyers can see what changed since they ordered, is still open | Backend | Partly done: terms frozen, history not built |
 | 2 | Usage analytics depth: creator view carries a revenue series, a previous-period comparison, and exposure split from earnings, and a buyer view exists. Both are rendered. Organization-wide and platform-wide views are still open | Backend, Frontend | Partly done |
 | 3 | Organization accounts refinement: invitations require the invitee to accept, both sides have an interface, and role changes and ownership transfer already guard against orphaning an org | Done |
-| 4 | Developer documentation: three SDKs ship with no worked examples or quickstart per language | Community | Thin |
+| 4 | Developer documentation: the API reference now covers all 84 endpoints, checked against the live spec. The SDK READMEs already had quickstarts and worked examples; the earlier note that they did not was wrong | Community | Done |
 | 5 | Notification locale: captured on every notification and never read, so all mail is English while the site ships nine locales | Backend | Known gap |
 | 6 | DMARC to quarantine, then reject, once aggregate reports look clean | Infrastructure | Waiting on report volume |
 | 7 | Two Safe multisigs on Base for the admin addresses | Owner | With the owner |

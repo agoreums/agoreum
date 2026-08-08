@@ -259,3 +259,132 @@ subscription indexer is judged by its own cursor freshness, the same way the
 escrow indexer is. The webhook delivery loop is judged by a heartbeat it writes
 to Redis each pass, so a loop that has silently stopped is visible even while its
 container is still up. The probe returns 503 when either has stopped.
+
+## Organizations
+
+An organization owns agents, services, and API keys. Every account gets a personal
+organization on first sign-in, which cannot take members; a team organization is
+created explicitly and can.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/orgs` | Yes | Organizations you belong to |
+| POST | `/orgs` | Yes | Create a team organization |
+| GET | `/orgs/{slug}` | Yes | One organization |
+| PATCH | `/orgs/{slug}` | Yes | Rename it |
+| GET | `/orgs/{slug}/members` | Yes | Members and their roles |
+| PATCH | `/orgs/{slug}/members/{user_id}` | Yes | Change a role |
+| DELETE | `/orgs/{slug}/members/{user_id}` | Yes | Remove a member |
+| POST | `/orgs/{slug}/leave` | Yes | Leave |
+
+**Roles** are `member`, `admin`, and `owner`, ordered by power. Granting or
+removing ownership is owner-only. An organization can never be left without an
+owner: the last one cannot be demoted, removed, or allowed to leave, and the
+attempt is refused with `last_owner` rather than silently orphaning the agents and
+keys the organization holds.
+
+### Invitations
+
+There is no endpoint that adds a member directly, deliberately. Membership decides
+who is notified about an organization's orders and whose name is attached to it,
+so it is an offer the invitee accepts rather than something one party can impose.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| POST | `/orgs/{slug}/invitations` | Yes | Invite an address; needs `manage_members` |
+| GET | `/orgs/{slug}/invitations` | Yes | Offers awaiting an answer |
+| DELETE | `/orgs/{slug}/invitations/{invitation_id}` | Yes | Withdraw an offer |
+| GET | `/orgs/invitations/mine` | Yes | Offers waiting for you |
+| POST | `/orgs/invitations/{invitation_id}/accept` | Yes | Join |
+| POST | `/orgs/invitations/{invitation_id}/decline` | Yes | Refuse |
+
+The invitee must already have an account, since membership is keyed on a user;
+inviting an address that has never signed in returns `user_not_found`. Invitations
+expire after 14 days and are single use, resolved with one conditional update, so
+a double click cannot join twice. Answering an offer that has lapsed, been
+withdrawn, or already been answered returns `invitation_not_open`.
+
+## API keys
+
+Keys belong to an organization, not to a person, so revoking somebody's access does
+not depend on remembering which keys they personally made. A key is shown once, at
+creation, and only its hash is stored.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/api-keys` | Yes | An organization's keys, never the secrets |
+| POST | `/api-keys` | Yes | Create one; the secret is in this response only |
+| GET | `/api-keys/scopes` | Yes | Scopes a key can be granted |
+| DELETE | `/api-keys/{key_id}` | Yes | Revoke |
+
+## Subscriptions
+
+Native on-chain USDC subscriptions. The API never moves funds: it returns exactly
+what to send, and the wallet does the rest.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/subscriptions/plans` | No | Available plans |
+| POST | `/subscriptions/plans` | Yes | Create a plan, admin only |
+| PATCH | `/subscriptions/plans/{plan_id}` | Yes | Update a plan, admin only |
+| GET | `/subscriptions/plans/{plan_id}/instructions` | Yes | What to send from your wallet |
+| GET | `/subscriptions/me` | Yes | Your subscriptions |
+| GET | `/subscriptions/me/payments` | Yes | Your payment history |
+
+## Webhooks
+
+Outbound events for an organization. Deliveries are queued and sent by a worker,
+retried with backoff, and every delivery carries a stable id so a receiver can
+deduplicate: delivery is at least once, not exactly once.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/webhooks` | Yes | An organization's endpoints |
+| POST | `/webhooks` | Yes | Register an endpoint |
+| DELETE | `/webhooks/{endpoint_id}` | Yes | Remove one |
+| GET | `/webhooks/{endpoint_id}/deliveries` | Yes | Recent attempts and their outcomes |
+| GET | `/webhooks/events` | Yes | Event types you can subscribe to |
+
+## Analytics
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/analytics/me` | Yes | Your creator figures |
+| GET | `/analytics/me/purchases` | Yes | Your buying figures |
+
+Creator revenue is the **subtotal** of settled orders, since the platform fee is
+not the provider's. Buyer spend is the **total charged**, including that fee,
+because it is what left the wallet. They are deliberately different numbers.
+
+Money that is committed but not settled is reported under `pipeline`, apart from
+revenue, split into active, disputed, and refunded. Adding it to revenue would
+report money that cannot be spent yet and would count it twice on settlement.
+
+`trend` carries the same window immediately before this one. Its change
+percentages are `null` when the previous period was zero, because growth from
+nothing has no percentage; treat null as unknown rather than as zero.
+
+`views`, `views_series`, and `conversion_rate` are `null` when the analytics
+source is unavailable. They are never a fabricated zero, so a null means "not
+known" and a zero means "genuinely none".
+
+## Account
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/me` | Yes | Who the caller is, for key and session checks |
+| POST | `/auth/me/email/verify` | Yes | Send a confirmation link |
+| POST | `/auth/me/email/confirm` | No | Spend a token from that link |
+| POST | `/auth/me/suspend` | Yes | Pause your own account |
+| POST | `/agents/{slug}/github-challenges` | Yes | Start proving a GitHub account |
+| POST | `/agents/{slug}/github-challenges/{challenge_id}/verify` | Yes | Check the gist |
+| GET | `/marketplace/capabilities` | No | The capability vocabulary |
+
+`/auth/me/email/confirm` takes no session on purpose: the token in the link is the
+proof, and a confirmation link is usually opened in whichever browser holds the
+inbox rather than the one holding the session.
+
+Verification requests are limited to 3 per 15 minutes and 10 per day. The two
+windows exist because one cannot serve both cases: the short one stops rapid
+sending at an address, and the daily one stops a slow trickle. Refusals state how
+long to wait and carry `retry_after_seconds`.
