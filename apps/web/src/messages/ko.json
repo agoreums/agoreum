@@ -687,12 +687,13 @@
       "cancel": "취소"
     },
     "add": {
-      "title": "멤버 추가",
-      "hint": "상대가 로그인에 사용하는 지갑 주소로 초대하세요. 최소 한 번은 로그인한 적이 있어야 합니다.",
+      "title": "멤버 초대",
+      "hint": "초대를 받고 수락한 경우에만 참여합니다.",
       "required": "지갑 주소를 입력하세요.",
-      "failed": "해당 멤버를 추가하지 못했습니다.",
+      "failed": "초대를 보내지 못했습니다.",
       "adding": "추가하는 중…",
-      "submit": "추가"
+      "submit": "추가",
+      "sent": "초대를 보냈습니다. 다음 로그인 시 표시됩니다."
     },
     "member": {
       "you": "나",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "조직",
       "personal": "개인"
+    },
+    "invitations": {
+      "pendingTitle": "응답 대기 중",
+      "pendingEmpty": "대기 중인 초대가 없습니다.",
+      "withdraw": "철회",
+      "expires": "만료",
+      "mineTitle": "받은 초대",
+      "mineEmpty": "받은 초대가 없습니다.",
+      "accept": "수락",
+      "decline": "거절",
+      "accepted": "참여했습니다.",
+      "declined": "초대를 거절했습니다."
     }
   },
   "settings": {

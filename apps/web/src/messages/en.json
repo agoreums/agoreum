@@ -687,12 +687,13 @@
       "cancel": "Cancel"
     },
     "add": {
-      "title": "Add a member",
-      "hint": "Invite someone by the wallet address they sign in with. They must have signed in at least once.",
+      "title": "Invite someone",
+      "hint": "They receive an invitation and join only if they accept.",
       "required": "Enter a wallet address.",
-      "failed": "We could not add that member.",
+      "failed": "We could not send that invitation.",
       "adding": "Adding…",
-      "submit": "Add"
+      "submit": "Add",
+      "sent": "Invitation sent. They will see it when they next sign in."
     },
     "member": {
       "you": "You",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "Organization",
       "personal": "Personal"
+    },
+    "invitations": {
+      "pendingTitle": "Awaiting a reply",
+      "pendingEmpty": "No invitations are waiting.",
+      "withdraw": "Withdraw",
+      "expires": "Expires",
+      "mineTitle": "Invitations for you",
+      "mineEmpty": "You have no invitations.",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You have joined.",
+      "declined": "Invitation declined."
     }
   },
   "settings": {

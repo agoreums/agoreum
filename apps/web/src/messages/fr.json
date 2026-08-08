@@ -687,12 +687,13 @@
       "cancel": "Annuler"
     },
     "add": {
-      "title": "Ajouter un membre",
-      "hint": "Invitez quelqu'un via l'adresse du portefeuille avec laquelle il se connecte. Il doit s'être connecté au moins une fois.",
+      "title": "Inviter quelqu'un",
+      "hint": "La personne reçoit une invitation et ne rejoint que si elle accepte.",
       "required": "Saisissez une adresse de portefeuille.",
-      "failed": "Nous n'avons pas pu ajouter ce membre.",
+      "failed": "Nous n'avons pas pu envoyer cette invitation.",
       "adding": "Ajout…",
-      "submit": "Ajouter"
+      "submit": "Ajouter",
+      "sent": "Invitation envoyée. Elle la verra à sa prochaine connexion."
     },
     "member": {
       "you": "Vous",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "Organisation",
       "personal": "Personnel"
+    },
+    "invitations": {
+      "pendingTitle": "En attente de réponse",
+      "pendingEmpty": "Aucune invitation en attente.",
+      "withdraw": "Retirer",
+      "expires": "Expire",
+      "mineTitle": "Vos invitations",
+      "mineEmpty": "Vous n'avez aucune invitation.",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "accepted": "Vous avez rejoint.",
+      "declined": "Invitation refusée."
     }
   },
   "settings": {

@@ -92,6 +92,21 @@ async def test_personal_org_is_created_once_with_owner(db: AsyncSession) -> None
     assert orgs[0].member_count == 1
 
 
+async def _join(db, *, org, actor, invitee, role):
+    """Put somebody in an organization the only way that now exists.
+
+    Membership cannot be granted directly any more: it is an offer the invitee
+    accepts. These tests are about what happens once somebody is a member, so
+    this collapses the two steps rather than repeating them.
+    """
+    invitation, _ = await service.invite_member(
+        db, org=org, actor=actor, address=invitee.primary_address, role=role
+    )
+    return await service.accept_invitation(
+        db, invitation_id=invitation.id, user=invitee
+    )
+
+
 async def test_team_org_and_membership_flow(db: AsyncSession) -> None:
     owner = await _user(db)
     teammate = await _user(db)
@@ -100,10 +115,10 @@ async def test_team_org_and_membership_flow(db: AsyncSession) -> None:
     org = await service.create_team_org(db, user=owner, slug=f"acme-{tag}", name="Acme")
     assert org.kind == OrgKind.TEAM
 
-    membership, added = await service.add_member(
-        db, org=org, address=teammate.primary_address, role=OrgRole.MEMBER
+    membership = await _join(
+        db, org=org, actor=owner, invitee=teammate, role=OrgRole.MEMBER
     )
-    assert added.id == teammate.id
+    assert membership.user_id == teammate.id
     assert membership.role == OrgRole.MEMBER
 
     members = await service.list_members(db, org=org)
@@ -143,8 +158,8 @@ async def test_personal_org_rejects_team_changes(db: AsyncSession) -> None:
     teammate = await _user(db)
     org = await service.ensure_personal_org(db, user=user)
     with pytest.raises(ConflictError):
-        await service.add_member(
-            db, org=org, address=teammate.primary_address, role=OrgRole.MEMBER
+        await service.invite_member(
+            db, org=org, actor=user, address=teammate.primary_address, role=OrgRole.MEMBER
         )
 
 
@@ -154,8 +169,8 @@ async def test_only_owner_can_grant_ownership(db: AsyncSession) -> None:
     target = await _user(db)
     tag = secrets.token_hex(3)
     org = await service.create_team_org(db, user=owner, slug=f"team-{tag}", name="Team")
-    await service.add_member(db, org=org, address=admin_user.primary_address, role=OrgRole.ADMIN)
-    await service.add_member(db, org=org, address=target.primary_address, role=OrgRole.MEMBER)
+    await _join(db, org=org, actor=owner, invitee=admin_user, role=OrgRole.ADMIN)
+    await _join(db, org=org, actor=owner, invitee=target, role=OrgRole.MEMBER)
 
     admin_membership = (
         await db.execute(

@@ -687,12 +687,13 @@
       "cancel": "Cancelar"
     },
     "add": {
-      "title": "Adicionar um membro",
-      "hint": "Convide alguém pelo endereço da carteira com que faz login. Deve ter feito login pelo menos uma vez.",
+      "title": "Convidar alguém",
+      "hint": "Recebe um convite e só entra se aceitar.",
       "required": "Introduza um endereço de carteira.",
-      "failed": "Não foi possível adicionar esse membro.",
+      "failed": "Não foi possível enviar o convite.",
       "adding": "Adicionando…",
-      "submit": "Adicionar"
+      "submit": "Adicionar",
+      "sent": "Convite enviado. Verá o convite no próximo início de sessão."
     },
     "member": {
       "you": "Você",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "Organização",
       "personal": "Pessoal"
+    },
+    "invitations": {
+      "pendingTitle": "À espera de resposta",
+      "pendingEmpty": "Não há convites pendentes.",
+      "withdraw": "Retirar",
+      "expires": "Expira",
+      "mineTitle": "Convites para si",
+      "mineEmpty": "Não tem convites.",
+      "accept": "Aceitar",
+      "decline": "Recusar",
+      "accepted": "Entrou na organização.",
+      "declined": "Convite recusado."
     }
   },
   "settings": {

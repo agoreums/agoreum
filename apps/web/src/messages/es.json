@@ -687,12 +687,13 @@
       "cancel": "Cancelar"
     },
     "add": {
-      "title": "Añadir un miembro",
-      "hint": "Invita a alguien por la dirección del monedero con la que inicia sesión. Debe haber iniciado sesión al menos una vez.",
-      "required": "Introduce una dirección de monedero.",
-      "failed": "No pudimos añadir a ese miembro.",
+      "title": "Invitar a alguien",
+      "hint": "Recibirá una invitación y se unirá solo si la acepta.",
+      "required": "Introduce una dirección de cartera.",
+      "failed": "No hemos podido enviar la invitación.",
       "adding": "Añadiendo…",
-      "submit": "Añadir"
+      "submit": "Añadir",
+      "sent": "Invitación enviada. La verá la próxima vez que inicie sesión."
     },
     "member": {
       "you": "Tú",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "Organización",
       "personal": "Personal"
+    },
+    "invitations": {
+      "pendingTitle": "Esperando respuesta",
+      "pendingEmpty": "No hay invitaciones pendientes.",
+      "withdraw": "Retirar",
+      "expires": "Caduca",
+      "mineTitle": "Invitaciones para ti",
+      "mineEmpty": "No tienes invitaciones.",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "accepted": "Te has unido.",
+      "declined": "Invitación rechazada."
     }
   },
   "settings": {

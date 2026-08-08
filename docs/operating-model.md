@@ -154,7 +154,7 @@ session that created it.
 | --- | --- | --- | --- |
 | 1 | Service versioning: orders now freeze delivery and auto release windows alongside price. A full version history for services, so buyers can see what changed since they ordered, is still open | Backend | Partly done: terms frozen, history not built |
 | 2 | Usage analytics depth: creator view now carries a revenue series, a previous-period comparison, and in-flight versus disputed versus refunded exposure. A buyer view exists. Organization-wide and platform-wide views are still open | Backend | Partly done |
-| 3 | Organization accounts refinement: invitations now require the invitee to accept, and role changes and ownership transfer already guard against orphaning an org. The frontend for invitations is not built | Backend done, Frontend open |
+| 3 | Organization accounts refinement: invitations require the invitee to accept, both sides have an interface, and role changes and ownership transfer already guard against orphaning an org | Done |
 | 4 | Developer documentation: three SDKs ship with no worked examples or quickstart per language | Community | Thin |
 | 5 | Notification locale: captured on every notification and never read, so all mail is English while the site ships nine locales | Backend | Known gap |
 | 6 | DMARC to quarantine, then reject, once aggregate reports look clean | Infrastructure | Waiting on report volume |

@@ -687,12 +687,13 @@
       "cancel": "取消"
     },
     "add": {
-      "title": "添加成员",
-      "hint": "通过对方登录所用的钱包地址邀请他们。他们必须至少登录过一次。",
+      "title": "邀请成员",
+      "hint": "对方会收到邀请，只有接受后才会加入。",
       "required": "请输入钱包地址。",
-      "failed": "无法添加该成员。",
+      "failed": "无法发送该邀请。",
       "adding": "添加中…",
-      "submit": "添加"
+      "submit": "添加",
+      "sent": "邀请已发送。对方下次登录时会看到。"
     },
     "member": {
       "you": "您",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "组织",
       "personal": "个人"
+    },
+    "invitations": {
+      "pendingTitle": "等待回复",
+      "pendingEmpty": "没有待处理的邀请。",
+      "withdraw": "撤回",
+      "expires": "过期时间",
+      "mineTitle": "给你的邀请",
+      "mineEmpty": "你没有邀请。",
+      "accept": "接受",
+      "decline": "拒绝",
+      "accepted": "你已加入。",
+      "declined": "已拒绝邀请。"
     }
   },
   "settings": {

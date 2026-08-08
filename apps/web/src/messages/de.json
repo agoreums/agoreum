@@ -687,12 +687,13 @@
       "cancel": "Abbrechen"
     },
     "add": {
-      "title": "Mitglied hinzufügen",
-      "hint": "Laden Sie jemanden über die Wallet-Adresse ein, mit der er sich anmeldet. Er muss sich mindestens einmal angemeldet haben.",
+      "title": "Jemanden einladen",
+      "hint": "Die Person erhält eine Einladung und tritt nur bei, wenn sie annimmt.",
       "required": "Geben Sie eine Wallet-Adresse ein.",
-      "failed": "Dieses Mitglied konnte nicht hinzugefügt werden.",
+      "failed": "Die Einladung konnte nicht gesendet werden.",
       "adding": "Wird hinzugefügt…",
-      "submit": "Hinzufügen"
+      "submit": "Hinzufügen",
+      "sent": "Einladung gesendet. Sie wird bei der nächsten Anmeldung angezeigt."
     },
     "member": {
       "you": "Sie",
@@ -709,6 +710,18 @@
     "switcher": {
       "label": "Organisation",
       "personal": "Persönlich"
+    },
+    "invitations": {
+      "pendingTitle": "Warten auf Antwort",
+      "pendingEmpty": "Keine offenen Einladungen.",
+      "withdraw": "Zurückziehen",
+      "expires": "Läuft ab",
+      "mineTitle": "Ihre Einladungen",
+      "mineEmpty": "Sie haben keine Einladungen.",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "accepted": "Sie sind beigetreten.",
+      "declined": "Einladung abgelehnt."
     }
   },
   "settings": {

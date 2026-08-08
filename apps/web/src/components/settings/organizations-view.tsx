@@ -10,6 +10,7 @@ import {
   ApiError,
   orgsApi,
   type Organization,
+  type OrgInvitation,
   type OrgMember,
   type OrgRole,
 } from "@/lib/api";
@@ -73,6 +74,11 @@ export function OrganizationsView() {
 
   return (
     <div className="space-y-10">
+      {/* First, because it is addressed to this person and they are not a member
+          of the organization asking, so it belongs to no panel below. */}
+      {accessToken ? (
+        <MyInvitations accessToken={accessToken} onChanged={refresh} />
+      ) : null}
       {error ? (
         <p className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-4 text-sm text-danger-500">
           {error}
@@ -298,7 +304,15 @@ function OrgDetail({
       ) : null}
 
       {!isPersonal && canManage ? (
-        <AddMember accessToken={accessToken} slug={org.slug} onAdded={refresh} />
+        <>
+          <AddMember accessToken={accessToken} slug={org.slug} onAdded={refresh} />
+          <PendingInvitations
+            accessToken={accessToken}
+            slug={org.slug}
+            reloadKey={reload}
+            onChanged={refresh}
+          />
+        </>
       ) : null}
 
       {error ? <p className="text-sm text-danger-500">{error}</p> : null}
@@ -344,7 +358,8 @@ function AddMember({
     setBusy(true);
     setFormError(null);
     try {
-      await orgsApi.addMember(accessToken, slug, {
+      // An invitation, not an addition. The person decides whether to join.
+      await orgsApi.inviteMember(accessToken, slug, {
         address: address.trim().toLowerCase(),
         role,
       });
@@ -517,5 +532,174 @@ function RoleBadge({ role }: { role: OrgRole }) {
     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${tone}`}>
       {t(`roles.${role}`)}
     </span>
+  );
+}
+
+
+/**
+ * Offers this organization has made that nobody has answered yet.
+ *
+ * Shown because an invitation is otherwise invisible to the sender: without it,
+ * an owner cannot tell whether they invited somebody, whether that person has
+ * replied, or whether the offer has since lapsed.
+ */
+function PendingInvitations({
+  accessToken,
+  slug,
+  reloadKey,
+  onChanged,
+}: {
+  accessToken: string;
+  slug: string;
+  reloadKey: number;
+  onChanged: () => void;
+}) {
+  const t = useTranslations("organizations");
+  const [rows, setRows] = useState<OrgInvitation[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void orgsApi
+      .invitations(accessToken, slug)
+      .then((list) => {
+        if (!cancelled) setRows(list);
+      })
+      .catch(() => {
+        // A failure to list offers must not take the members panel down with it.
+        if (!cancelled) setRows([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, slug, reloadKey]);
+
+  async function withdraw(id: string) {
+    setBusyId(id);
+    try {
+      await orgsApi.revokeInvitation(accessToken, slug, id);
+      setRows((current) => current.filter((r) => r.id !== id));
+      onChanged();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-4">
+      <h3 className="text-sm font-semibold">{t("invitations.pendingTitle")}</h3>
+      {rows.length === 0 ? (
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {t("invitations.pendingEmpty")}
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {rows.map((row) => (
+            <li
+              key={row.id}
+              className="flex flex-wrap items-center justify-between gap-2 text-sm"
+            >
+              <span className="font-mono text-xs">{row.invited_user_id}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {row.role} · {t("invitations.expires")}{" "}
+                {new Date(row.expires_at).toLocaleDateString()}
+              </span>
+              <Button
+                variant="secondary"
+                disabled={busyId === row.id}
+                onClick={() => withdraw(row.id)}
+              >
+                {t("invitations.withdraw")}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Offers waiting for this account to answer.
+ *
+ * Deliberately outside any organization panel: the person is not a member of the
+ * organization inviting them, so there is no panel of theirs it could live in.
+ */
+function MyInvitations({
+  accessToken,
+  onChanged,
+}: {
+  accessToken: string;
+  onChanged: () => void;
+}) {
+  const t = useTranslations("organizations");
+  const [rows, setRows] = useState<OrgInvitation[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void orgsApi
+      .myInvitations(accessToken)
+      .then((list) => {
+        if (!cancelled) setRows(list);
+      })
+      .catch(() => {
+        if (!cancelled) setRows([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+
+  async function answer(id: string, accept: boolean) {
+    setBusyId(id);
+    try {
+      if (accept) {
+        await orgsApi.acceptInvitation(accessToken, id);
+      } else {
+        await orgsApi.declineInvitation(accessToken, id);
+      }
+      setRows((current) => current.filter((r) => r.id !== id));
+      onChanged();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (rows.length === 0) return null;
+
+  return (
+    <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-4">
+      <h3 className="text-sm font-semibold">{t("invitations.mineTitle")}</h3>
+      <ul className="mt-3 space-y-2">
+        {rows.map((row) => (
+          <li
+            key={row.id}
+            className="flex flex-wrap items-center justify-between gap-2 text-sm"
+          >
+            <span>
+              {/* The name was chosen by whoever sent the invitation, so it is
+                  shown as a value rather than asserted as a fact. */}
+              {row.org_name} <span className="text-[var(--text-muted)]">({row.role})</span>
+            </span>
+            <span className="flex gap-2">
+              <Button
+                disabled={busyId === row.id}
+                onClick={() => answer(row.id, true)}
+              >
+                {t("invitations.accept")}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={busyId === row.id}
+                onClick={() => answer(row.id, false)}
+              >
+                {t("invitations.decline")}
+              </Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -825,6 +825,17 @@ export type OrgMember = {
   joined_at: string;
 };
 
+export type OrgInvitation = {
+  id: string;
+  org_id: string;
+  org_slug: string;
+  org_name: string;
+  role: OrgRole;
+  invited_user_id: string;
+  expires_at: string;
+  created_at: string;
+};
+
 export const orgsApi = {
   list: (accessToken: string) =>
     apiFetch<Organization[]>("/api/v1/orgs", { accessToken }),
@@ -842,16 +853,47 @@ export const orgsApi = {
       { accessToken },
     ),
 
-  addMember: (
+  /**
+   * Offer membership. Replaces adding somebody directly, which put an account
+   * into an organization it never agreed to join.
+   */
+  inviteMember: (
     accessToken: string,
     slug: string,
     body: { address: string; role: OrgRole },
   ) =>
-    apiFetch<OrgMember>(`/api/v1/orgs/${encodeURIComponent(slug)}/members`, {
-      method: "POST",
-      accessToken,
-      body: JSON.stringify(body),
-    }),
+    apiFetch<OrgInvitation>(
+      `/api/v1/orgs/${encodeURIComponent(slug)}/invitations`,
+      { method: "POST", accessToken, body: JSON.stringify(body) },
+    ),
+
+  invitations: (accessToken: string, slug: string) =>
+    apiFetch<OrgInvitation[]>(
+      `/api/v1/orgs/${encodeURIComponent(slug)}/invitations`,
+      { accessToken },
+    ),
+
+  revokeInvitation: (accessToken: string, slug: string, invitationId: string) =>
+    apiFetch<void>(
+      `/api/v1/orgs/${encodeURIComponent(slug)}/invitations/${invitationId}`,
+      { method: "DELETE", accessToken },
+    ),
+
+  /** Invitations waiting for the signed-in account to answer. */
+  myInvitations: (accessToken: string) =>
+    apiFetch<OrgInvitation[]>("/api/v1/orgs/invitations/mine", { accessToken }),
+
+  acceptInvitation: (accessToken: string, invitationId: string) =>
+    apiFetch<Organization>(
+      `/api/v1/orgs/invitations/${invitationId}/accept`,
+      { method: "POST", accessToken },
+    ),
+
+  declineInvitation: (accessToken: string, invitationId: string) =>
+    apiFetch<void>(
+      `/api/v1/orgs/invitations/${invitationId}/decline`,
+      { method: "POST", accessToken },
+    ),
 
   updateMember: (
     accessToken: string,
