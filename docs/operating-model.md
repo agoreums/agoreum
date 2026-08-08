@@ -153,7 +153,7 @@ session that created it.
 | Priority | Item | Area | State |
 | --- | --- | --- | --- |
 | 1 | Service versioning: orders now freeze delivery and auto release windows alongside price. A full version history for services, so buyers can see what changed since they ordered, is still open | Backend | Partly done: terms frozen, history not built |
-| 2 | Usage analytics depth: one endpoint, `/analytics/me`, covering creators only. No org, buyer, or platform view | Backend | Thin |
+| 2 | Usage analytics depth: creator view now carries a revenue series, a previous-period comparison, and in-flight versus disputed versus refunded exposure. A buyer view exists. Organization-wide and platform-wide views are still open | Backend | Partly done |
 | 3 | Organization accounts refinement: invitations, role changes, and transfer of ownership | Backend, Frontend | Partial, roles exist |
 | 4 | Developer documentation: three SDKs ship with no worked examples or quickstart per language | Community | Thin |
 | 5 | Notification locale: captured on every notification and never read, so all mail is English while the site ships nine locales | Backend | Known gap |
