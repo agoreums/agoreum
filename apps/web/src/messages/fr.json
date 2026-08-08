@@ -797,7 +797,10 @@
     "saving": "Enregistrement…",
     "saved": "Profil enregistré.",
     "saveFailed": "Nous n'avons pas pu enregistrer votre profil.",
-    "memberSince": "Membre depuis"
+    "memberSince": "Membre depuis",
+    "verifySend": "Envoyer l'e-mail de confirmation",
+    "verifySending": "Envoi…",
+    "verifyFailed": "Nous n'avons pas pu envoyer l'e-mail de confirmation."
   },
   "settingsSecurity": {
     "title": "Sécurité",
@@ -921,5 +924,16 @@
     "pausing": "Mise en pause…",
     "pauseConfirm": "Mettre votre compte en pause et vous déconnecter partout ? Une nouvelle connexion le restaure.",
     "pauseFailed": "Nous n'avons pas pu mettre votre compte en pause."
+  },
+  "verifyEmail": {
+    "title": "Confirmez votre e-mail",
+    "lede": "Vérifier cette adresse permet à Agoreum de vous envoyer des avis de commande et de sécurité.",
+    "working": "Confirmation de votre adresse…",
+    "confirmed": "Votre adresse e-mail est confirmée.",
+    "confirmedHint": "Vous pouvez désormais recevoir des notifications à cette adresse.",
+    "missing": "Ce lien est incomplet.",
+    "failed": "Ce lien n'a pas fonctionné.",
+    "failedHint": "Les liens expirent après 24 heures et ne servent qu'une fois. Demandez-en un nouveau depuis votre profil.",
+    "toProfile": "Aller à votre profil"
   }
 }

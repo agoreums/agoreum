@@ -797,7 +797,10 @@
     "saving": "Wird gespeichert…",
     "saved": "Profil gespeichert.",
     "saveFailed": "Ihr Profil konnte nicht gespeichert werden.",
-    "memberSince": "Mitglied seit"
+    "memberSince": "Mitglied seit",
+    "verifySend": "Bestätigungs-E-Mail senden",
+    "verifySending": "Wird gesendet…",
+    "verifyFailed": "Die Bestätigungs-E-Mail konnte nicht gesendet werden."
   },
   "settingsSecurity": {
     "title": "Sicherheit",
@@ -921,5 +924,16 @@
     "pausing": "Wird pausiert…",
     "pauseConfirm": "Konto pausieren und überall abmelden? Eine erneute Anmeldung stellt es wieder her.",
     "pauseFailed": "Ihr Konto konnte nicht pausiert werden."
+  },
+  "verifyEmail": {
+    "title": "E-Mail bestätigen",
+    "lede": "Mit dieser bestätigten Adresse kann Agoreum Ihnen Bestell- und Sicherheitshinweise senden.",
+    "working": "Adresse wird bestätigt…",
+    "confirmed": "Ihre E-Mail-Adresse ist bestätigt.",
+    "confirmedHint": "Sie können nun Benachrichtigungen an dieser Adresse empfangen.",
+    "missing": "Dieser Link ist unvollständig.",
+    "failed": "Dieser Link hat nicht funktioniert.",
+    "failedHint": "Links laufen nach 24 Stunden ab und gelten nur einmal. Fordern Sie in Ihrem Profil einen neuen an.",
+    "toProfile": "Zum Profil"
   }
 }

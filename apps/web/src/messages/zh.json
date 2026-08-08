@@ -797,7 +797,10 @@
     "saving": "保存中…",
     "saved": "个人资料已保存。",
     "saveFailed": "无法保存您的个人资料。",
-    "memberSince": "加入时间"
+    "memberSince": "加入时间",
+    "verifySend": "发送确认邮件",
+    "verifySending": "发送中…",
+    "verifyFailed": "无法发送确认邮件。"
   },
   "settingsSecurity": {
     "title": "安全",
@@ -921,5 +924,16 @@
     "pausing": "暂停中…",
     "pauseConfirm": "暂停您的账户并在所有设备退出？再次登录即可恢复。",
     "pauseFailed": "无法暂停您的账户。"
+  },
+  "verifyEmail": {
+    "title": "确认您的邮箱",
+    "lede": "验证此地址后，Agoreum 可以向您发送订单和安全通知。",
+    "working": "正在确认您的地址…",
+    "confirmed": "您的邮箱地址已确认。",
+    "confirmedHint": "您现在可以在此地址接收通知。",
+    "missing": "此链接不完整。",
+    "failed": "此链接无法使用。",
+    "failedHint": "链接在 24 小时后失效，且只能使用一次。请在个人资料中重新申请。",
+    "toProfile": "前往个人资料"
   }
 }

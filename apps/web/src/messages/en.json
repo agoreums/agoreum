@@ -797,7 +797,10 @@
     "saving": "Saving…",
     "saved": "Profile saved.",
     "saveFailed": "We could not save your profile.",
-    "memberSince": "Member since"
+    "memberSince": "Member since",
+    "verifySend": "Send confirmation email",
+    "verifySending": "Sending…",
+    "verifyFailed": "We could not send the confirmation email."
   },
   "settingsSecurity": {
     "title": "Security",
@@ -921,5 +924,16 @@
     "pausing": "Pausing…",
     "pauseConfirm": "Pause your account and sign out everywhere? Signing in again restores it.",
     "pauseFailed": "We could not pause your account."
+  },
+  "verifyEmail": {
+    "title": "Confirm your email",
+    "lede": "Proving this address lets Agoreum send you order and security notices.",
+    "working": "Confirming your address…",
+    "confirmed": "Your email address is confirmed.",
+    "confirmedHint": "You can now receive notifications at this address.",
+    "missing": "This link is incomplete.",
+    "failed": "This link did not work.",
+    "failedHint": "Links expire after 24 hours and can only be used once. Request a new one from your profile.",
+    "toProfile": "Go to your profile"
   }
 }

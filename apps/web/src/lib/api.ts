@@ -144,6 +144,12 @@ export type SessionSummary = {
   expires_at: string;
 };
 
+export type EmailVerificationStatus = {
+  /** False when the deployment cannot send, so the interface never promises a message that is not coming. */
+  sent: boolean;
+  detail: string;
+};
+
 export const authApi = {
   capabilities: () => apiFetch<AuthCapabilities>("/api/v1/auth/capabilities"),
 
@@ -194,6 +200,26 @@ export const authApi = {
       method: "PATCH",
       accessToken,
       body: JSON.stringify(body),
+    }),
+
+  /** Ask for a fresh confirmation link. Rate limited server side to three an hour. */
+  requestEmailVerification: (accessToken: string) =>
+    apiFetch<EmailVerificationStatus>("/api/v1/auth/me/email/verify", {
+      method: "POST",
+      accessToken,
+    }),
+
+  /**
+   * Spend a confirmation token.
+   *
+   * Deliberately takes no access token. The token from the message is the proof,
+   * so the link works in whichever browser the inbox happens to open it in,
+   * signed in or not.
+   */
+  confirmEmail: (token: string) =>
+    apiFetch<UserProfile>("/api/v1/auth/me/email/confirm", {
+      method: "POST",
+      body: JSON.stringify({ token }),
     }),
 
   suspend: (accessToken: string) =>

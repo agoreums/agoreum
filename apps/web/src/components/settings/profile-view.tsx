@@ -44,8 +44,30 @@ function ProfileForm({ user }: { user: UserProfile }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [verifyNote, setVerifyNote] = useState<string | null>(null);
 
   const emailChanged = (email.trim() || null) !== (user.email ?? null);
+  // Only offer to send once the address is actually saved and still unproven.
+  // Offering it against unsaved edits would mail the old address and look broken.
+  const canVerify = Boolean(user.email) && !user.email_verified_at && !emailChanged;
+
+  async function sendVerification() {
+    if (!accessToken) return;
+    setSending(true);
+    setVerifyNote(null);
+    try {
+      const status = await authApi.requestEmailVerification(accessToken);
+      // The endpoint reports whether anything was actually sent, so a deployment
+      // with delivery switched off says so rather than leaving somebody waiting
+      // for a link that was never going to arrive.
+      setVerifyNote(status.detail);
+    } catch (err) {
+      setVerifyNote(err instanceof ApiError ? err.message : t("verifyFailed"));
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function save() {
     if (!accessToken) return;
@@ -126,6 +148,16 @@ function ProfileForm({ user }: { user: UserProfile }) {
         />
         {emailChanged && email.trim() ? (
           <p className="mt-1.5 text-xs text-warning-500">{t("emailReverify")}</p>
+        ) : null}
+        {canVerify ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+            <Button variant="secondary" onClick={sendVerification} disabled={sending}>
+              {sending ? t("verifySending") : t("verifySend")}
+            </Button>
+            {verifyNote ? (
+              <p className="text-xs text-[var(--text-secondary)]">{verifyNote}</p>
+            ) : null}
+          </div>
         ) : null}
       </Field>
 
