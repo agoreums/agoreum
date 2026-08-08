@@ -275,6 +275,20 @@ class Escrow(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     dispute_resolved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # The provider's share, as decided. Recorded before the settlement is executed
+    # so the on-chain result can always be compared against what was decided, and
+    # so a settlement that differs is visible rather than merely surprising.
+    #
+    # Only this figure is stored. The contract derives the buyer's share as
+    # amount - providerAmount and treats its own buyerAmount argument as a bounds
+    # check, so keeping a second number here would create two sources of truth for
+    # one decision, one of which the chain ignores.
+    dispute_provider_amount: Mapped[Decimal | None] = mapped_column(
+        TokenAmount, nullable=True
+    )
+    # Shown to the buyer and the provider, not published. An arbiter who cannot
+    # explain a split to the party who lost should not have made it.
+    dispute_reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
     dispute_resolved_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

@@ -21,10 +21,11 @@ from sqlalchemy.orm import selectinload
 
 from app.chain import escrow as contract
 from app.core.config import settings
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import ConflictError, NotFoundError, PermissionDeniedError
 from app.core.logging import get_logger
 from app.db.enums import (
     AgentStatus,
+    DisputeResolution,
     OrderStatus,
     PricingModel,
     ServiceStatus,
@@ -482,3 +483,136 @@ async def counts_for_agent(db: AsyncSession, agent_id: uuid.UUID) -> dict[str, i
         )
     ).all()
     return {status.value: count for status, count in rows}
+
+
+# How long each party has to state their case before a decision is made on what
+# is available. Silence must not stall the other party's money indefinitely.
+DISPUTE_STATEMENT_WINDOW = timedelta(days=5)
+
+
+def is_arbiter(user: User) -> bool:
+    """Whether this account may decide disputes.
+
+    Deliberately the address the contract will accept for settleDispute rather
+    than a flag on the user. An API that let somebody record a decision the chain
+    would then refuse is worse than one with no arbiter at all, and two sources of
+    authority drift apart the moment either is edited.
+    """
+    configured = (settings.ESCROW_ARBITER_ADDRESS or "").lower()
+    if not configured:
+        return False
+    return (user.primary_address or "").lower() == configured
+
+
+def _dispute_parties(order: Order) -> set[uuid.UUID]:
+    owners = {order.buyer_id}
+    agent = order.provider_agent
+    if agent is not None and agent.org_id is not None:
+        owners.add(agent.org_id)
+    return owners
+
+
+async def submit_dispute_statement(
+    db: AsyncSession, *, order: Order, actor: User, text: str
+) -> OrderEvent:
+    """Record one party's account of a disputed order.
+
+    Appended to the order's existing timeline rather than kept in a separate
+    place, because that timeline is already the record an arbiter reads and a
+    second store would mean two versions of what happened.
+
+    Both parties see every statement. A decision made on evidence one side never
+    saw is not defensible, whoever made it.
+    """
+    if order.status != OrderStatus.DISPUTED:
+        raise ConflictError(
+            "This order is not in dispute.", code="order_not_disputed"
+        )
+    if order.dispute_resolved_at is not None:
+        raise ConflictError(
+            "This dispute has already been decided.", code="dispute_decided"
+        )
+
+    event = OrderEvent(
+        order_id=order.id,
+        event_type="order.dispute_statement",
+        actor_user_id=actor.id,
+        detail={"text": text},
+    )
+    db.add(event)
+    await db.flush()
+    return event
+
+
+async def record_dispute_decision(
+    db: AsyncSession,
+    *,
+    order: Order,
+    arbiter: User,
+    provider_amount: Decimal,
+    reasoning: str,
+) -> Order:
+    """Record how a disputed escrow should be divided, before it is executed.
+
+    This writes the decision. It does not move money and does not sign anything:
+    the platform holds no keys, so the arbiter's own wallet calls settleDispute
+    with the figures this returns, and the indexer confirms the result. Recording
+    first is what makes an unexpected settlement detectable, since there is
+    something to compare the chain against.
+
+    Only the provider's share is taken. The buyer's is derived, because the
+    contract derives it too and accepting a second figure would allow a recorded
+    decision that differs from what the chain actually pays.
+    """
+    if order.status != OrderStatus.DISPUTED:
+        raise ConflictError(
+            "This order is not in dispute.", code="order_not_disputed"
+        )
+    if order.dispute_resolved_at is not None:
+        raise ConflictError(
+            "This dispute has already been decided.", code="dispute_decided"
+        )
+
+    escrow_total = order.total_amount
+    if provider_amount < 0 or provider_amount > escrow_total:
+        raise ConflictError(
+            "The provider's share must be between zero and the escrow amount.",
+            code="split_out_of_range",
+        )
+
+    # An arbiter who is also a party decides their own case. Refused by the
+    # system rather than left to their judgement.
+    if arbiter.id in _dispute_parties(order):
+        raise PermissionDeniedError(
+            "An arbiter cannot decide a dispute they are party to.",
+            code="arbiter_is_party",
+        )
+
+    buyer_amount = escrow_total - provider_amount
+    if provider_amount == escrow_total:
+        resolution = DisputeResolution.RELEASED_TO_PROVIDER
+    elif provider_amount == 0:
+        resolution = DisputeResolution.REFUNDED_TO_BUYER
+    else:
+        resolution = DisputeResolution.SPLIT
+
+    order.dispute_provider_amount = provider_amount
+    order.dispute_reasoning = reasoning
+    order.dispute_resolution = resolution
+    order.dispute_resolved_at = datetime.now(UTC)
+    order.dispute_resolved_by = arbiter.id
+
+    db.add(
+        OrderEvent(
+            order_id=order.id,
+            event_type="order.dispute_decided",
+            actor_user_id=arbiter.id,
+            detail={
+                "provider_amount": str(provider_amount),
+                "buyer_amount": str(buyer_amount),
+                "resolution": resolution.value,
+            },
+        )
+    )
+    await db.flush()
+    return order

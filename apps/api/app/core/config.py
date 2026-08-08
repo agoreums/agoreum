@@ -90,6 +90,11 @@ class Settings(BaseSettings):
     USDC_ADDRESS_BASE_SEPOLIA: str = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
 
     ESCROW_CONTRACT_ADDRESS: str | None = None
+    # Who may decide a disputed order. Deliberately the same address the contract
+    # will accept for settleDispute, rather than a separate flag on a user: an API
+    # that let somebody record a decision the chain would then refuse is worse
+    # than one that has no arbiter at all. Unset means nobody can arbitrate here.
+    ESCROW_ARBITER_ADDRESS: str | None = None
 
     # The subscription contract, indexed the same way as the escrow. Both are
     # configuration, never constants, so a redeploy is an env change.
