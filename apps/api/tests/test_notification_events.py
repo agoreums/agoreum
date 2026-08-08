@@ -446,3 +446,159 @@ class TestTheSignInNoticeCannotBeVentriloquised:
         assert row is not None
         assert "described itself as:" in row.body
         assert "is not verified" in row.body
+
+
+class TestSendingIsOffTheRequestPath:
+    """No request may wait on Resend.
+
+    Funding an order used to block on the notification's HTTP call, so a slow
+    provider slowed the thing that caused it.
+    """
+
+    async def test_notify_makes_no_outbound_call(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet, monkeypatch
+    ) -> None:
+        from datetime import UTC, datetime
+
+        called: list[str] = []
+
+        class Forbidden:
+            def __init__(self, *a, **k): ...
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            async def post(self, *a, **k):
+                called.append("post")
+                raise AssertionError("notify must not call the provider inline")
+
+        monkeypatch.setattr(notifications.httpx, "AsyncClient", Forbidden)
+        monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+
+        body = await _sign_in(client, wallet)
+        user = await db.get(User, uuid.UUID(body["user"]["id"]))
+        user.email = "queued@example.com"
+        user.email_verified_at = datetime.now(UTC)
+        await db.flush()
+
+        await notifications.notify(
+            db,
+            user_id=user.id,
+            category=NotificationCategory.ORDER,
+            event_type="order.funded",
+            title="Test",
+        )
+
+        assert called == []
+        email = await _deliveries(db, user.id, NotificationChannel.EMAIL)
+        assert len(email) == 1
+        assert email[0].status == NotificationDeliveryStatus.PENDING
+        assert email[0].next_retry_at is not None, "it must be claimable by the worker"
+        assert email[0].sent_at is None
+
+    async def test_a_queued_row_is_claimable(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet, monkeypatch
+    ) -> None:
+        from datetime import UTC, datetime
+
+        monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+        body = await _sign_in(client, wallet)
+        user = await db.get(User, uuid.UUID(body["user"]["id"]))
+        user.email = "claimable@example.com"
+        user.email_verified_at = datetime.now(UTC)
+        await db.flush()
+
+        await notifications.notify(
+            db,
+            user_id=user.id,
+            category=NotificationCategory.PAYMENT,
+            event_type="order.released",
+            title="Test",
+        )
+        await db.flush()
+
+        due = await notifications.claim_due_emails(db, limit=50)
+        assert any(d.destination == "claimable@example.com" for d in due)
+
+    async def test_nothing_is_queued_while_sending_is_disabled(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet
+    ) -> None:
+        """Otherwise the queue grows without bound behind a flag that is off."""
+        from datetime import UTC, datetime
+
+        body = await _sign_in(client, wallet)
+        user = await db.get(User, uuid.UUID(body["user"]["id"]))
+        user.email = "notqueued@example.com"
+        user.email_verified_at = datetime.now(UTC)
+        await db.flush()
+
+        await notifications.notify(
+            db,
+            user_id=user.id,
+            category=NotificationCategory.ORDER,
+            event_type="order.funded",
+            title="Test",
+        )
+
+        email = await _deliveries(db, user.id, NotificationChannel.EMAIL)
+        assert email[0].status == NotificationDeliveryStatus.SUPPRESSED
+        assert email[0].next_retry_at is None
+
+    async def test_an_address_suppressed_after_queueing_is_not_mailed(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet, monkeypatch
+    ) -> None:
+        """The window between queueing and sending is exactly when a bounce lands."""
+        from datetime import UTC, datetime
+
+        monkeypatch.setattr(settings, "EMAIL_SENDING_ENABLED", True)
+        body = await _sign_in(client, wallet)
+        user = await db.get(User, uuid.UUID(body["user"]["id"]))
+        user.email = "bounced-later@example.com"
+        user.email_verified_at = datetime.now(UTC)
+        await db.flush()
+
+        await notifications.notify(
+            db,
+            user_id=user.id,
+            category=NotificationCategory.ORDER,
+            event_type="order.funded",
+            title="Test",
+        )
+        await db.flush()
+
+        # The bounce arrives after the row was queued.
+        await notifications.suppress_email(
+            db, email="bounced-later@example.com", reason="bounce"
+        )
+
+        row = (await _deliveries(db, user.id, NotificationChannel.EMAIL))[0]
+        status = await notifications.send_one(db, delivery=row)
+        assert status == NotificationDeliveryStatus.SUPPRESSED
+        assert row.sent_at is None
+
+    def test_a_permanent_rejection_is_not_retried_forever(self) -> None:
+        from app.modules.notifications.models import NotificationDelivery
+
+        row = NotificationDelivery(
+            notification_id=uuid.uuid4(),
+            channel=NotificationChannel.EMAIL,
+            status=NotificationDeliveryStatus.FAILED,
+        )
+        row.attempt_count = notifications.MAX_EMAIL_ATTEMPTS
+        notifications._schedule_retry(row)
+        assert row.next_retry_at is None, "a spent row must drop out of the queue"
+
+    def test_backoff_widens_between_attempts(self) -> None:
+        from app.modules.notifications.models import NotificationDelivery
+
+        previous = None
+        for attempt in range(1, 5):
+            row = NotificationDelivery(
+                notification_id=uuid.uuid4(),
+                channel=NotificationChannel.EMAIL,
+                status=NotificationDeliveryStatus.FAILED,
+            )
+            row.attempt_count = attempt
+            notifications._schedule_retry(row)
+            assert row.next_retry_at is not None
+            if previous is not None:
+                assert row.next_retry_at >= previous
+            previous = row.next_retry_at

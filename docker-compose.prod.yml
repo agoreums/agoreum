@@ -201,6 +201,38 @@ services:
           memory: 384M
     logging: *logging
 
+  # Drains the email outbox. Exists so that no request ever waits on Resend: the
+  # cheap database gates are applied inline when the notification is created, the
+  # row is queued, and the provider call happens here. It also means a
+  # transaction that rolls back cannot have mailed anybody, since only committed
+  # rows are visible to this.
+  emails:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+      CONTRACT_ABI_PATH: /srv/packages/contracts/AgoreumEscrow.abi.json
+    networks:
+      - internal
+    healthcheck:
+      disable: true
+    command: >
+      python -m app.cli deliver-emails --follow --interval 5
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    logging: *logging
+
   # Self-hosted, cookieless analytics. Served under /insights via nginx so the
   # tracker is same-origin, and pointed at a dedicated `umami` database on the
   # managed cluster (no extra database container to run or back up).

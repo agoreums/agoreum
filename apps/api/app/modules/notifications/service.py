@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from sqlalchemy import delete, func, select, update
@@ -272,9 +272,34 @@ async def _deliver(
             await db.flush()
             return delivery
 
+        # Everything above is a cheap database check whose outcome belongs on the
+        # row immediately. The send itself is not: it is a call to a third party
+        # that can take up to EMAIL_TIMEOUT_SECONDS, and doing it here made the
+        # request that triggered the notification wait for it. Funding an order
+        # would have hung on Resend being slow.
+        #
+        # So the row is queued instead, and `deliver-emails` drains it. That also
+        # fixes a correctness bug that the inline version had: sending happened
+        # before the caller's transaction committed, so a transaction that later
+        # rolled back could still have mailed somebody about something that never
+        # happened. The worker only ever sees committed rows.
+        available, reason = email_sending_available()
+        if not available:
+            # Queued rows would otherwise pile up unbounded while sending is off.
+            delivery.status = NotificationDeliveryStatus.SUPPRESSED
+            delivery.last_error = reason
+            db.add(delivery)
+            await db.flush()
+            logger.info(
+                "email_suppressed",
+                extra={"reason": reason, "event_type": notification.event_type},
+            )
+            return delivery
+
+        delivery.status = NotificationDeliveryStatus.PENDING
+        delivery.next_retry_at = datetime.now(UTC)
         db.add(delivery)
         await db.flush()
-        await _send_email(db, delivery=delivery, notification=notification)
         return delivery
 
     db.add(delivery)
@@ -313,6 +338,101 @@ async def _channel_enabled(
 # --- Email ------------------------------------------------------------------
 
 
+# A failed send is retried on a widening delay, then given up on. Five attempts
+# spans roughly twenty minutes, which covers a provider blip without hammering
+# them through a real outage.
+MAX_EMAIL_ATTEMPTS = 5
+RETRY_BACKOFF_SECONDS = (30, 120, 300, 900)
+
+
+async def claim_due_emails(
+    db: AsyncSession, *, limit: int
+) -> list[NotificationDelivery]:
+    """Email deliveries that are due to be attempted, oldest first.
+
+    Mirrors `webhooks.claim_due`, including its reasoning: the worker runs
+    single-instance like the indexer, so rows are not locked, and `send_one`
+    commits each attempt as it goes. A worker that dies mid-batch leaves the
+    unfinished rows with their due time intact and they are picked up next pass.
+    That is at-least-once, so a crash between the provider accepting a message
+    and the row being written can send twice. Twice is the right side to err on
+    for a payment notice.
+    """
+    now = datetime.now(UTC)
+    rows = (
+        await db.execute(
+            select(NotificationDelivery)
+            .where(
+                NotificationDelivery.channel == NotificationChannel.EMAIL,
+                NotificationDelivery.status.in_(
+                    [
+                        NotificationDeliveryStatus.PENDING,
+                        NotificationDeliveryStatus.FAILED,
+                    ]
+                ),
+                NotificationDelivery.next_retry_at.is_not(None),
+                NotificationDelivery.next_retry_at <= now,
+                NotificationDelivery.attempt_count < MAX_EMAIL_ATTEMPTS,
+            )
+            .order_by(NotificationDelivery.next_retry_at)
+            .limit(limit)
+        )
+    ).scalars()
+    return list(rows)
+
+
+async def send_one(
+    db: AsyncSession, *, delivery: NotificationDelivery
+) -> NotificationDeliveryStatus:
+    """Attempt one queued email and record the outcome.
+
+    Re-checks the gates rather than trusting the ones applied when the row was
+    queued. Time passes between queueing and sending, and an address can be
+    suppressed by a bounce in that window. The check that matters most is the
+    suppression list, since the whole point of it is that we stop mailing an
+    address the moment we learn it is bad.
+    """
+    notification = await db.get(Notification, delivery.notification_id)
+    if notification is None:  # pragma: no cover - foreign key makes this unreachable
+        delivery.status = NotificationDeliveryStatus.FAILED
+        delivery.failed_at = datetime.now(UTC)
+        delivery.last_error = "the notification it belongs to is gone"
+        delivery.next_retry_at = None
+        return delivery.status
+
+    available, reason = email_sending_available()
+    if not available:
+        delivery.status = NotificationDeliveryStatus.SUPPRESSED
+        delivery.last_error = reason
+        delivery.next_retry_at = None
+        return delivery.status
+
+    suppression = await suppression_for(db, email=delivery.destination)
+    if suppression is not None:
+        delivery.status = NotificationDeliveryStatus.SUPPRESSED
+        delivery.last_error = f"this address is suppressed after a {suppression.reason}"
+        delivery.next_retry_at = None
+        return delivery.status
+
+    await _send_email(db, delivery=delivery, notification=notification)
+    return delivery.status
+
+
+def _schedule_retry(delivery: NotificationDelivery) -> None:
+    """Set the next attempt time, or stop trying.
+
+    Giving up is recorded by clearing `next_retry_at`, which drops the row out of
+    the claim query while leaving its status and last error readable. A row that
+    silently kept its due time would be retried forever.
+    """
+    if delivery.attempt_count >= MAX_EMAIL_ATTEMPTS:
+        delivery.next_retry_at = None
+        return
+    index = min(delivery.attempt_count - 1, len(RETRY_BACKOFF_SECONDS) - 1)
+    delay = RETRY_BACKOFF_SECONDS[max(index, 0)]
+    delivery.next_retry_at = datetime.now(UTC) + timedelta(seconds=delay)
+
+
 async def _send_email(
     db: AsyncSession,
     *,
@@ -320,17 +440,6 @@ async def _send_email(
     notification: Notification,
 ) -> None:
     """Send through Resend, or record precisely why it was not sent."""
-    available, reason = email_sending_available()
-    if not available:
-        delivery.status = NotificationDeliveryStatus.SUPPRESSED
-        delivery.last_error = reason
-        await db.flush()
-        logger.info(
-            "email_suppressed",
-            extra={"reason": reason, "event_type": notification.event_type},
-        )
-        return
-
     delivery.attempt_count += 1
 
     try:
@@ -354,6 +463,7 @@ async def _send_email(
         delivery.status = NotificationDeliveryStatus.FAILED
         delivery.failed_at = datetime.now(UTC)
         delivery.last_error = f"transport error: {type(exc).__name__}"
+        _schedule_retry(delivery)
         await db.flush()
         logger.warning(
             "email_send_failed", extra={"error_type": type(exc).__name__}
@@ -365,6 +475,12 @@ async def _send_email(
         delivery.failed_at = datetime.now(UTC)
         # The body can contain the recipient address; only the status is kept.
         delivery.last_error = f"provider returned HTTP {response.status_code}"
+        # 4xx means the request itself is wrong, so repeating it verbatim cannot
+        # succeed. Only a 5xx or a rate limit is worth another attempt.
+        if response.status_code >= 500 or response.status_code == 429:
+            _schedule_retry(delivery)
+        else:
+            delivery.next_retry_at = None
         await db.flush()
         logger.warning(
             "email_send_rejected", extra={"status_code": response.status_code}
@@ -384,6 +500,7 @@ async def _send_email(
     delivery.status = NotificationDeliveryStatus.SENT
     delivery.sent_at = datetime.now(UTC)
     delivery.provider_message_id = body.get("id")
+    delivery.next_retry_at = None
     await db.flush()
 
     logger.info(

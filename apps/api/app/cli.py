@@ -241,6 +241,66 @@ def _add_deliver_webhooks(subparsers: argparse._SubParsersAction) -> None:
     parser.set_defaults(handler=_deliver_webhooks)
 
 
+
+async def _deliver_emails(args: argparse.Namespace) -> int:
+    """Drain the email outbox: send due deliveries, retrying transient failures.
+
+    Exists so that no request ever waits on Resend. `_deliver` applies the cheap
+    database gates inline and queues the row; everything after that happens here,
+    off the request path, which also means a transaction that rolls back cannot
+    have mailed anybody, because this only sees committed rows.
+
+    Same shape as deliver-webhooks, single instance, committing each attempt as it
+    goes so a crash mid-batch loses at most the attempt in flight.
+    """
+    import contextlib
+
+    from app.modules.notifications import service as notifications
+
+    print(f"email delivery: enabled={settings.EMAIL_SENDING_ENABLED}")
+    try:
+        while True:
+            processed = 0
+            async with SessionLocal() as session:
+                due = await notifications.claim_due_emails(session, limit=args.batch)
+                for delivery in due:
+                    await notifications.send_one(session, delivery=delivery)
+                    # Committed per delivery, so an attempt already made is never
+                    # repeated because of a later failure in the same batch.
+                    await session.commit()
+                    processed += 1
+            if processed:
+                print(f"attempted {processed} email deliver(y/ies)")
+            if not args.follow:
+                return 0
+            await asyncio.sleep(args.interval)
+    except KeyboardInterrupt:  # pragma: no cover - operator interrupt
+        print("stopped")
+    finally:
+        with contextlib.suppress(Exception):
+            await dispose_engine()
+    return 0
+
+
+def _add_deliver_emails(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "deliver-emails", help="send queued email deliveries"
+    )
+    parser.add_argument(
+        "--follow", action="store_true", help="keep polling instead of one pass"
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=5.0,
+        help="seconds between polls when following (default: 5)",
+    )
+    parser.add_argument(
+        "--batch", type=int, default=50, help="max deliveries per pass (default: 50)"
+    )
+    parser.set_defaults(handler=_deliver_emails)
+
+
 async def _index_subscriptions(args: argparse.Namespace) -> int:
     """Ingest confirmed subscription events from the chain.
 
@@ -314,6 +374,7 @@ def main() -> int:
     _add_index_chain(subparsers)
     _add_index_subscriptions(subparsers)
     _add_deliver_webhooks(subparsers)
+    _add_deliver_emails(subparsers)
 
     args = parser.parse_args()
     return asyncio.run(args.handler(args))
