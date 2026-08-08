@@ -3,15 +3,20 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, NotFoundError, PermissionDeniedError
 from app.db.enums import OrgKind, OrgRole
 from app.modules.organizations import authz
-from app.modules.organizations.models import Organization, OrganizationMembership
+from app.modules.organizations.models import (
+    Organization,
+    OrganizationInvitation,
+    OrganizationMembership,
+)
 from app.modules.organizations.schemas import OrganizationSummary
 from app.modules.users.models import User
 
@@ -94,6 +99,15 @@ async def list_my_orgs(db: AsyncSession, *, user: User) -> list[OrganizationSumm
             )
         )
     return summaries
+
+
+async def get_org_by_id(db: AsyncSession, *, org_id: uuid.UUID) -> Organization:
+    org = (
+        await db.execute(select(Organization).where(Organization.id == org_id))
+    ).scalar_one_or_none()
+    if org is None:
+        raise NotFoundError("No such organization.")
+    return org
 
 
 async def get_org_by_slug(db: AsyncSession, *, slug: str) -> Organization | None:
@@ -180,28 +194,6 @@ def _reject_personal(org: Organization) -> None:
         )
 
 
-async def add_member(
-    db: AsyncSession, *, org: Organization, address: str, role: OrgRole
-) -> tuple[OrganizationMembership, User]:
-    _reject_personal(org)
-    user = (
-        await db.execute(select(User).where(User.primary_address == address))
-    ).scalar_one_or_none()
-    if user is None:
-        raise NotFoundError(
-            "No account for that address. Ask them to sign in once first.",
-            code="user_not_found",
-        )
-    existing = await authz.get_membership(db, org_id=org.id, user_id=user.id)
-    if existing is not None:
-        raise ConflictError("Already a member.", code="already_member")
-
-    membership = OrganizationMembership(org_id=org.id, user_id=user.id, role=role)
-    db.add(membership)
-    await db.flush()
-    return membership, user
-
-
 async def _membership_or_404(
     db: AsyncSession, *, org: Organization, user_id: uuid.UUID
 ) -> OrganizationMembership:
@@ -278,3 +270,163 @@ async def summary_for(
         role=role,
         member_count=await _member_count(db, org.id),
     )
+
+
+# An offer that is never answered should not sit against an account forever.
+INVITATION_TTL = timedelta(days=14)
+
+
+async def invite_member(
+    db: AsyncSession, *, org: Organization, actor: User, address: str, role: OrgRole
+) -> tuple[OrganizationInvitation, User]:
+    """Offer membership. The invitee decides.
+
+    Replaces adding somebody directly. Membership decides who is notified about
+    an organization's orders and whose name is attached to it, so it is not
+    something one party should be able to impose on another.
+    """
+    _reject_personal(org)
+    user = (
+        await db.execute(select(User).where(User.primary_address == address))
+    ).scalar_one_or_none()
+    if user is None:
+        raise NotFoundError(
+            "No account for that address. Ask them to sign in once first.",
+            code="user_not_found",
+        )
+    if await authz.get_membership(db, org_id=org.id, user_id=user.id) is not None:
+        raise ConflictError("Already a member.", code="already_member")
+
+    pending = (
+        await db.execute(
+            select(OrganizationInvitation).where(
+                OrganizationInvitation.org_id == org.id,
+                OrganizationInvitation.user_id == user.id,
+                OrganizationInvitation.responded_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if pending is not None:
+        raise ConflictError("Already invited.", code="already_invited")
+
+    invitation = OrganizationInvitation(
+        org_id=org.id,
+        user_id=user.id,
+        invited_by_id=actor.id,
+        role=role,
+        expires_at=datetime.now(UTC) + INVITATION_TTL,
+    )
+    db.add(invitation)
+    await db.flush()
+    return invitation, user
+
+
+async def list_invitations_for_org(
+    db: AsyncSession, *, org: Organization
+) -> list[OrganizationInvitation]:
+    rows = await db.execute(
+        select(OrganizationInvitation)
+        .where(
+            OrganizationInvitation.org_id == org.id,
+            OrganizationInvitation.responded_at.is_(None),
+        )
+        .order_by(OrganizationInvitation.created_at.desc())
+    )
+    return list(rows.scalars().all())
+
+
+async def list_invitations_for_user(
+    db: AsyncSession, *, user: User
+) -> list[OrganizationInvitation]:
+    """Live invitations awaiting this person's answer.
+
+    Expired ones are filtered rather than shown greyed out, because an offer that
+    can no longer be accepted is not a decision the person still has to make.
+    """
+    rows = await db.execute(
+        select(OrganizationInvitation)
+        .where(
+            OrganizationInvitation.user_id == user.id,
+            OrganizationInvitation.responded_at.is_(None),
+            OrganizationInvitation.expires_at > datetime.now(UTC),
+        )
+        .order_by(OrganizationInvitation.created_at.desc())
+    )
+    return list(rows.scalars().all())
+
+
+async def _claim_invitation(
+    db: AsyncSession, *, invitation_id: uuid.UUID, user: User, accepted: bool
+) -> OrganizationInvitation:
+    """Resolve an invitation exactly once.
+
+    Written as a conditional update rather than read-then-write so two clicks,
+    or a click and a retry, cannot both succeed. The same shape as consuming a
+    verification token.
+    """
+    now = datetime.now(UTC)
+    result = await db.execute(
+        update(OrganizationInvitation)
+        .where(
+            OrganizationInvitation.id == invitation_id,
+            OrganizationInvitation.user_id == user.id,
+            OrganizationInvitation.responded_at.is_(None),
+            OrganizationInvitation.expires_at > now,
+        )
+        .values(responded_at=now, accepted=accepted)
+        .returning(OrganizationInvitation)
+    )
+    invitation = result.scalar_one_or_none()
+    if invitation is None:
+        raise NotFoundError(
+            "That invitation is no longer open.", code="invitation_not_open"
+        )
+    return invitation
+
+
+async def accept_invitation(
+    db: AsyncSession, *, invitation_id: uuid.UUID, user: User
+) -> OrganizationMembership:
+    invitation = await _claim_invitation(
+        db, invitation_id=invitation_id, user=user, accepted=True
+    )
+    existing = await authz.get_membership(
+        db, org_id=invitation.org_id, user_id=user.id
+    )
+    if existing is not None:
+        return existing
+    membership = OrganizationMembership(
+        org_id=invitation.org_id, user_id=user.id, role=invitation.role
+    )
+    db.add(membership)
+    await db.flush()
+    return membership
+
+
+async def decline_invitation(
+    db: AsyncSession, *, invitation_id: uuid.UUID, user: User
+) -> None:
+    await _claim_invitation(
+        db, invitation_id=invitation_id, user=user, accepted=False
+    )
+
+
+async def revoke_invitation(
+    db: AsyncSession, *, org: Organization, invitation_id: uuid.UUID
+) -> None:
+    """Withdraw an offer that has not been answered."""
+    now = datetime.now(UTC)
+    result = await db.execute(
+        update(OrganizationInvitation)
+        .where(
+            OrganizationInvitation.id == invitation_id,
+            OrganizationInvitation.org_id == org.id,
+            OrganizationInvitation.responded_at.is_(None),
+        )
+        .values(responded_at=now, accepted=False)
+        .returning(OrganizationInvitation.id)
+    )
+    if result.scalar_one_or_none() is None:
+        raise NotFoundError(
+            "That invitation is no longer open.", code="invitation_not_open"
+        )

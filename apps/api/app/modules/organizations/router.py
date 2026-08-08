@@ -8,10 +8,12 @@ from fastapi import APIRouter, Response, status
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import NotFoundError
 from app.db.enums import OrgRole
+from app.modules.organizations import events as org_events
 from app.modules.organizations import service
 from app.modules.organizations.authz import OrgAction, require_permission
 from app.modules.organizations.models import Organization
 from app.modules.organizations.schemas import (
+    InvitationView,
     MemberAdd,
     MemberRoleUpdate,
     MemberView,
@@ -89,27 +91,64 @@ async def list_members(slug: str, user: CurrentUser, db: DbSession) -> list[Memb
 
 
 @router.post(
-    "/{slug}/members",
-    response_model=MemberView,
+    "/{slug}/invitations",
+    response_model=InvitationView,
     status_code=status.HTTP_201_CREATED,
-    summary="Add a member by address",
+    summary="Invite somebody to join",
 )
-async def add_member(
+async def invite_member(
     slug: str, payload: MemberAdd, user: CurrentUser, db: DbSession
-) -> MemberView:
+) -> InvitationView:
+    """Offer membership. The invitee decides whether to accept.
+
+    This replaced adding a member directly. Membership decides who is notified
+    about an organization's orders and whose name is attached to it, so one party
+    should not be able to impose it on another.
+    """
     org = await _load_org(db, slug)
-    await require_permission(db, org_id=org.id, user_id=user.id, action=OrgAction.MANAGE_MEMBERS)
-    membership, added = await service.add_member(
-        db, org=org, address=payload.address, role=payload.role
+    await require_permission(
+        db, org_id=org.id, user_id=user.id, action=OrgAction.MANAGE_MEMBERS
     )
-    return MemberView(
-        user_id=added.id,
-        role=membership.role,
-        username=added.username,
-        display_name=added.display_name,
-        primary_address=added.primary_address,
-        joined_at=membership.created_at,
+    invitation, invitee = await service.invite_member(
+        db, org=org, actor=user, address=payload.address, role=payload.role
     )
+    await org_events.organization_invitation_sent(
+        db, org=org, invitation=invitation, invitee=invitee
+    )
+    return _invitation_view(invitation, org)
+
+
+@router.get(
+    "/{slug}/invitations",
+    response_model=list[InvitationView],
+    summary="Invitations awaiting an answer",
+)
+async def list_org_invitations(
+    slug: str, user: CurrentUser, db: DbSession
+) -> list[InvitationView]:
+    org = await _load_org(db, slug)
+    await require_permission(
+        db, org_id=org.id, user_id=user.id, action=OrgAction.MANAGE_MEMBERS
+    )
+    return [
+        _invitation_view(i, org)
+        for i in await service.list_invitations_for_org(db, org=org)
+    ]
+
+
+@router.delete(
+    "/{slug}/invitations/{invitation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Withdraw an invitation",
+)
+async def revoke_invitation(
+    slug: str, invitation_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> None:
+    org = await _load_org(db, slug)
+    await require_permission(
+        db, org_id=org.id, user_id=user.id, action=OrgAction.MANAGE_MEMBERS
+    )
+    await service.revoke_invitation(db, org=org, invitation_id=invitation_id)
 
 
 @router.patch(
@@ -168,3 +207,52 @@ async def leave_org(slug: str, user: CurrentUser, db: DbSession) -> Response:
     await require_permission(db, org_id=org.id, user_id=user.id, action=OrgAction.VIEW)
     await service.leave_org(db, org=org, user=user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/invitations/mine",
+    response_model=list[InvitationView],
+    summary="Invitations waiting for you",
+)
+async def my_invitations(user: CurrentUser, db: DbSession) -> list[InvitationView]:
+    rows = await service.list_invitations_for_user(db, user=user)
+    return [_invitation_view(i, i.organization) for i in rows]
+
+
+@router.post(
+    "/invitations/{invitation_id}/accept",
+    response_model=OrganizationSummary,
+    summary="Accept an invitation",
+)
+async def accept_invitation(
+    invitation_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> OrganizationSummary:
+    membership = await service.accept_invitation(
+        db, invitation_id=invitation_id, user=user
+    )
+    org = await service.get_org_by_id(db, org_id=membership.org_id)
+    return await service.summary_for(db, org=org, role=membership.role)
+
+
+@router.post(
+    "/invitations/{invitation_id}/decline",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Decline an invitation",
+)
+async def decline_invitation(
+    invitation_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> None:
+    await service.decline_invitation(db, invitation_id=invitation_id, user=user)
+
+
+def _invitation_view(invitation, org) -> InvitationView:
+    return InvitationView(
+        id=invitation.id,
+        org_id=org.id,
+        org_slug=org.slug,
+        org_name=org.name,
+        role=invitation.role,
+        invited_user_id=invitation.user_id,
+        expires_at=invitation.expires_at,
+        created_at=invitation.created_at,
+    )

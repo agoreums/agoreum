@@ -98,3 +98,16 @@ class MemberAdd(BaseModel):
 
 class MemberRoleUpdate(BaseModel):
     role: OrgRole
+
+
+class InvitationView(BaseModel):
+    """A pending offer, as seen by either side."""
+
+    id: uuid.UUID
+    org_id: uuid.UUID
+    org_slug: str
+    org_name: str
+    role: OrgRole
+    invited_user_id: uuid.UUID
+    expires_at: datetime
+    created_at: datetime
