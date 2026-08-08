@@ -31,7 +31,7 @@ from app.db.enums import (
     ServiceStatus,
 )
 from app.modules.agents.models import Agent
-from app.modules.orders.models import Order, OrderEvent
+from app.modules.orders.models import Escrow, Order, OrderEvent
 from app.modules.orders.schemas import OrderCreate, PaymentInstructions
 from app.modules.organizations.authz import is_member
 from app.modules.organizations.models import OrganizationMembership
@@ -513,7 +513,12 @@ def _dispute_parties(order: Order) -> set[uuid.UUID]:
 
 
 async def submit_dispute_statement(
-    db: AsyncSession, *, order: Order, actor: User, text: str
+    db: AsyncSession,
+    *,
+    order: Order,
+    actor: User,
+    text: str,
+    escrow: Escrow | None = None,
 ) -> OrderEvent:
     """Record one party's account of a disputed order.
 
@@ -528,7 +533,7 @@ async def submit_dispute_statement(
         raise ConflictError(
             "This order is not in dispute.", code="order_not_disputed"
         )
-    if order.dispute_resolved_at is not None:
+    if escrow is not None and escrow.dispute_resolved_at is not None:
         raise ConflictError(
             "This dispute has already been decided.", code="dispute_decided"
         )
@@ -548,10 +553,11 @@ async def record_dispute_decision(
     db: AsyncSession,
     *,
     order: Order,
+    escrow: Escrow,
     arbiter: User,
     provider_amount: Decimal,
     reasoning: str,
-) -> Order:
+) -> Escrow:
     """Record how a disputed escrow should be divided, before it is executed.
 
     This writes the decision. It does not move money and does not sign anything:
@@ -568,12 +574,15 @@ async def record_dispute_decision(
         raise ConflictError(
             "This order is not in dispute.", code="order_not_disputed"
         )
-    if order.dispute_resolved_at is not None:
+    if escrow.dispute_resolved_at is not None:
         raise ConflictError(
             "This dispute has already been decided.", code="dispute_decided"
         )
 
-    escrow_total = order.total_amount
+    # The escrow's own amount, not the order total. The escrow is what
+    # settleDispute divides, and bounding a split by anything else risks recording
+    # a decision the contract would refuse, or one that pays a different figure.
+    escrow_total = escrow.amount
     if provider_amount < 0 or provider_amount > escrow_total:
         raise ConflictError(
             "The provider's share must be between zero and the escrow amount.",
@@ -596,11 +605,11 @@ async def record_dispute_decision(
     else:
         resolution = DisputeResolution.SPLIT
 
-    order.dispute_provider_amount = provider_amount
-    order.dispute_reasoning = reasoning
-    order.dispute_resolution = resolution
-    order.dispute_resolved_at = datetime.now(UTC)
-    order.dispute_resolved_by = arbiter.id
+    escrow.dispute_provider_amount = provider_amount
+    escrow.dispute_reasoning = reasoning
+    escrow.dispute_resolution = resolution
+    escrow.dispute_resolved_at = datetime.now(UTC)
+    escrow.dispute_resolved_by = arbiter.id
 
     db.add(
         OrderEvent(
@@ -615,4 +624,4 @@ async def record_dispute_decision(
         )
     )
     await db.flush()
-    return order
+    return escrow

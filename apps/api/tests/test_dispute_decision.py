@@ -34,6 +34,17 @@ class FakeOrder:
     status: OrderStatus = OrderStatus.DISPUTED
     total_amount: Decimal = Decimal("100")
     provider_agent: FakeAgent | None = field(default_factory=FakeAgent)
+
+
+@dataclass
+class FakeEscrow:
+    """The decision lives here, beside the fields that were already here.
+
+    Its `amount` is what settleDispute divides, which is why the split is bounded
+    by it rather than by the order total.
+    """
+
+    amount: Decimal = Decimal("100")
     dispute_resolved_at: object = None
     dispute_provider_amount: Decimal | None = None
     dispute_reasoning: str | None = None
@@ -88,44 +99,44 @@ class TestWhoMayArbitrate:
 
 class TestTheSplit:
     async def test_the_whole_amount_to_the_provider_is_a_release(self) -> None:
-        order, db = FakeOrder(), FakeSession()
+        order, escrow, db = FakeOrder(), FakeEscrow(), FakeSession()
         await service.record_dispute_decision(
-            db, order=order, arbiter=FakeUser(),
+            db, order=order, escrow=escrow, arbiter=FakeUser(),
             provider_amount=Decimal("100"), reasoning="delivered as agreed",
         )
-        assert order.dispute_resolution == DisputeResolution.RELEASED_TO_PROVIDER
+        assert escrow.dispute_resolution == DisputeResolution.RELEASED_TO_PROVIDER
 
     async def test_nothing_to_the_provider_is_a_refund(self) -> None:
-        order, db = FakeOrder(), FakeSession()
+        order, escrow, db = FakeOrder(), FakeEscrow(), FakeSession()
         await service.record_dispute_decision(
-            db, order=order, arbiter=FakeUser(),
+            db, order=order, escrow=escrow, arbiter=FakeUser(),
             provider_amount=Decimal("0"), reasoning="never delivered",
         )
-        assert order.dispute_resolution == DisputeResolution.REFUNDED_TO_BUYER
+        assert escrow.dispute_resolution == DisputeResolution.REFUNDED_TO_BUYER
 
     async def test_anything_between_is_a_split(self) -> None:
-        order, db = FakeOrder(), FakeSession()
+        order, escrow, db = FakeOrder(), FakeEscrow(), FakeSession()
         await service.record_dispute_decision(
-            db, order=order, arbiter=FakeUser(),
+            db, order=order, escrow=escrow, arbiter=FakeUser(),
             provider_amount=Decimal("60"), reasoning="partial delivery",
         )
-        assert order.dispute_resolution == DisputeResolution.SPLIT
-        assert order.dispute_provider_amount == Decimal("60")
+        assert escrow.dispute_resolution == DisputeResolution.SPLIT
+        assert escrow.dispute_provider_amount == Decimal("60")
 
     async def test_more_than_the_escrow_is_refused(self) -> None:
         """The contract would revert; refusing here says why."""
-        order, db = FakeOrder(), FakeSession()
+        order, escrow, db = FakeOrder(), FakeEscrow(), FakeSession()
         with pytest.raises(ConflictError):
             await service.record_dispute_decision(
-                db, order=order, arbiter=FakeUser(),
+                db, order=order, escrow=escrow, arbiter=FakeUser(),
                 provider_amount=Decimal("101"), reasoning="x",
             )
 
     async def test_a_negative_share_is_refused(self) -> None:
-        order, db = FakeOrder(), FakeSession()
+        order, escrow, db = FakeOrder(), FakeEscrow(), FakeSession()
         with pytest.raises(ConflictError):
             await service.record_dispute_decision(
-                db, order=order, arbiter=FakeUser(),
+                db, order=order, escrow=escrow, arbiter=FakeUser(),
                 provider_amount=Decimal("-1"), reasoning="x",
             )
 
@@ -135,13 +146,13 @@ class TestTheSplit:
         Storing both would create two sources of truth for one decision, and the
         chain ignores one of them.
         """
-        order, db = FakeOrder(), FakeSession()
+        order, escrow, db = FakeOrder(), FakeEscrow(), FakeSession()
         await service.record_dispute_decision(
-            db, order=order, arbiter=FakeUser(),
+            db, order=order, escrow=escrow, arbiter=FakeUser(),
             provider_amount=Decimal("40"), reasoning="x",
         )
-        assert not hasattr(order, "dispute_buyer_amount")
-        assert order.dispute_provider_amount == Decimal("40")
+        assert not hasattr(escrow, "dispute_buyer_amount")
+        assert escrow.dispute_provider_amount == Decimal("40")
 
 
 class TestWhatAnArbiterCannotDo:
@@ -151,7 +162,7 @@ class TestWhatAnArbiterCannotDo:
         order = FakeOrder(buyer_id=arbiter.id)
         with pytest.raises(PermissionDeniedError):
             await service.record_dispute_decision(
-                FakeSession(), order=order, arbiter=arbiter,
+                FakeSession(), order=order, escrow=FakeEscrow(), arbiter=arbiter,
                 provider_amount=Decimal("50"), reasoning="x",
             )
 
@@ -159,7 +170,7 @@ class TestWhatAnArbiterCannotDo:
         order = FakeOrder(status=OrderStatus.FUNDED)
         with pytest.raises(ConflictError):
             await service.record_dispute_decision(
-                FakeSession(), order=order, arbiter=FakeUser(),
+                FakeSession(), order=order, escrow=FakeEscrow(), arbiter=FakeUser(),
                 provider_amount=Decimal("50"), reasoning="x",
             )
 
@@ -167,10 +178,10 @@ class TestWhatAnArbiterCannotDo:
         """Settlement is final on chain, so a second decision is meaningless."""
         from datetime import UTC, datetime
 
-        order = FakeOrder(dispute_resolved_at=datetime.now(UTC))
+        escrow = FakeEscrow(dispute_resolved_at=datetime.now(UTC))
         with pytest.raises(ConflictError):
             await service.record_dispute_decision(
-                FakeSession(), order=order, arbiter=FakeUser(),
+                FakeSession(), order=FakeOrder(), escrow=escrow, arbiter=FakeUser(),
                 provider_amount=Decimal("50"), reasoning="x",
             )
 
@@ -186,10 +197,11 @@ class TestStatements:
     async def test_statements_close_once_it_is_decided(self) -> None:
         from datetime import UTC, datetime
 
-        order = FakeOrder(dispute_resolved_at=datetime.now(UTC))
+        escrow = FakeEscrow(dispute_resolved_at=datetime.now(UTC))
         with pytest.raises(ConflictError):
             await service.submit_dispute_statement(
-                FakeSession(), order=order, actor=FakeUser(), text="hello"
+                FakeSession(), order=FakeOrder(), actor=FakeUser(),
+                text="hello", escrow=escrow,
             )
 
     async def test_a_statement_joins_the_order_timeline(self) -> None:
