@@ -128,16 +128,25 @@ attached to the thing it is about.
    feedback is how a sending reputation is destroyed quietly.
 4. ~~**Add inbound for the support address.**~~ Already working, see above. What
    is left is being told when something arrives.
-5. **Turn off open and click tracking** for this domain. Both are currently on,
-   with the tracking subdomain named `security`. Rewriting links in security mail
-   through a redirector trains users to click redirectors in exactly the messages
-   where they should not, and the open pixel is undisclosed tracking on a product
-   that publishes a privacy page.
+5. ~~**Turn off open and click tracking.**~~ Done, both off on the domain as of
+   2026-08-08. They had been on with the tracking subdomain named `security`.
+   Rewriting links in security mail through a redirector trains users to click
+   redirectors in exactly the messages where they should not, and the open pixel
+   is undisclosed tracking on a product that publishes a privacy page. The
+   tracking CNAMEs still resolve but nothing rewrites through them.
 6. **Escape anything user-controlled** that reaches a subject or body. The Resend
-   payload is currently text-only, so there is no injection today, but nothing
-   sits between a caller-supplied string and the outbound message, and
-   `display_name` accepts any 64 characters. The first HTML template or the first
-   caller that interpolates an agent name creates the bug.
+   payload is text-only, so there is no markup injection today, but nothing sits
+   between a caller-supplied string and the outbound message, and `display_name`
+   accepts any 64 characters. The first HTML template, or the first caller that
+   interpolates an agent name, creates the bug.
+
+   One instance of this was real and is fixed: the sign-in notice echoed the raw
+   `User-Agent` into a security message the recipient cannot switch off, and that
+   header is chosen by whoever signed in. An attacker holding a compromised wallet
+   controlled a span of text inside the one message designed to tell the owner
+   their account had been accessed, and could have used it to say no action was
+   required. It is now collapsed, truncated, placed on its own labelled line, and
+   explicitly marked as unverified and self-reported.
 
 ## Known gaps, lower priority
 

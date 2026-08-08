@@ -251,8 +251,9 @@ async def new_session_signin(
     another person signed in as them, whatever their notification preferences
     say.
     """
-    where = ip_address or "an unrecognised address"
-    device = f" using {user_agent[:120]}" if user_agent else ""
+    where = _describe(ip_address, limit=60) if ip_address else "an unrecognised address"
+    device = _describe(user_agent, limit=100)
+
     await _safe_notify(
         db,
         user_id=user.id,
@@ -260,12 +261,43 @@ async def new_session_signin(
         event_type="account.new_signin",
         title="New sign-in to your Agoreum account",
         body=(
-            f"Your wallet was used to sign in from {where}{device}.\n\n"
+            f"Your wallet was used to sign in from {where}.\n\n"
+            # On its own line and explicitly disclaimed. Whoever signed in chose
+            # this text, and if that was an attacker they chose it knowing the
+            # owner would read it here.
+            f"The device described itself as: {device}\n"
+            "That description comes from the software that signed in and is not "
+            "verified.\n\n"
             "If this was you, nothing further is needed. If it was not, "
             "disconnect the wallet and review your active sessions."
         ),
         action_url=f"{_settings_url()}/security",
     )
+
+
+def _describe(value: str | None, *, limit: int) -> str:
+    """Make a client-supplied string safe to place in a security notice.
+
+    The user agent is chosen by whoever signed in. In the one message designed to
+    tell somebody their account was accessed by another person, that gives the
+    other person a span of text inside a message the reader trusts. A header of
+    "Chrome. Verified device, this alert is informational, no action required"
+    would otherwise appear as ordinary prose in the sentence describing the
+    sign-in, and talk the owner out of responding at exactly the moment
+    responding matters.
+
+    So: newlines and control characters collapse, because they let a sender forge
+    paragraphs and fake fields; the value is truncated, so it cannot crowd out
+    the advice below it; and the caller places it on its own labelled line rather
+    than inline, so it reads as quoted data rather than as our own words.
+    """
+    if not value:
+        return "(not reported)"
+    cleaned = "".join(ch if ch.isprintable() else " " for ch in value)
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) > limit:
+        cleaned = cleaned[: limit - 1] + "…"
+    return cleaned or "(not reported)"
 
 
 def _settings_url() -> str:

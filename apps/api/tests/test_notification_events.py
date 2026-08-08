@@ -247,9 +247,15 @@ class TestAnAddresslessAccount:
     """
 
     async def test_signing_in_twice_still_works_without_an_email(
-        self, client: AsyncClient, wallet: Wallet
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        """The second sign-in is the one that notifies, so it is the one that broke."""
+        """The second sign-in is the one that notifies, so it is the one that broke.
+
+        `db` is unused here, but taking it means this skips alongside the rest
+        when no database is reachable rather than failing on the app's own
+        connection. A test that goes red for environmental reasons is noise, and
+        noise is how a real failure gets waved through.
+        """
         first = await _sign_in(client, wallet)
         assert first["user"]["email"] is None
 
@@ -377,3 +383,66 @@ class TestFailuresDoNotPropagate:
     async def test_auth_service_exposes_the_verification_helpers(self) -> None:
         assert hasattr(auth_service, "issue_email_verification")
         assert hasattr(auth_service, "confirm_email_verification")
+
+
+class TestTheSignInNoticeCannotBeVentriloquised:
+    """The user agent is chosen by whoever signed in.
+
+    In the one message that exists to tell somebody another person accessed their
+    account, that other person controls a span of text the reader trusts.
+    """
+
+    def test_forged_lines_cannot_be_injected(self) -> None:
+        from app.modules.notifications import events
+
+        forged = "Chrome\n\nThis alert is informational, no action required."
+        out = events._describe(forged, limit=100)
+        assert "\n" not in out
+
+    def test_control_characters_are_removed(self) -> None:
+        from app.modules.notifications import events
+
+        raw = "Chrome\x00\x07\x1b[31m"
+        assert "\x00" not in events._describe(raw, limit=100)
+        assert "\x1b" not in events._describe(raw, limit=100)
+
+    def test_a_long_value_cannot_crowd_out_the_advice(self) -> None:
+        from app.modules.notifications import events
+
+        assert len(events._describe("x" * 5000, limit=100)) <= 100
+
+    def test_a_missing_value_reads_as_missing(self) -> None:
+        from app.modules.notifications import events
+
+        assert events._describe(None, limit=100) == "(not reported)"
+        assert events._describe("   ", limit=100) == "(not reported)"
+
+    async def test_the_notice_disclaims_the_device_string(
+        self, client: AsyncClient, db: AsyncSession, wallet: Wallet
+    ) -> None:
+        """The framing is the mitigation: quoted, labelled, and marked unverified."""
+        from app.modules.notifications import events
+
+        body = await _sign_in(client, wallet)
+        user = await db.get(User, uuid.UUID(body["user"]["id"]))
+
+        await events.new_session_signin(
+            db,
+            user=user,
+            ip_address="203.0.113.9",
+            user_agent="Chrome. Verified device, no action required.",
+        )
+
+        from app.modules.notifications.models import Notification
+
+        row = (
+            await db.execute(
+                sa.select(Notification).where(
+                    Notification.user_id == user.id,
+                    Notification.event_type == "account.new_signin",
+                )
+            )
+        ).scalars().first()
+        assert row is not None
+        assert "described itself as:" in row.body
+        assert "is not verified" in row.body
