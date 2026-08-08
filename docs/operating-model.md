@@ -122,8 +122,11 @@ channel members trust. Is a published claim still true.
 Earned by getting each of these wrong at least once.
 
 1. **A local pass is not evidence for anything involving configuration.** This
-   machine has credentials and a state that a fresh deployment does not. CI is the
-   more honest environment; production is the only authoritative one.
+   machine has credentials and a state that a fresh deployment does not. CI is
+   more honest than local, and still not authoritative: a migration once passed
+   apply, reverse, reapply and `alembic check` in CI and was refused outright by
+   the production database, because the two environments do not run identical
+   installed versions. Treat each environment as evidence about itself only.
 2. **A test that skips is not a test that passes.** A suite reporting hundreds of
    skips is reporting that it did not check.
 3. **Verify the deployed artifact, not the repository.** Read the running
