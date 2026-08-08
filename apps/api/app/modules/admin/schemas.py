@@ -1,0 +1,32 @@
+"""Response models for the operational surface."""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+
+from pydantic import BaseModel
+
+
+class DisputeQueueItem(BaseModel):
+    """One dispute waiting on the arbiter.
+
+    `hours_waiting` is included rather than left to the reader to compute from a
+    timestamp, because the queue is ordered by it and the thing being decided is
+    somebody's money held while they wait.
+    """
+
+    order_id: uuid.UUID
+    order_reference: str
+    amount: Decimal
+    currency: str
+    disputed_at: datetime | None
+    hours_waiting: int | None
+    reason: str | None
+
+
+class SuppressionView(BaseModel):
+    email: str
+    reason: str
+    detail: str | None
+    created_at: datetime

@@ -180,9 +180,10 @@ Worth stating plainly against a week of evidence: every real defect found recent
 was in code that had tests, and was caught because a test or a gate existed to
 catch it. The largest module handling money has neither.
 
-### 3. No administrative surface
+### 3. No administrative surface (done)
 
-`app/api/v1.py` still carries "Modules registered in later stages: administration".
+Built. `/admin/disputes`, `/admin/email-suppressions` and a way to lift one, each
+gated on an address the chain recognises. What follows is why it was ranked here.
 There is no way to work a dispute queue, lift an email suppression, or look at an
 account to answer a support message, other than opening a database session against
 production. Every operational action so far in this project has been a hand-written

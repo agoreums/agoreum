@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.admin.router import router as admin_router
 from app.modules.agents.router import router as agents_router
 from app.modules.analytics.router import router as analytics_router
 from app.modules.apikeys.router import router as apikeys_router
@@ -36,10 +37,11 @@ api_router.include_router(reputation_router)
 api_router.include_router(notifications_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(analytics_router)
+api_router.include_router(admin_router)
 api_router.include_router(organizations_router)
 api_router.include_router(apikeys_router)
 api_router.include_router(identity_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(subscriptions_router)
 
-# Modules registered in later stages: administration.
+

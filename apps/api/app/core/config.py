@@ -95,6 +95,13 @@ class Settings(BaseSettings):
     # that let somebody record a decision the chain would then refuse is worse
     # than one that has no arbiter at all. Unset means nobody can arbitrate here.
     ESCROW_ARBITER_ADDRESS: str | None = None
+    # Platform administration, for the operational surface rather than for money.
+    # The same address the escrow recognises as admin, on the same reasoning as
+    # the arbiter above: authority that lives in two places drifts apart, and an
+    # API that authorises somebody the chain does not is a second, weaker truth.
+    # Unset means nobody, so a deployment that forgets it is closed rather than
+    # open.
+    ESCROW_ADMIN_ADDRESS: str | None = None
 
     # The subscription contract, indexed the same way as the escrow. Both are
     # configuration, never constants, so a redeploy is an env change.

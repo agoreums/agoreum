@@ -388,3 +388,45 @@ Verification requests are limited to 3 per 15 minutes and 10 per day. The two
 windows exist because one cannot serve both cases: the short one stops rapid
 sending at an address, and the daily one stops a slow trickle. Refusals state how
 long to wait and carry `retry_after_seconds`.
+
+## Disputes
+
+The authoritative dispute is raised on chain by a party's own wallet. These
+endpoints record what informs a decision and what was decided; none of them moves
+money.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| POST | `/orders/{order_id}/dispute-intent` | Yes | Record a reason before raising it on chain |
+| GET | `/orders/{order_id}/dispute` | Yes | The dispute, for both parties and the arbiter |
+| POST | `/orders/{order_id}/dispute-statements` | Yes | State your case; parties only |
+| POST | `/orders/{order_id}/dispute-decision` | Arbiter | Record a decision, receive the call to send |
+
+Both parties and the arbiter see the same view, including each other's statements
+and, once decided, the reasoning. The reasoning is not public.
+
+`dispute-decision` takes only the **provider's** share. The contract derives the
+buyer's as `amount - providerAmount` and treats its own `buyerAmount` argument as a
+bounds check, so accepting a pair would allow a recorded decision that differs from
+what is paid. The response is the exact `settleDispute` call for the arbiter's own
+wallet: **the platform holds no keys and does not settle.**
+
+Who may arbitrate is `ESCROW_ARBITER_ADDRESS`, the same address the contract
+accepts. Unset means nobody. An arbiter who is party to a dispute is refused.
+
+## Administration
+
+Gated on `ESCROW_ADMIN_ADDRESS`, the address the escrow recognises as admin. Unset
+means nobody, so a deployment that forgets it is closed rather than open.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/admin/disputes` | Arbiter | Undecided disputes, oldest first |
+| GET | `/admin/email-suppressions` | Admin | Addresses the platform will not mail |
+| DELETE | `/admin/email-suppressions/{email}` | Admin | Lift one |
+
+Admin and arbiter are separate authorities and are not implied by one another.
+They decide different things and are different roles on chain.
+
+The dispute queue shows undecided disputes only. One that has been decided but not
+yet settled is waiting on a transaction rather than on the arbiter.
