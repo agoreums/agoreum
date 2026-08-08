@@ -22,9 +22,18 @@ const LINK_BUTTON =
  * just asked for is friction with no security value, since possession of the
  * token is the whole proof either way.
  *
- * The token is read from the query string directly and never rendered, logged,
- * or put into a link. It is single use, so it is spent by the time this resolves,
- * but a token sitting visibly on screen is a token that ends up in a screenshot.
+ * On the token. It arrives in the query string, so it is already in the address
+ * bar, in browser history, and in the server access log. Reading it through
+ * useSearchParams also places it in the server-rendered payload, which is worth
+ * stating plainly rather than claiming otherwise: the response carrying it only
+ * ever goes to the person who supplied it, so that adds no new disclosure, but it
+ * is not invisible either.
+ *
+ * What is done about it: the page is noindex, the token is never printed into the
+ * document or into a link, it is single use and spent the moment this loads, and
+ * the query string is stripped from the address bar afterwards so it does not
+ * linger for the next person to use the machine, or get copied out of the URL bar
+ * along with the page address.
  */
 export function VerifyEmailView() {
   const t = useTranslations("verifyEmail");
@@ -49,6 +58,12 @@ export function VerifyEmailView() {
       .catch((err) => {
         setDetail(err instanceof ApiError ? err.message : null);
         setState("failed");
+      })
+      .finally(() => {
+        // Drop the spent token from the visible URL. replaceState rather than a
+        // navigation, so this leaves no history entry to go back to and does not
+        // re-run the page.
+        window.history.replaceState(null, "", window.location.pathname);
       });
   }, [token]);
 
