@@ -86,6 +86,14 @@ class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     subtotal: Mapped[Decimal] = mapped_column(TokenAmount, nullable=False)
     platform_fee: Mapped[Decimal] = mapped_column(TokenAmount, nullable=False)
     total_amount: Mapped[Decimal] = mapped_column(TokenAmount, nullable=False)
+    # The two windows that decide when money moves, frozen for the same reason as
+    # the price above. They were previously read from the live service whenever
+    # payment instructions were built, so editing the service after an order
+    # existed moved that order's deadlines. Shortening `auto_release_hours` is the
+    # dangerous direction: it shrinks the window the buyer has to raise a dispute
+    # before escrow releases to the provider.
+    delivery_time_hours: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    auto_release_hours: Mapped[int | None] = mapped_column(Integer, nullable=True)
     currency: Mapped[str] = mapped_column(
         String(12), nullable=False, server_default="USDC"
     )

@@ -152,7 +152,7 @@ session that created it.
 
 | Priority | Item | Area | State |
 | --- | --- | --- | --- |
-| 1 | Service versioning: services change price and scope with orders already in flight, and nothing pins what was agreed | Backend | Not started, no version concept exists |
+| 1 | Service versioning: orders now freeze delivery and auto release windows alongside price. A full version history for services, so buyers can see what changed since they ordered, is still open | Backend | Partly done: terms frozen, history not built |
 | 2 | Usage analytics depth: one endpoint, `/analytics/me`, covering creators only. No org, buyer, or platform view | Backend | Thin |
 | 3 | Organization accounts refinement: invitations, role changes, and transfer of ownership | Backend, Frontend | Partial, roles exist |
 | 4 | Developer documentation: three SDKs ship with no worked examples or quickstart per language | Community | Thin |

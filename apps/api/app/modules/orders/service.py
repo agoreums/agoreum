@@ -140,6 +140,27 @@ async def list_for_provider(
 # --- Creation ---------------------------------------------------------------
 
 
+def resolve_windows(order, service) -> tuple[timedelta, timedelta]:
+    """The delivery and auto release windows that govern this order.
+
+    The order's own frozen terms win. The service is consulted only for orders
+    created before those columns existed, so historic rows keep working.
+
+    Reading the live service here was the defect this replaces. A provider could
+    edit the service after an order was placed and move that order's deadlines,
+    and shortening `auto_release_hours` is the dangerous direction: it shrinks the
+    window a buyer has to raise a dispute before escrow releases to the provider.
+    """
+    delivery_hours = order.delivery_time_hours or service.delivery_time_hours
+    delivery = timedelta(
+        hours=delivery_hours or int(DEFAULT_DELIVERY_WINDOW.total_seconds() // 3600)
+    )
+    auto_release = timedelta(
+        hours=order.auto_release_hours or service.auto_release_hours
+    )
+    return delivery, auto_release
+
+
 async def create_order(
     db: AsyncSession, *, buyer: User, payload: OrderCreate
 ) -> Order:
@@ -200,6 +221,9 @@ async def create_order(
         buyer_id=buyer.id,
         provider_agent_id=agent.id,
         service_id=service.id,
+        # Frozen here, not read later. See the model comment.
+        delivery_time_hours=service.delivery_time_hours,
+        auto_release_hours=service.auto_release_hours,
         status=OrderStatus.PENDING_PAYMENT,
         quantity=payload.quantity,
         unit_price=unit_price,
@@ -293,10 +317,7 @@ async def payment_instructions(
         await db.execute(select(Service).where(Service.id == order.service_id))
     ).scalar_one()
 
-    delivery_window = timedelta(
-        hours=service.delivery_time_hours or int(DEFAULT_DELIVERY_WINDOW.total_seconds() // 3600)
-    )
-    auto_release_window = timedelta(hours=service.auto_release_hours)
+    delivery_window, auto_release_window = resolve_windows(order, service)
 
     return PaymentInstructions(
         order_id=order.id,
