@@ -28,6 +28,7 @@ from app.db.enums import (
     NotificationChannel,
     NotificationDeliveryStatus,
 )
+from app.modules.notifications import messages
 from app.modules.notifications.models import (
     EmailSuppression,
     Notification,
@@ -128,8 +129,10 @@ async def notify(
     user_id: uuid.UUID,
     category: NotificationCategory,
     event_type: str,
-    title: str,
+    title: str | None = None,
     body: str | None = None,
+    message_key: str | None = None,
+    message_params: dict | None = None,
     action_url: str | None = None,
     payload: dict | None = None,
     related_order_id: uuid.UUID | None = None,
@@ -153,6 +156,16 @@ async def notify(
     ).scalar_one_or_none()
     if user is None:
         raise NotFoundError("No such user.")
+
+    # Rendered here rather than at the call site, because this is where the
+    # recipient is loaded and therefore the only place the right locale is known
+    # without a second query. Callers name the message and supply its values.
+    if message_key is not None:
+        title, body = messages.render(
+            message_key, user.preferred_locale, **(message_params or {})
+        )
+    if title is None:
+        raise ValueError("a notification needs either a title or a message_key")
 
     notification = Notification(
         user_id=user_id,

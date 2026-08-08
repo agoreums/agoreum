@@ -112,13 +112,8 @@ async def email_verification_requested(
         user_id=user.id,
         category=NotificationCategory.SECURITY,
         event_type="account.email_verification",
-        title="Confirm your email address",
-        body=(
-            "Open this link to confirm this address for your Agoreum account. "
-            f"It expires in 24 hours.\n\n{link}\n\n"
-            "If you did not request this, you can ignore it. Nothing changes "
-            "until the link is opened."
-        ),
+        message_key="account.email_verification",
+        message_params={"link": link},
         action_url=link,
         channels=(NotificationChannel.EMAIL,),
         allow_unverified_email=True,
@@ -141,11 +136,8 @@ async def order_funded(db: AsyncSession, *, order: Order) -> None:
             user_id=user_id,
             category=NotificationCategory.ORDER,
             event_type="order.funded",
-            title=f"Order {order.reference} is funded and ready to start",
-            body=(
-                f"The buyer has funded escrow for order {order.reference}. "
-                "Work can begin, and the delivery window has started."
-            ),
+            message_key="order.funded",
+            message_params={"reference": order.reference},
             action_url=_order_url(order),
             related_order_id=order.id,
         )
@@ -161,13 +153,8 @@ async def order_released(db: AsyncSession, *, order: Order) -> None:
             user_id=user_id,
             category=NotificationCategory.PAYMENT,
             event_type="order.released",
-            title=f"Order {order.reference} has been paid out",
-            body=(
-                f"Escrow for order {order.reference} has been released to the "
-                "provider."
-                if is_buyer
-                else f"Escrow for order {order.reference} has been released to you."
-            ),
+            message_key=f"order.released.{'buyer' if is_buyer else 'provider'}",
+            message_params={"reference": order.reference},
             action_url=_order_url(order),
             related_order_id=order.id,
         )
@@ -183,13 +170,8 @@ async def order_refunded(db: AsyncSession, *, order: Order) -> None:
             user_id=user_id,
             category=NotificationCategory.PAYMENT,
             event_type="order.refunded",
-            title=f"Order {order.reference} has been refunded",
-            body=(
-                f"Escrow for order {order.reference} has been returned to you."
-                if is_buyer
-                else f"Escrow for order {order.reference} has been returned to "
-                "the buyer."
-            ),
+            message_key=f"order.refunded.{'buyer' if is_buyer else 'provider'}",
+            message_params={"reference": order.reference},
             action_url=_order_url(order),
             related_order_id=order.id,
         )
@@ -224,11 +206,8 @@ async def order_disputed(
             user_id=user_id,
             category=NotificationCategory.ORDER,
             event_type="order.disputed",
-            title=f"A dispute was raised on order {order.reference}",
-            body=(
-                f"The other party has raised a dispute on order {order.reference}. "
-                "An arbiter will review it. You can add context from the order page."
-            ),
+            message_key="order.disputed",
+            message_params={"reference": order.reference},
             action_url=_order_url(order),
             related_order_id=order.id,
         )
@@ -259,18 +238,8 @@ async def new_session_signin(
         user_id=user.id,
         category=NotificationCategory.SECURITY,
         event_type="account.new_signin",
-        title="New sign-in to your Agoreum account",
-        body=(
-            f"Your wallet was used to sign in from {where}.\n\n"
-            # On its own line and explicitly disclaimed. Whoever signed in chose
-            # this text, and if that was an attacker they chose it knowing the
-            # owner would read it here.
-            f"The device described itself as: {device}\n"
-            "That description comes from the software that signed in and is not "
-            "verified.\n\n"
-            "If this was you, nothing further is needed. If it was not, "
-            "disconnect the wallet and review your active sessions."
-        ),
+        message_key="account.new_signin",
+        message_params={"where": where, "device": device},
         action_url=f"{_settings_url()}/security",
     )
 

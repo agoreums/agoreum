@@ -45,15 +45,7 @@ async def organization_invitation_sent(
         user_id=invitee.id,
         category=NotificationCategory.ORDER,
         event_type="organization.invitation",
-        title="You have been invited to join an organization",
-        body=(
-            "An organization has invited you to join it as "
-            f"{invitation.role.value}.\n\n"
-            f"Name given: {name}\n"
-            "That name was chosen by whoever sent the invitation and is not "
-            "verified.\n\n"
-            "You are not a member until you accept, and you can decline. "
-            "The invitation expires in 14 days."
-        ),
+        message_key="organization.invitation",
+        message_params={"role": invitation.role.value, "name": name},
         action_url=f"{settings.APP_URL.rstrip('/')}/settings/organizations",
     )

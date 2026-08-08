@@ -336,9 +336,16 @@ class TestSanitisingHostileText:
 
 class TestAlertDelivery:
     async def test_nothing_is_sent_when_unconfigured(self, monkeypatch) -> None:
-        """Fails closed and says so, rather than pretending it alerted."""
+        """Fails closed and says so, rather than pretending it alerted.
+
+        Both channels have to be unconfigured. Blanking only Telegram let the
+        Discord fallback take over and post to a real channel, which is how two
+        messages saying "test" reached the security channel.
+        """
         monkeypatch.setattr(settings, "TELEGRAM_BOT_TOKEN", SecretStr(""))
         monkeypatch.setattr(settings, "TELEGRAM_CHAT_ID", "")
+        monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr(""))
+        monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "")
         available, reason = alerts.alerting_available()
         assert available is False
         assert reason
