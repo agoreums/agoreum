@@ -55,7 +55,7 @@ for a transient failure is worse than retrying. Suppression is lifted only by a
 human calling `unsuppress_email`: an address does not come back because time
 passed.
 
-## DNS: authentication complete, inbound missing
+## DNS: authentication and inbound both in place
 
 Verified against Cloudflare and Google public resolvers rather than trusting the
 provider dashboard, because what matters is what the world can actually see.
@@ -72,7 +72,7 @@ from this domain and changes nothing about delivery. Move to `p=quarantine` and
 then `p=reject` once the aggregate reports arrive and look clean; going straight
 to `reject` on an unmonitored domain is how legitimate mail disappears.
 
-## Inbound: mail arrives, and nobody is told
+## Inbound: mail arrives, and an operator is told
 
 `support@agoreum.xyz` **does receive mail**. Resend's receiving feature is enabled
 on the domain and the apex MX points at its AWS inbound host. Verified by the
@@ -120,14 +120,15 @@ attached to the thing it is about.
    conditional update, and `_deliver` refuses any address without
    `email_verified_at`. Without this, one account could point its profile email at
    a stranger and drive mail to them.
-3. ~~**Handle bounces and complaints.**~~ Code is done, see above. **The webhook
-   still has to be registered in the Resend dashboard** pointing at
-   `https://<api host>/api/v1/notifications/webhooks/resend`, and the signing
-   secret it issues put in `RESEND_WEBHOOK_SECRET`. Until that happens the
-   suppression list stays empty, and sending from a cold domain with no bounce
-   feedback is how a sending reputation is destroyed quietly.
-4. ~~**Add inbound for the support address.**~~ Already working, see above. What
-   is left is being told when something arrives.
+3. ~~**Handle bounces and complaints.**~~ Done. The webhook is registered against
+   `https://agoreum.xyz/api/v1/notifications/webhooks/resend`, subscribed to
+   `email.bounced`, `email.complained` and `email.received`, with its signing
+   secret in `RESEND_WEBHOOK_SECRET`. Verified against production: a correctly
+   signed event returns 204, and unsigned, replayed, and tampered ones return 401.
+   Sending from a cold domain with no bounce feedback is how a sending reputation
+   is destroyed quietly.
+4. ~~**Add inbound for the support address.**~~ Already working, and arrivals now
+   raise a Telegram alert, verified on a real message.
 5. ~~**Turn off open and click tracking.**~~ Done, both off on the domain as of
    2026-08-08. They had been on with the tracking subdomain named `security`.
    Rewriting links in security mail through a redirector trains users to click
