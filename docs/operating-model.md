@@ -150,16 +150,73 @@ backlog rather than silently fixed or silently ignored.
 
 ## Backlog
 
-Ordered by judgement, revised as things are learned. Kept here so it survives the
-session that created it.
+Re-derived from the state of the code on 2026-08-08, after the previous list was
+finished. Ordered by what would hurt most if left, with the evidence that put each
+one where it is rather than an assertion that it matters.
 
-| Priority | Item | Area | State |
-| --- | --- | --- | --- |
-| 1 | Service versioning: orders now freeze delivery and auto release windows alongside price. A full version history for services, so buyers can see what changed since they ordered, is still open | Backend | Partly done: terms frozen, history not built |
-| 2 | Usage analytics depth: creator view carries a revenue series, a previous-period comparison, and exposure split from earnings, and a buyer view exists. Both are rendered. Organization-wide and platform-wide views are still open | Backend, Frontend | Partly done |
-| 3 | Organization accounts refinement: invitations require the invitee to accept, both sides have an interface, and role changes and ownership transfer already guard against orphaning an org | Done |
-| 4 | Developer documentation: the API reference now covers all 84 endpoints, checked against the live spec. The SDK READMEs already had quickstarts and worked examples; the earlier note that they did not was wrong | Community | Done |
-| 5 | Notification locale: every notification renders from a per-locale catalogue in the recipient's language, nine messages across nine locales | Backend | Done |
-| 6 | DMARC to quarantine, then reject, once aggregate reports look clean | Infrastructure | Waiting on report volume |
-| 7 | Two Safe multisigs on Base for the admin addresses | Owner | With the owner |
-| 8 | Security audit engagement | Owner | With the owner |
+### 1. Dispute resolution has no ending
+
+`AgoreumEscrow.settleDispute(escrowId, providerAmount, buyerAmount)` exists and
+requires `ARBITER_ROLE`. The API has exactly one dispute endpoint, which records an
+intent, and the authoritative dispute is raised on chain by a party's own wallet.
+There is nothing between those two facts: no queue of open disputes, no path for an
+arbiter to act, and no record of why a split was chosen.
+
+So today a buyer can raise a dispute and the money stops there. Escrow is the
+platform's entire promise, and the one situation where the platform itself has to
+act is the situation it cannot. This is first because everything else is an
+improvement and this is a missing ending.
+
+Not a contract change: the on-chain half works and is tested. What is missing is
+the operational half around it.
+
+### 2. The money path is the least tested large module
+
+`orders` is 1362 lines and has no test file of its own. `services` is 907 lines and
+has none either. The only order coverage is three indexer tests about applying
+chain events.
+
+Worth stating plainly against a week of evidence: every real defect found recently
+was in code that had tests, and was caught because a test or a gate existed to
+catch it. The largest module handling money has neither.
+
+### 3. No administrative surface
+
+`app/api/v1.py` still carries "Modules registered in later stages: administration".
+There is no way to work a dispute queue, lift an email suppression, or look at an
+account to answer a support message, other than opening a database session against
+production. Every operational action so far in this project has been a hand-written
+script run through `docker exec`, which is fine for one person and does not survive
+a second.
+
+Blocks item 1 in practice, which is why it is next to it.
+
+### 4. A backup that has never been restored
+
+Daily automated backups exist and are current: eight retained, the most recent
+today. That was verified rather than assumed.
+
+What has never happened is a restore. An untested backup is a hope, and the moment
+to discover the restore path is not during an incident. The database is also a
+single node, so a node failure is an outage rather than a failover.
+
+### 5. Documentation that has drifted from the code
+
+`docs/incident-runbook.md` states under "What is not covered" that governance
+events are not monitored and that this should be fixed before mainnet. They are
+monitored: `scripts/monitor.py` watches `FeeConfigUpdated`, `TreasuryUpdated`,
+role grants and revocations, and pause and unpause, and the monitor is running in
+production with both an RPC URL and the escrow address configured.
+
+Small to fix and listed because of what it is rather than its size. A runbook is
+read in an incident, by someone deciding what to trust, and one that understates
+its own coverage is the wrong kind of wrong.
+
+### Standing, not scheduled
+
+| Item | Owner | State |
+| --- | --- | --- |
+| Two Safe multisigs on Base for the admin addresses | Owner | With the owner |
+| Security audit engagement | Owner | With the owner |
+| DMARC to quarantine, then reject | Infrastructure | Deliberately held at `p=none` |
+| Mainnet deployment | Owner | Blocked on the two above, by instruction |
