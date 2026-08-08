@@ -21,6 +21,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "e7a9c1d3f5b6"
 down_revision: str | None = "d6f8b0c2e4a5"
@@ -40,11 +41,19 @@ def upgrade() -> None:
         sa.Column("org_id", sa.UUID(), nullable=False),
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("invited_by_id", sa.UUID(), nullable=True),
-        # Reuses the existing enum type rather than creating a second one, so a
-        # role added later cannot mean different things in different tables.
+        # Reuses the existing org_role type rather than creating a second one, so
+        # a role added later cannot mean different things in different tables.
+        #
+        # postgresql.ENUM rather than sa.Enum: create_type is a dialect option,
+        # and sa.Enum accepts the keyword without honouring it, so the column was
+        # emitting "CREATE TYPE org_role AS ENUM ()" for a type that already
+        # exists. That failed on a database where the type was present, which is
+        # every real one.
         sa.Column(
             "role",
-            sa.Enum(name="org_role", create_type=False),
+            postgresql.ENUM(
+                "member", "admin", "owner", name="org_role", create_type=False
+            ),
             nullable=False,
             server_default="member",
         ),
