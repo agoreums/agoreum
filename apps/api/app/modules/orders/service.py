@@ -365,10 +365,22 @@ async def mark_delivered(
     order.delivery_note = note
     order.output_payload = payload
 
-    service = (
-        await db.execute(select(Service).where(Service.id == order.service_id))
-    ).scalar_one()
-    order.auto_release_at = now + timedelta(hours=service.auto_release_hours)
+    # The order's own frozen window, not the service's current one. This is the
+    # moment the auto release deadline becomes real, and the provider both
+    # controls the service and chooses when to deliver. Reading the live value
+    # here let them shorten the buyer's window to dispute after the order was
+    # placed, by editing the service and then marking delivery.
+    #
+    # The service is still consulted for orders created before the column
+    # existed, which the migration backfilled but which may exist in a database
+    # restored from an older backup.
+    hours = order.auto_release_hours
+    if hours is None:
+        service = (
+            await db.execute(select(Service).where(Service.id == order.service_id))
+        ).scalar_one()
+        hours = service.auto_release_hours
+    order.auto_release_at = now + timedelta(hours=hours)
 
     db.add(
         OrderEvent(
