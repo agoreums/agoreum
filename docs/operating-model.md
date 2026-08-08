@@ -170,11 +170,15 @@ improvement and this is a missing ending.
 Not a contract change: the on-chain half works and is tested. What is missing is
 the operational half around it.
 
-### 2. The money path is the least tested large module
+### 2. The money path is the least tested large module (partly done)
 
-`orders` is 1362 lines and has no test file of its own. `services` is 907 lines and
-has none either. The only order coverage is three indexer tests about applying
-chain events.
+Both now have test files covering their arithmetic and their rules: what a buyer is
+charged, how a figure is rounded to the settlement token, and what a service is
+allowed to say about its own price.
+
+What is still uncovered is the state machine. The transitions between funded, in
+progress, delivered and completed, and what each one refuses, are exercised only by
+three indexer tests about applying chain events.
 
 Worth stating plainly against a week of evidence: every real defect found recently
 was in code that had tests, and was caught because a test or a gate existed to
