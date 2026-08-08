@@ -884,7 +884,21 @@
     "settledOnly": "Solo pedidos liquidados.",
     "repeatCustomers": "Clientes recurrentes",
     "conversion": "Conversión",
-    "viewsOverTime": "Vistas a lo largo del tiempo"
+    "viewsOverTime": "Vistas a lo largo del tiempo",
+    "revenueOverTime": "Ingresos a lo largo del tiempo",
+    "pipelineTitle": "Comprometido, aún no ganado",
+    "pipelineHint": "Depósito financiado pero no liberado. Se muestra aparte de los ingresos porque todavía no se puede gastar.",
+    "active": "En curso",
+    "disputed": "En disputa",
+    "refunded": "Reembolsado",
+    "ordersCount": "{count} pedidos",
+    "buyingTitle": "Tus compras",
+    "buyingHint": "Lo que has gastado como comprador y lo que sigue en curso.",
+    "ordersPlaced": "Pedidos realizados",
+    "spend": "Gastado",
+    "spendHint": "Total cobrado, incluida la comisión de la plataforma.",
+    "inFlight": "En curso",
+    "providersUsed": "Proveedores usados"
   },
   "payments": {
     "title": "Pagos",

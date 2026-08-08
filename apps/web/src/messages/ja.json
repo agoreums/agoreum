@@ -884,7 +884,21 @@
     "settledOnly": "成約した注文のみ。",
     "repeatCustomers": "リピート顧客",
     "conversion": "コンバージョン",
-    "viewsOverTime": "表示数の推移"
+    "viewsOverTime": "表示数の推移",
+    "revenueOverTime": "収益の推移",
+    "pipelineTitle": "確定前の金額",
+    "pipelineHint": "エスクローに預託済みで未解放の金額です。まだ使用できないため、収益とは分けて表示しています。",
+    "active": "進行中",
+    "disputed": "係争中",
+    "refunded": "返金済み",
+    "ordersCount": "{count} 件",
+    "buyingTitle": "あなたの購入",
+    "buyingHint": "購入者として支払った金額と、進行中の金額です。",
+    "ordersPlaced": "注文数",
+    "spend": "支払額",
+    "spendHint": "プラットフォーム手数料を含む請求総額です。",
+    "inFlight": "進行中",
+    "providersUsed": "利用した提供者"
   },
   "payments": {
     "title": "支払い",

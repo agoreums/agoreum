@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 
 import { Skeleton } from "@/components/app/ui";
 import { useAuth } from "@/components/auth/auth-provider";
-import { analyticsApi, ApiError, type CreatorAnalytics } from "@/lib/api";
+import {
+  analyticsApi,
+  ApiError,
+  type BuyerAnalytics,
+  type CreatorAnalytics,
+} from "@/lib/api";
 
 /**
  * Creator analytics.
@@ -20,6 +25,7 @@ export function AnalyticsView() {
   const { status, accessToken } = useAuth();
 
   const [data, setData] = useState<CreatorAnalytics | null>(null);
+  const [buying, setBuying] = useState<BuyerAnalytics | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,9 +34,16 @@ export function AnalyticsView() {
     let cancelled = false;
     async function run() {
       try {
-        const a = await analyticsApi.me(accessToken!);
+        // Requested together rather than in sequence. They are independent, and
+        // the buyer figures failing must not blank the creator ones, so that
+        // half is allowed to settle as null.
+        const [a, b] = await Promise.all([
+          analyticsApi.me(accessToken!),
+          analyticsApi.purchases(accessToken!).catch(() => null),
+        ]);
         if (!cancelled) {
           setData(a);
+          setBuying(b);
           setError(null);
         }
       } catch (err) {
@@ -87,43 +100,144 @@ export function AnalyticsView() {
 
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label={t("views")} value={views} hint={t("viewsHint")} />
-        <Stat label={t("purchases")} value={formatCount(data.purchases)} />
+        <Stat
+          label={t("purchases")}
+          value={formatCount(data.purchases)}
+          delta={data.trend.purchases_change_pct}
+        />
         <Stat
           label={t("revenue")}
           value={`${formatAmount(data.revenue)} ${data.currency}`}
           hint={t("settledOnly")}
+          delta={data.trend.revenue_change_pct}
         />
         <Stat label={t("repeatCustomers")} value={formatCount(data.repeat_customers)} />
         <Stat label={t("conversion")} value={conversion} />
       </dl>
 
+      {data.revenue_series.length > 1 ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-5">
+          <p className="text-xs text-[var(--text-muted)]">{t("revenueOverTime")}</p>
+          <Sparkline
+            series={data.revenue_series.map((p) => ({
+              date: p.date,
+              value: Number(p.revenue),
+            }))}
+            label={t("revenueOverTime")}
+          />
+        </div>
+      ) : null}
+
+      {/* Committed, not earned. Kept visually apart from the figures above for
+          the same reason the API keeps it apart: adding it to revenue would
+          report money that cannot be spent yet, and would count it twice once
+          the order settles. */}
+      <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-5">
+        <h3 className="text-sm font-semibold">{t("pipelineTitle")}</h3>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">{t("pipelineHint")}</p>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Stat
+            label={t("active")}
+            value={`${formatAmount(data.pipeline.active_value)} ${data.currency}`}
+            hint={t("ordersCount", { count: data.pipeline.active_orders })}
+          />
+          <Stat
+            label={t("disputed")}
+            value={`${formatAmount(data.pipeline.disputed_value)} ${data.currency}`}
+            hint={t("ordersCount", { count: data.pipeline.disputed_orders })}
+          />
+          <Stat
+            label={t("refunded")}
+            value={`${formatAmount(data.pipeline.refunded_value)} ${data.currency}`}
+            hint={t("ordersCount", { count: data.pipeline.refunded_orders })}
+          />
+        </dl>
+      </section>
+
+      {buying && (buying.orders > 0 || buying.active_orders > 0) ? (
+        <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-5">
+          <h3 className="text-sm font-semibold">{t("buyingTitle")}</h3>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{t("buyingHint")}</p>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label={t("ordersPlaced")} value={formatCount(buying.orders)} />
+            <Stat
+              label={t("spend")}
+              value={`${formatAmount(buying.spend)} ${buying.currency}`}
+              hint={t("spendHint")}
+            />
+            <Stat
+              label={t("inFlight")}
+              value={`${formatAmount(buying.active_value)} ${buying.currency}`}
+              hint={t("ordersCount", { count: buying.active_orders })}
+            />
+            <Stat
+              label={t("providersUsed")}
+              value={formatCount(buying.providers_used)}
+            />
+          </dl>
+        </section>
+      ) : null}
+
       {data.views_series && data.views_series.length > 1 ? (
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-5">
           <p className="text-xs text-[var(--text-muted)]">{t("viewsOverTime")}</p>
-          <Sparkline series={data.views_series} />
+          <Sparkline
+            series={data.views_series.map((p) => ({ date: p.date, value: p.views }))}
+            label={t("viewsOverTime")}
+          />
         </div>
       ) : null}
     </div>
   );
 }
 
-function Sparkline({ series }: { series: { date: string; views: number }[] }) {
-  const max = Math.max(1, ...series.map((p) => p.views));
+function Sparkline({
+  series,
+  label,
+}: {
+  series: { date: string; value: number }[];
+  label: string;
+}) {
+  const max = Math.max(1, ...series.map((p) => p.value));
   return (
     <div
       className="mt-3 flex h-20 items-end gap-0.5"
       role="img"
-      aria-label={`${series.length} days of views`}
+      aria-label={`${series.length} days, ${label}`}
     >
       {series.map((point) => (
         <div
           key={point.date}
-          title={`${point.date}: ${point.views}`}
+          title={`${point.date}: ${point.value}`}
           className="flex-1 rounded-sm bg-brand-500/70"
-          style={{ height: `${Math.max(4, (point.views / max) * 100)}%` }}
+          style={{ height: `${Math.max(4, (point.value / max) * 100)}%` }}
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * A period-on-period change.
+ *
+ * Renders nothing when the previous period was zero. The API sends null there
+ * rather than a number, because growth from nothing has no percentage, and a
+ * placeholder would read as a measurement.
+ */
+function Delta({ pct }: { pct: number | null }) {
+  if (pct === null) return null;
+  const rising = pct > 0;
+  const flat = pct === 0;
+  const tone = flat
+    ? "text-[var(--text-muted)]"
+    : rising
+      ? "text-success-500"
+      : "text-danger-500";
+  return (
+    <span className={`ml-2 text-xs ${tone}`}>
+      {rising ? "+" : ""}
+      {pct}%
+    </span>
   );
 }
 
@@ -131,15 +245,20 @@ function Stat({
   label,
   value,
   hint,
+  delta,
 }: {
   label: string;
   value: string | number;
   hint?: string;
+  delta?: number | null;
 }) {
   return (
     <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] p-5">
       <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
-      <dd className="mt-1.5 font-mono text-xl text-[var(--text-primary)]">{value}</dd>
+      <dd className="mt-1.5 font-mono text-xl text-[var(--text-primary)]">
+        {value}
+        {delta === undefined ? null : <Delta pct={delta} />}
+      </dd>
       {hint ? (
         <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-[var(--text-muted)]">
           {hint}

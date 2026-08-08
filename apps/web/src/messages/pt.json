@@ -884,7 +884,21 @@
     "settledOnly": "Apenas pedidos liquidados.",
     "repeatCustomers": "Clientes recorrentes",
     "conversion": "Conversão",
-    "viewsOverTime": "Visualizações ao longo do tempo"
+    "viewsOverTime": "Visualizações ao longo do tempo",
+    "revenueOverTime": "Receita ao longo do tempo",
+    "pipelineTitle": "Comprometido, ainda não ganho",
+    "pipelineHint": "Caução financiada mas não libertada. Apresentada à parte da receita, porque ainda não pode ser gasta.",
+    "active": "Em curso",
+    "disputed": "Em disputa",
+    "refunded": "Reembolsado",
+    "ordersCount": "{count} encomendas",
+    "buyingTitle": "As suas compras",
+    "buyingHint": "O que gastou como comprador e o que continua em curso.",
+    "ordersPlaced": "Encomendas feitas",
+    "spend": "Gasto",
+    "spendHint": "Total cobrado, incluindo a taxa da plataforma.",
+    "inFlight": "Em curso",
+    "providersUsed": "Fornecedores usados"
   },
   "payments": {
     "title": "Pagamentos",

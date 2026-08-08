@@ -884,7 +884,21 @@
     "settledOnly": "Nur abgerechnete Bestellungen.",
     "repeatCustomers": "Wiederkehrende Kunden",
     "conversion": "Konversion",
-    "viewsOverTime": "Aufrufe im Zeitverlauf"
+    "viewsOverTime": "Aufrufe im Zeitverlauf",
+    "revenueOverTime": "Umsatz im Zeitverlauf",
+    "pipelineTitle": "Zugesagt, noch nicht verdient",
+    "pipelineHint": "Treuhand ist finanziert, aber nicht freigegeben. Getrennt vom Umsatz ausgewiesen, weil es noch nicht verfügbar ist.",
+    "active": "Laufend",
+    "disputed": "Strittig",
+    "refunded": "Erstattet",
+    "ordersCount": "{count} Bestellungen",
+    "buyingTitle": "Ihre Einkäufe",
+    "buyingHint": "Was Sie als Käufer ausgegeben haben und was noch läuft.",
+    "ordersPlaced": "Bestellungen",
+    "spend": "Ausgegeben",
+    "spendHint": "Gesamtbetrag inklusive Plattformgebühr.",
+    "inFlight": "Laufend",
+    "providersUsed": "Genutzte Anbieter"
   },
   "payments": {
     "title": "Zahlungen",

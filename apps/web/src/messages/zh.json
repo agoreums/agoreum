@@ -884,7 +884,21 @@
     "settledOnly": "仅已结算订单。",
     "repeatCustomers": "回头客",
     "conversion": "转化率",
-    "viewsOverTime": "浏览量趋势"
+    "viewsOverTime": "浏览量趋势",
+    "revenueOverTime": "收入趋势",
+    "pipelineTitle": "已承诺，尚未入账",
+    "pipelineHint": "已托管但尚未释放的资金。与收入分开显示，因为目前还不能动用。",
+    "active": "进行中",
+    "disputed": "争议中",
+    "refunded": "已退款",
+    "ordersCount": "{count} 个订单",
+    "buyingTitle": "你的购买",
+    "buyingHint": "作为买家的支出，以及仍在进行中的金额。",
+    "ordersPlaced": "下单数",
+    "spend": "已支出",
+    "spendHint": "含平台费的总扣款金额。",
+    "inFlight": "进行中",
+    "providersUsed": "合作的提供者"
   },
   "payments": {
     "title": "支付",

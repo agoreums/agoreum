@@ -884,7 +884,21 @@
     "settledOnly": "Settled orders only.",
     "repeatCustomers": "Repeat customers",
     "conversion": "Conversion",
-    "viewsOverTime": "Views over time"
+    "viewsOverTime": "Views over time",
+    "revenueOverTime": "Revenue over time",
+    "pipelineTitle": "Committed, not yet earned",
+    "pipelineHint": "Escrow that is funded but not released. Kept separate from revenue, because it cannot be spent yet.",
+    "active": "In progress",
+    "disputed": "Disputed",
+    "refunded": "Refunded",
+    "ordersCount": "{count} orders",
+    "buyingTitle": "Your buying",
+    "buyingHint": "What you have spent as a buyer, and what is still in flight.",
+    "ordersPlaced": "Orders placed",
+    "spend": "Spent",
+    "spendHint": "Total charged, including the platform fee.",
+    "inFlight": "In flight",
+    "providersUsed": "Providers used"
   },
   "payments": {
     "title": "Payments",

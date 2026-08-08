@@ -606,12 +606,49 @@ export type CreatorAnalytics = {
   currency: string;
   repeat_customers: number;
   conversion_rate: number | null;
+  revenue_series: { date: string; revenue: string }[];
+  /** Committed but not earned. Reported apart from revenue, never added to it. */
+  pipeline: {
+    active_orders: number;
+    active_value: string;
+    disputed_orders: number;
+    disputed_value: string;
+    refunded_orders: number;
+    refunded_value: string;
+  };
+  /** The same window immediately before this one. */
+  trend: {
+    purchases: number;
+    revenue: string;
+    // Null when the previous period was zero: growth from nothing has no
+    // percentage, and rendering one would look like a measurement.
+    purchases_change_pct: number | null;
+    revenue_change_pct: number | null;
+  };
+};
+
+export type BuyerAnalytics = {
+  window_days: number;
+  currency: string;
+  orders: number;
+  /** Total charged, including the platform fee, since that is what was paid. */
+  spend: string;
+  active_orders: number;
+  active_value: string;
+  disputed_orders: number;
+  providers_used: number;
 };
 
 export const analyticsApi = {
   me: (accessToken: string, windowDays = 30) =>
     apiFetch<CreatorAnalytics>(
       `/api/v1/analytics/me?window_days=${windowDays}`,
+      { accessToken },
+    ),
+
+  purchases: (accessToken: string, windowDays = 30) =>
+    apiFetch<BuyerAnalytics>(
+      `/api/v1/analytics/me/purchases?window_days=${windowDays}`,
       { accessToken },
     ),
 };

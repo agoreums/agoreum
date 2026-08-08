@@ -884,7 +884,21 @@
     "settledOnly": "الطلبات المُسوّاة فقط.",
     "repeatCustomers": "العملاء المتكررون",
     "conversion": "التحويل",
-    "viewsOverTime": "المشاهدات عبر الزمن"
+    "viewsOverTime": "المشاهدات عبر الزمن",
+    "revenueOverTime": "الإيرادات عبر الوقت",
+    "pipelineTitle": "ملتزم به وغير مكتسب بعد",
+    "pipelineHint": "ضمان ممول ولم يُفرج عنه. يُعرض منفصلاً عن الإيرادات لأنه غير متاح للإنفاق بعد.",
+    "active": "قيد التنفيذ",
+    "disputed": "متنازع عليه",
+    "refunded": "مسترد",
+    "ordersCount": "{count} طلبات",
+    "buyingTitle": "مشترياتك",
+    "buyingHint": "ما أنفقته كمشترٍ وما لا يزال قيد التنفيذ.",
+    "ordersPlaced": "الطلبات",
+    "spend": "المنفق",
+    "spendHint": "إجمالي المبلغ المحصل، شاملاً رسوم المنصة.",
+    "inFlight": "قيد التنفيذ",
+    "providersUsed": "المزودون المستخدمون"
   },
   "payments": {
     "title": "المدفوعات",

@@ -884,7 +884,21 @@
     "settledOnly": "Commandes réglées uniquement.",
     "repeatCustomers": "Clients fidèles",
     "conversion": "Conversion",
-    "viewsOverTime": "Vues au fil du temps"
+    "viewsOverTime": "Vues au fil du temps",
+    "revenueOverTime": "Revenus dans le temps",
+    "pipelineTitle": "Engagé, pas encore gagné",
+    "pipelineHint": "Séquestre financé mais non libéré. Présenté séparément des revenus, car il n'est pas encore disponible.",
+    "active": "En cours",
+    "disputed": "En litige",
+    "refunded": "Remboursé",
+    "ordersCount": "{count} commandes",
+    "buyingTitle": "Vos achats",
+    "buyingHint": "Ce que vous avez dépensé en tant qu'acheteur, et ce qui est en cours.",
+    "ordersPlaced": "Commandes passées",
+    "spend": "Dépensé",
+    "spendHint": "Total facturé, frais de plateforme compris.",
+    "inFlight": "En cours",
+    "providersUsed": "Prestataires utilisés"
   },
   "payments": {
     "title": "Paiements",
