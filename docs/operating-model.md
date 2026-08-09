@@ -204,15 +204,26 @@ situation where the platform itself has to act was the situation it could not.
 Not a contract change: the on-chain half works and is tested. What is missing is
 the operational half around it.
 
-### 2. The money path is the least tested large module (partly done)
+### 2. The money path is the least tested large module (done)
 
 Both now have test files covering their arithmetic and their rules: what a buyer is
 charged, how a figure is rounded to the settlement token, and what a service is
 allowed to say about its own price.
 
-What is still uncovered is the state machine. The transitions between funded, in
-progress, delivered and completed, and what each one refuses, are exercised only by
-three indexer tests about applying chain events.
+The state machine is now covered too: what starting, delivering and disputing
+each refuse, that no transition reopens a terminal order, and that the
+auto-release window is the one frozen at purchase.
+
+Writing those tests is what found the funding deadline was decorative.
+`expire_unfunded_orders` existed, was correct, and had no caller anywhere in the
+codebase, so no order had ever expired. There was even a partial index on
+`funding_deadline` where `status = 'pending_payment'`, built to make a sweep
+efficient that never ran. Nothing enforced the deadline at funding time either,
+so the price an order freezes at purchase stayed payable indefinitely: a buyer
+could hold an order open, wait for the provider to raise their price, and still
+pay the old one. Closed by refusing payment instructions past the deadline and
+by running the sweep from the indexer loop, which is the process that knows the
+chain is current.
 
 Worth stating plainly against a week of evidence: every real defect found recently
 was in code that had tests, and was caught because a test or a gate existed to

@@ -47,6 +47,14 @@ PLATFORM_FEE_BPS = 250
 # How long a buyer has to fund an order before it expires.
 FUNDING_WINDOW = timedelta(hours=24)
 
+# How long past the deadline the expiry sweep waits before acting. Covers the
+# gap between a payment being mined and the indexer seeing it past the
+# confirmation frontier, so the sweep cannot expire an order that was in fact
+# funded in time. Generous against a five block depth on a two second chain,
+# because the cost of waiting is a stale row and the cost of being early is
+# telling a buyer who paid that their order expired.
+EXPIRY_GRACE = timedelta(minutes=15)
+
 # Windows handed to the contract. The delivery window is when the buyer may
 # reclaim unilaterally; auto-release is when the provider may claim.
 DEFAULT_DELIVERY_WINDOW = timedelta(days=7)
@@ -301,6 +309,19 @@ async def payment_instructions(
             "This order is not awaiting payment.", code="order_not_payable"
         )
 
+    # The funding deadline is what bounds the price freeze. An order fixes the
+    # price at the moment it is placed, and without this check that fixed price
+    # stayed fundable forever: a buyer could hold an order open, wait for the
+    # provider to raise their price, and still pay the old one. The deadline was
+    # returned in this very response, and shown to buyers, while nothing
+    # enforced it.
+    if order.funding_deadline is not None and datetime.now(UTC) >= order.funding_deadline:
+        raise ConflictError(
+            "The funding window for this order has closed. Place a new order to "
+            "pay at the current price.",
+            code="order_funding_window_closed",
+        )
+
     if not contract.is_configured():
         raise contract.EscrowNotConfiguredError()
 
@@ -457,13 +478,22 @@ async def expire_unfunded_orders(db: AsyncSession) -> int:
     """Expire orders whose funding window closed without payment arriving.
 
     Safe because an unfunded order has no escrow: nothing is being taken away.
+
+    The grace period is the part that matters. A buyer can fund seconds before
+    the deadline, and that payment is not visible here until the indexer has
+    seen it past the confirmation frontier. Expiring on the deadline itself
+    would race a payment that already happened, and although the indexer would
+    later move the order back to funded, the buyer would meanwhile have been
+    told their order expired. Waiting out the confirmation window removes the
+    race rather than relying on it being repaired afterwards.
     """
     now = datetime.now(UTC)
+    cutoff = now - EXPIRY_GRACE
     stale = (
         await db.execute(
             select(Order).where(
                 Order.status == OrderStatus.PENDING_PAYMENT,
-                Order.funding_deadline < now,
+                Order.funding_deadline < cutoff,
             )
         )
     ).scalars().all()

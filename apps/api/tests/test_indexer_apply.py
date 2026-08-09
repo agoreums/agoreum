@@ -227,3 +227,43 @@ class TestApplyToFreshOrder:
         async with sessionmaker() as s:
             assert await _apply_event(s, event) == "skipped"
             await s.commit()
+
+    async def test_funding_an_expired_order_still_counts(self, sessionmaker) -> None:
+        """Money that arrives is honoured, whatever the order said beforehand.
+
+        An order expires off chain when its funding window closes, but the
+        contract knows nothing about that window. A buyer holding calldata from
+        before the deadline can still fund the escrow, and when they do the
+        money is real and sitting in the contract.
+
+        This is deliberately the one place terminal is not final. The order
+        state machine refuses to reopen a finished order, and rightly so, but
+        that rule belongs to the off-chain guards. Adding it here would look
+        like consistency and would strand real funds in an escrow whose order
+        stayed expired, with nothing in the product acknowledging the payment.
+        """
+        order_id = await _make_committed_order(sessionmaker)
+        try:
+            async with sessionmaker() as s:
+                await s.execute(
+                    sa.update(Order)
+                    .where(Order.id == order_id)
+                    .values(status=OrderStatus.EXPIRED)
+                )
+                await s.commit()
+
+            async with sessionmaker() as s:
+                assert await _apply_event(s, _created_event(order_id)) == "applied"
+                await s.commit()
+
+            async with sessionmaker() as s:
+                order = (
+                    await s.execute(sa.select(Order).where(Order.id == order_id))
+                ).scalar_one()
+                assert order.status == OrderStatus.FUNDED, (
+                    "an expired order that was funded on chain stayed expired, "
+                    "leaving real money in escrow with no order to match it"
+                )
+                assert order.funded_at is not None
+        finally:
+            await _cleanup(sessionmaker, order_id)

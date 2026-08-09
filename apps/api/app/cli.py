@@ -130,6 +130,7 @@ async def _index_chain(args: argparse.Namespace) -> int:
     from app.chain import escrow as contract
     from app.chain.client import ChainClient
     from app.chain.indexer import IndexerStartBlockUnknown, run_once
+    from app.modules.orders.service import expire_unfunded_orders
 
     if not contract.is_configured():
         print("ESCROW_CONTRACT_ADDRESS is not set. Nothing to index.")
@@ -144,6 +145,19 @@ async def _index_chain(args: argparse.Namespace) -> int:
                 async with SessionLocal() as session:
                     result = await run_once(session, client)
                 print(result)
+
+                # Expiring unfunded orders belongs to whichever process knows
+                # the chain is current, and this is that process. Running it
+                # only after a successful scan means a stalled indexer stops
+                # expiring, rather than expiring orders whose payments it has
+                # simply not caught up with yet. That coupling is the safety
+                # property, not an accident of where the code sits.
+                async with SessionLocal() as session:
+                    expired = await expire_unfunded_orders(session)
+                    if expired:
+                        await session.commit()
+                        print(f"expired {expired} unfunded order(s)")
+
                 if not args.follow:
                     return 0
                 await asyncio.sleep(args.interval)

@@ -178,6 +178,18 @@ a client can say so rather than render an invented price range.
 `approve` and `createEscrow` calls for the buyer's own wallet, in both decimal
 and base-unit form so no client has to convert.
 
+**An order's price is frozen at purchase, and the funding deadline is what bounds
+that freeze.** Once `funding_deadline` passes, `payment-instructions` returns 409
+with `order_funding_window_closed` and the buyer places a new order at the current
+price. An unfunded order past its deadline is swept to `expired` shortly
+afterwards, with a grace period so a payment still confirming is never beaten to
+it.
+
+The chain knows nothing about that deadline, so a buyer holding older calldata can
+still fund the escrow directly. If they do, the money is real: the indexer records
+the order as funded regardless of it having expired. Terminal is final for the
+off-chain guards, never for a payment that actually arrived.
+
 **Only the indexer may mark an order funded or completed**, from confirmed chain
 events. No endpoint here asserts that money moved.
 
