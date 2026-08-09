@@ -135,6 +135,33 @@ Readiness returns 503 if Postgres or Redis is unreachable. The chain is reported
 but excluded from the verdict, an RPC outage should degrade the platform, not
 take the site out of rotation over a third party.
 
+### The build context is not innocent
+
+`scripts/deploy.sh` refuses to continue if the version inside the built web
+image differs from the one the lockfile pins. That check exists because the
+absence of it cost two weeks of production running the wrong dependency tree.
+
+The web image installs dependencies with `npm ci` in one stage and then copied
+`apps/web` over the top in the next. With no `.dockerignore` in the repository,
+that copy included `apps/web/node_modules` from the build host, a tree last
+written weeks earlier, which replaced everything `npm ci` had installed. The
+lockfile said Next 16.3.0, the image shipped 16.2.11, and the bump that moved it
+had been made specifically to clear three high advisories. Every deploy in
+between reported success.
+
+Three things now stand in the way, and the third is the one that matters:
+
+1. A `.dockerignore` keeps `node_modules`, build output, caches and `.env` files
+   out of a context that is the whole repository root.
+2. The Dockerfile copies source first and the installed tree second, so `npm ci`
+   wins even if something reaches the context anyway.
+3. The deploy compares the image against the lockfile and aborts on a mismatch.
+
+The check has to run on the deploy host. A CI runner starts from a clean
+checkout and has no stale tree, so this fault is invisible there; it appears only
+on a machine where `npm` has ever been run outside Docker. Anything that only
+fails on the machine you do not test on is worth an assertion on that machine.
+
 ## Continuous deployment
 
 A merge to `main` runs CI; when every check passes, the deploy job builds the
