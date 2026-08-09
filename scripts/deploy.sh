@@ -30,6 +30,31 @@ $COMPOSE run --rm api alembic upgrade head
 log "recreate app + support services"
 $COMPOSE up -d api web indexer webhooks emails subscriptions-indexer umami monitor
 
+# Bind-mounted files do not redeploy themselves.
+#
+# A service that mounts a file from the repo onto a stock image has no image to
+# rebuild, so `up -d` sees nothing changed and leaves the old process running
+# with whatever it read at start. The file on disk is new and the behaviour is
+# old, which is the worst shape a deploy can take: everything reports success.
+#
+# This is not hypothetical. An added governance alert sat undeployed for hours
+# while the runbook claimed the event was watched, and a real settlement passed
+# unannounced. nginx already had bespoke handling below for the same reason; the
+# rule is general, so anything else mounting repo files belongs here too.
+#
+# The monitor is stateless and its script changes often, so it is recreated every
+# time rather than conditionally.
+log "recreate monitor so it picks up scripts/monitor.py"
+$COMPOSE up -d --force-recreate monitor
+
+# Umami mounts the database CA certificate. That file changes about once a year,
+# so recreating analytics on every deploy would be churn for nothing; it is
+# recreated only when the mounted file actually changed in this deploy.
+if ! git diff --quiet "${BEFORE}" "${AFTER}" -- infra/certs; then
+  log "database CA changed, recreating umami"
+  $COMPOSE up -d --force-recreate umami
+fi
+
 log "verify api health"
 ok=false
 for i in $(seq 1 24); do
