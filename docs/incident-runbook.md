@@ -326,6 +326,36 @@ reads local storage and reports `Value not found` for a key that exists, which
 looks exactly like a Worker that is not running. That cost time during setup:
 the cron was firing correctly the whole while and the reading tool was wrong.
 
+## Scenario: the deploy fails with "Permission denied (publickey)"
+
+Happened on 2026-08-10, immediately after a GitHub personal access token was
+revoked, and the connection is not obvious.
+
+The droplet pulls over SSH, using `~/.ssh/gh_deploy`. That key had been added to
+the **account**, and GitHub removes account SSH keys that were created using a
+token when that token is revoked. So revoking a token that nothing appeared to
+depend on removed the credential the deploy depended on. Every test passed and
+only the deploy job failed, which is the correct shape for this: nothing was
+wrong with the code.
+
+The fix, which is also the hardening, is that the same public key is now a
+**read-only deploy key on the repository** rather than a key on the account.
+That is narrower in every direction: it reaches one repository, it cannot push,
+and no token revocation can sweep it away.
+
+To confirm which kind of key is in use, run this on the droplet:
+
+```
+ssh -T git@github.com
+```
+
+`Hi agoreums/agoreum!` is a repository deploy key, which is what you want.
+`Hi agoreums!` is an account key, which is the fragile arrangement.
+
+The general lesson is worth more than the fix: **revoking a credential can
+remove other credentials that were created with it.** Before revoking, ask what
+that credential was used to create, not just what uses it now.
+
 ## Scenario: the host reboots or the stack is recreated
 
 Drilled on production rather than reasoned about, on 2026-08-09.
