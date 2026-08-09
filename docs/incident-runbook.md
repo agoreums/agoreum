@@ -108,6 +108,97 @@ blacklist of that recipient would be unrecoverable.
 `hasRole`, and only then renounce.** Covered end to end by
 `test_fullHandoverToMultisigLeavesTheOldAdminPowerless`.
 
+## Scenario: the database is lost or corrupted
+
+Tested on 2026-08-08, not theoretical. The figures below are from that drill.
+
+DigitalOcean restores by **forking**: it builds a new cluster from a backup at a
+point in time and leaves the running one untouched. There is no in-place restore
+to get wrong, and the original stays available throughout, so the decision to cut
+over is separate from the decision to restore.
+
+### The procedure
+
+1. List backups and choose one.
+
+   ```
+   GET /v2/databases/{cluster_id}/backups
+   ```
+
+   The list is **not ordered**. Take the maximum `created_at` rather than the
+   first element; reading the first cost me a false alarm about backups having
+   stopped a week earlier.
+
+2. Fork it.
+
+   ```
+   POST /v2/databases
+   {"name": "...", "engine": "pg", "version": "18", "region": "lon1",
+    "size": "db-s-1vcpu-1gb", "num_nodes": 1,
+    "backup_restore": {"database_name": "agoreum-db",
+                       "backup_created_at": "<chosen backup>"}}
+   ```
+
+   It returns immediately with status `forking`. Poll `GET /v2/databases/{id}`
+   until `online`.
+
+3. Connect to the right database. The connection URI points at `defaultdb`; the
+   application's data is in `agoreum`, and `umami` comes across as well. Swap the
+   database name in the URI or the first query fails with "relation
+   alembic_version does not exist", which looks like a failed restore and is not.
+
+4. Verify with TLS properly, not by disabling it. The cluster presents
+   DigitalOcean's own CA, so fetch it and verify against it:
+
+   ```
+   GET /v2/databases/{id}/ca        # base64 in .ca.certificate
+   ```
+
+   A drill that turns verification off proves the shortcut works, not the
+   procedure.
+
+5. Check what came back: `select version_num from alembic_version`, the table
+   count, and row counts per table. Compare against production **as of the backup
+   time**, not as of now.
+
+6. Destroy the fork when finished. It bills by the hour and holds a second copy
+   of user data.
+
+   ```
+   DELETE /v2/databases/{id}
+   ```
+
+### What the drill found
+
+The restore is sound. Differences against live production were all explained by
+the ten hours of activity between the backup and the check:
+
+| | Production, at check time | Restored, from a 15:21Z backup |
+| --- | --- | --- |
+| alembic head | `f8b0d2e4a6c7` | `c5e7a9b1d3f4` |
+| tables | 31 | 30 |
+| rows | 274 | 189 |
+
+The restored head is older because three migrations were deployed after that
+backup, and `organization_invitations` is the missing table for the same reason.
+Row counts are lower by exactly the sessions, notifications and nonces created
+since. A restore that matched production exactly would have meant the backup was
+not a point in time at all.
+
+### Recovery objectives, measured
+
+- **RPO, worst case about 24 hours.** Backups are automated daily, around 15:21
+  UTC, with eight retained. Anything after the last one is gone. That is the
+  number to argue with if it is unacceptable, and it is a cost decision rather
+  than a technical one.
+- **RTO, dominated by provisioning.** The fork was requested at 21:31:02Z and was
+  online when checked. The exact provisioning time was not measured, because
+  nobody was polling, so treat it as "minutes, not hours" and measure it properly
+  on the next drill.
+- **Cutting over is not covered here.** This drill restored and verified. Pointing
+  the application at a restored cluster means changing `DATABASE_URL` on the
+  droplet and recreating the API, and that step has not been rehearsed.
+
 ## What is watched
 
 `scripts/monitor.py` alerts on the escrow's governance events, so a hostile or

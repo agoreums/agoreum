@@ -196,14 +196,19 @@ a second.
 
 Blocks item 1 in practice, which is why it is next to it.
 
-### 4. A backup that has never been restored
+### 4. A backup that has never been restored (done)
 
 Daily automated backups exist and are current: eight retained, the most recent
 today. That was verified rather than assumed.
 
-What has never happened is a restore. An untested backup is a hope, and the moment
-to discover the restore path is not during an incident. The database is also a
-single node, so a node failure is an outage rather than a failover.
+Drilled on 2026-08-08 against the real backup, verified, and torn down. The
+procedure is in `docs/incident-runbook.md` with measured figures.
+
+Two things it left open. RPO is about 24 hours, since backups are daily, which is a
+cost decision rather than a technical one. Cutting over to a restored cluster has
+still not been rehearsed: the drill proved the data comes back, not that the
+application can be pointed at it under pressure. The database is also a single
+node, so a node failure is an outage rather than a failover.
 
 ### 5. Documentation that has drifted from the code (done)
 
