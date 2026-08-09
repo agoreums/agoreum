@@ -285,6 +285,35 @@ untrue since the monitor gained those topics. A runbook is read during an incide
 by somebody deciding what to trust, so understating its own coverage is the wrong
 kind of wrong.
 
+### Watched from outside the droplet
+
+Two GitHub Actions workflows report to the same Telegram channel, so an operator
+has one place to look rather than three. They run on GitHub's infrastructure,
+which shares no failure mode with the host, which is the entire point.
+
+| Workflow | Watches | Alerts |
+| --- | --- | --- |
+| `.github/workflows/uptime.yml` | the public site and the API, every five minutes | when three spaced attempts all fail, and again when it recovers |
+| `.github/workflows/ci.yml` (`Notify` job) | every CI job on a push to main | naming the jobs that failed, and again when main returns to green |
+
+Both stay silent while healthy, and both check that their own credentials
+resolve before deciding they have nothing to say. Without that, a workflow whose
+secrets had stopped working would look exactly like a quiet, healthy one.
+
+The uptime check asserts the API returns live JSON with `status: ok`, not merely
+that a page loads. Edge caching is off today, so a 200 does mean the origin
+answered, but if that is ever turned on a page check alone would silently become
+a test of Cloudflare's cache. JSON that a static cache cannot fake is the guard
+against that.
+
+**Its limits, stated so nobody assumes otherwise.** Five minutes is the finest
+interval GitHub offers, and scheduled runs are queued at low priority and can be
+delayed further, so worst-case detection is on the order of fifteen minutes
+rather than one. GitHub also disables scheduled workflows in a repository with
+no activity for sixty days. A dedicated monitoring service would detect faster
+and more predictably; this is the version that needed no new vendor, no new
+account and no cost.
+
 ## Scenario: the host reboots or the stack is recreated
 
 Drilled on production rather than reasoned about, on 2026-08-09.
@@ -330,14 +359,13 @@ Two facts worth keeping in mind:
 
 Stated plainly so nobody assumes otherwise:
 
-- **A host-level outage cannot alert.** The monitor runs on the machine it
-  watches, so when the droplet went down in the drill it went down with it and
-  sent nothing. It reported `HTTP 521` only once it was back up and the stack
-  was still settling. Nothing inside the host can page anybody about the host
-  being gone. The daily heartbeat means a dead monitor is eventually noticed,
-  but "eventually" is up to twenty four hours. Closing this needs an uptime
-  check that runs somewhere else, and until that exists the honest position is
-  that total-host failure is discovered by a person, not by the monitoring.
+- **A host-level outage is detected slowly, not quickly.** Nothing inside the
+  host can page anybody about the host being gone: the monitor went down with it
+  during the drill and sent nothing. That is now covered from outside by
+  `.github/workflows/uptime.yml`, described above, but on a five minute schedule
+  that can be delayed, so the honest figure is minutes to a quarter of an hour,
+  not seconds. Anything needing faster detection needs a dedicated monitoring
+  service.
 
 - **No timelock.** Every governance action is immediate. There is no delay in
   which to notice and react to a hostile `setFeeConfig` or `setTreasury`.

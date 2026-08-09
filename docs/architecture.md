@@ -66,6 +66,12 @@ The rows in bold are the ones that fail without anybody noticing, which is why
 the monitor exists and why it is the process to alert on first. A stalled
 indexer looks exactly like a quiet day.
 
+The monitor cannot report on the host it runs on, so an external uptime check
+runs on GitHub's infrastructure and watches the public site and API from
+outside. Both it and the CI notifier report to the same Telegram channel the
+monitor uses. Coverage and its limits are in
+[incident-runbook.md](incident-runbook.md).
+
 ## A modular monolith, deliberately
 
 The backend is one deployable process containing bounded modules:
