@@ -497,4 +497,5 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GH_TOKEN: ${{ github.token }}
           NEEDS: ${{ toJSON(needs) }}
-        run: python3 .github/scripts/notify_ci.py
+        working-directory: .github/scripts
+        run: python3 notify_ci.py

@@ -1,0 +1,46 @@
+name: Uptime
+
+# Watches the public site from outside the droplet.
+#
+# The on-droplet monitor cannot report that the droplet is gone, because it goes
+# down with it. A reboot drill confirmed that: it sent nothing during the outage
+# and only reported a problem once it was already back. This runs on GitHub's
+# infrastructure, which shares no failure mode with the host being watched.
+#
+# Five minutes is the finest interval GitHub offers, and scheduled runs can be
+# delayed further under load, so detection is best-effort rather than prompt. It
+# is a large improvement on the previous position, which was that nothing outside
+# the droplet was watching at all.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  # So the check can be exercised on demand rather than only on the schedule.
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # To read whether the previous run failed, which decides if an all-clear is owed.
+  actions: read
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    # Scheduled workflows would otherwise run in forks of a public repo, where
+    # the secrets do not exist and every run would report a false failure.
+    if: github.repository == 'agoreums/agoreum'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - name: Probe the public site and API
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GH_TOKEN: ${{ github.token }}
+        working-directory: .github/scripts
+        run: python3 uptime_check.py

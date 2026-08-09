@@ -311,12 +311,20 @@ Two facts worth keeping in mind:
   heartbeat or a cache entry, all with expiry, so a cold start loses nothing
   that matters. If anything durable is ever put in Redis, that changes and this
   note is the place it will be missed.
-- **Cloudflare will serve a cached page while the origin is still down.** During
-  the drill the public URL returned 200 within a second of the host coming back,
-  well before nginx was accepting connections. Recovery must be confirmed
-  against the origin directly, which is what `curl -k -H "Host: agoreum.xyz"
-  https://localhost/en` on the droplet does. Trusting the public URL would have
-  reported success roughly thirty seconds early.
+- **The public URL is a truthful signal, and this was checked rather than
+  assumed.** The first write-up of this drill claimed Cloudflare had served a
+  cached page while the origin was down, inferred from a 200 arriving very soon
+  after the reboot. That was wrong. `always_online` is off, HTML returns
+  `cf-cache-status: DYNAMIC` so it is not cached at the edge, and the monitor's
+  own log from the stack recreate records the public URL returning **HTTP 521**,
+  Cloudflare's "web server is down", rather than a stale page. The fast 200 was
+  simply a fast recovery. This matters because it is what makes an external
+  uptime check on the public URL meaningful at all.
+- **A 521 means the origin, not Cloudflare.** When distinguishing an origin
+  failure from an edge problem, check the origin directly with
+  `curl -k -H "Host: agoreum.xyz" https://localhost/en` on the droplet. A 521 at
+  the edge with a healthy origin points at the Cloudflare firewall allowlist, not
+  the application.
 
 ## What is not covered
 

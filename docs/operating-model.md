@@ -155,11 +155,18 @@ Earned by getting each of these wrong at least once.
    on it would have meant tuning workers that were never the constraint. Before
    reporting a number, account for what the act of measuring contributed to it.
    The corollary is that a surprising result is more often a broken measurement
-   than a broken system, and it is worth ruling that out first. The same trap
-   appeared twice more in one batch: a public URL returned 200 within a second of
-   a reboot because Cloudflare was serving cache while the origin was still down,
-   and a colour-contrast check parsed the wrong CSS block and would have reported
-   a clean palette that had never been read.
+   than a broken system, and it is worth ruling that out first. A colour-contrast
+   check in the same batch parsed the wrong CSS block and would have reported a
+   clean palette it had never read.
+
+   The point has a second edge, learned by getting it wrong here. A public URL
+   returned 200 within a second of a reboot, and that was written up as
+   Cloudflare serving cache over a dead origin. It was not. Caching was off, and
+   the monitor's own log showed the edge returning 521 during the outage. The
+   recovery had simply been fast. Suspecting the instrument is a discipline, not
+   a licence to explain away a result you did not expect: the suspicion has to be
+   checked too, and here it cost a false line in the runbook telling a future
+   operator not to trust the one signal that was telling the truth.
 
 ## Working loop
 
