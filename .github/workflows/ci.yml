@@ -464,3 +464,37 @@ jobs:
           # The command sent here is ignored: the droplet key forces the deploy.
           ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes \
             root@"${{ secrets.DEPLOY_HOST }}" deploy
+
+  # A red tick on a page nobody has open is not a notification. The contracts job
+  # failed its formatting check across two commits while everything else passed,
+  # and that was found by going to look. This sends the outcome to the same
+  # Telegram channel the uptime monitor uses.
+  notify:
+    name: Notify
+    runs-on: ubuntu-24.04
+    needs:
+      [backend, frontend, contracts, sdk-python, sdk-typescript, sdk-go,
+       secrets, audit, nginx, docker, deploy]
+    # always(), so it reports whatever the other jobs did rather than being
+    # skipped by their failure. Restricted to pushes on main because a fork pull
+    # request cannot read the secrets anyway, and a contributor already sees
+    # their own red tick without an operator being paged about it.
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      # To read whether the previous run failed, which is what decides if a
+      # success is worth reporting.
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - name: Report the outcome to the operator channel
+        # A broken notifier must be visible without turning a green build red.
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GH_TOKEN: ${{ github.token }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: python3 .github/scripts/notify_ci.py
