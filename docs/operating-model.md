@@ -204,11 +204,14 @@ today. That was verified rather than assumed.
 Drilled on 2026-08-08 against the real backup, verified, and torn down. The
 procedure is in `docs/incident-runbook.md` with measured figures.
 
-Two things it left open. RPO is about 24 hours, since backups are daily, which is a
-cost decision rather than a technical one. Cutting over to a restored cluster has
-still not been rehearsed: the drill proved the data comes back, not that the
-application can be pointed at it under pressure. The database is also a single
-node, so a node failure is an outage rather than a failover.
+Cutover was rehearsed separately on 2026-08-09 and is written up too, so both
+halves are proven rather than only the first. It found that overriding
+DATABASE_URL alone leaves alembic pointed at production, which during an incident
+would migrate the live database while the application served a restored copy.
+
+Two things remain open by choice. RPO is about 24 hours, since backups are daily,
+accepted as a cost tradeoff at current scale. The database is a single node, so a
+node failure is an outage rather than a failover.
 
 ### 5. Documentation that has drifted from the code (done)
 

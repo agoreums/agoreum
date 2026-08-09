@@ -191,13 +191,69 @@ not a point in time at all.
   UTC, with eight retained. Anything after the last one is gone. That is the
   number to argue with if it is unacceptable, and it is a cost decision rather
   than a technical one.
-- **RTO, dominated by provisioning.** The fork was requested at 21:31:02Z and was
-  online when checked. The exact provisioning time was not measured, because
-  nobody was polling, so treat it as "minutes, not hours" and measure it properly
-  on the next drill.
-- **Cutting over is not covered here.** This drill restored and verified. Pointing
-  the application at a restored cluster means changing `DATABASE_URL` on the
-  droplet and recreating the API, and that step has not been rehearsed.
+- **Provisioning takes about 3.5 minutes.** Measured on the second drill by
+  polling: 213 seconds from the fork request to `online`, for this cluster size
+  and a database of this size. The first drill did not measure it.
+- **A full restore and cutover rehearsal took 422 seconds end to end**, fork
+  request to fork destroyed, including migrating the restored cluster and
+  verifying the application against it.
+
+## Scenario: cutting the application over to a restored database
+
+Rehearsed on 2026-08-09 with a separate API instance, production untouched
+throughout. This is the second half of recovery; restoring the data is the first.
+
+### Two things that will bite
+
+**`DATABASE_URL` is not the only database setting.** The application reads
+`DATABASE_URL`, and **alembic reads `DATABASE_URL_SYNC`**. Overriding only the
+first gives an instance whose queries go to the restored cluster while its
+migrations go to production.
+
+The rehearsal did exactly that by accident and it looked fine: `alembic current`
+reported `f8b0d2e4a6c7 (head)` while the application's own query on the same
+container reported `organization_invitations` missing. The two were talking to
+different clusters. Running `alembic upgrade head` at that point would have
+migrated **production** during an incident. Set both, and confirm they name the
+same host before running anything.
+
+**A restored instance reports healthy while its schema is behind.** The readiness
+probe checks that the database answers, not that it matches the code. The
+rehearsed instance returned `{"status":"ok"}` with a schema three migrations old,
+against which any request touching the newer tables fails. Health is not a schema
+check; run `alembic current` and compare it to `alembic heads` yourself.
+
+### The procedure
+
+1. Restore, as in the scenario above, and note the new host.
+2. Build both URLs against the restored cluster, matching the shapes production
+   uses:
+   - `DATABASE_URL`: `postgresql+asyncpg://.../agoreum?ssl=require`
+   - `DATABASE_URL_SYNC`: `postgresql+psycopg://.../agoreum?sslmode=require`
+   The connection URI DigitalOcean returns names `defaultdb`; change it.
+3. Start one instance against it before touching the live one:
+
+   ```
+   docker run -d --name agoreum-api-cutover --network agoreum_internal      --env-file /root/agoreum/.env      -e DATABASE_URL='<async url>' -e DATABASE_URL_SYNC='<sync url>'      -e REDIS_URL=redis://redis:6379/1      agoreum-api
+   ```
+
+   A separate Redis database index keeps its cache and rate limit counters out of
+   the live one's.
+
+4. Bring the schema up: `alembic upgrade head`, then confirm `alembic current`
+   equals `alembic heads`.
+5. Verify it serves: `curl http://127.0.0.1:8000/api/v1/health/ready` from inside
+   the container, and query a table the newest migration created.
+6. Only then change the live service, and remove the rehearsal instance.
+
+### What the rehearsal proved
+
+The application came up against a restored database and served correctly:
+readiness ok with database, redis and chain all healthy, 31 tables and the
+expected four users after migrating from `c5e7a9b1d3f4` to `f8b0d2e4a6c7`, with
+the three intervening migrations applying cleanly to restored data.
+
+Production was verified untouched afterwards: same head, same row count.
 
 ## What is watched
 
