@@ -962,5 +962,39 @@
     "failed": "This link did not work.",
     "failedHint": "Links expire after 24 hours and can only be used once. Request a new one from your profile.",
     "toProfile": "Go to your profile"
+  },
+  "arbiter": {
+    "title": "Disputes",
+    "subtitle": "Undecided disputes, oldest first.",
+    "signInRequired": "Sign in to continue.",
+    "loading": "Loading...",
+    "loadFailed": "We could not load the queue.",
+    "notArbiter": "This account is not the arbiter.",
+    "empty": "No disputes are waiting.",
+    "waiting": "Waiting {hours} hours",
+    "providerShare": "Provider's share ({currency})",
+    "buyerReceives": "Buyer receives {amount} {currency}",
+    "reasoning": "Reasoning",
+    "reasoningHint": "Shown to both parties. Not published.",
+    "decide": "Record decision",
+    "deciding": "Recording...",
+    "decideFailed": "We could not record that decision.",
+    "recorded": "Decision recorded",
+    "recordedHint": "Send this from the arbiter wallet. The platform holds no keys and does not settle."
+  },
+  "dispute": {
+    "title": "Dispute",
+    "reasonLabel": "Reason given",
+    "closes": "Statements close {date}",
+    "statementLabel": "Your account of what happened",
+    "statementHint": "The other party sees this, and so does the arbiter.",
+    "submit": "Submit statement",
+    "submitting": "Submitting...",
+    "submitFailed": "We could not submit that.",
+    "loadFailed": "We could not load the dispute.",
+    "decided": "Decision",
+    "toProvider": "To the provider",
+    "toBuyer": "To the buyer",
+    "settlementNote": "Funds move when the settlement is submitted on chain."
   }
 }

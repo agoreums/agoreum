@@ -962,5 +962,39 @@
     "failed": "このリンクは使用できませんでした。",
     "failedHint": "リンクは24時間で期限切れとなり、一度しか使用できません。プロフィールから再発行してください。",
     "toProfile": "プロフィールへ"
+  },
+  "arbiter": {
+    "title": "異議",
+    "subtitle": "未決定の異議、古い順。",
+    "signInRequired": "続行するにはサインインしてください。",
+    "loading": "読み込み中...",
+    "loadFailed": "一覧を読み込めませんでした。",
+    "notArbiter": "このアカウントは仲裁者ではありません。",
+    "empty": "保留中の異議はありません。",
+    "waiting": "{hours} 時間待機中",
+    "providerShare": "提供者の取り分 ({currency})",
+    "buyerReceives": "購入者の受取: {amount} {currency}",
+    "reasoning": "理由",
+    "reasoningHint": "両当事者に表示されます。公開はされません。",
+    "decide": "決定を記録",
+    "deciding": "記録中...",
+    "decideFailed": "決定を記録できませんでした。",
+    "recorded": "決定を記録しました",
+    "recordedHint": "仲裁者のウォレットから送信してください。プラットフォームは鍵を保持せず、清算も行いません。"
+  },
+  "dispute": {
+    "title": "異議",
+    "reasonLabel": "申立ての理由",
+    "closes": "意見の受付は {date} まで",
+    "statementLabel": "経緯についてのあなたの説明",
+    "statementHint": "相手方と仲裁者に表示されます。",
+    "submit": "送信",
+    "submitting": "送信中...",
+    "submitFailed": "送信できませんでした。",
+    "loadFailed": "異議を読み込めませんでした。",
+    "decided": "決定",
+    "toProvider": "提供者へ",
+    "toBuyer": "購入者へ",
+    "settlementNote": "資金はチェーン上で清算が送信された時点で移動します。"
   }
 }

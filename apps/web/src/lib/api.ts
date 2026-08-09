@@ -511,6 +511,85 @@ export const ordersApi = {
       accessToken,
       body: JSON.stringify({ delivery_note: note }),
     }),
+
+  /** The dispute, as both parties and the arbiter see it. */
+  dispute: (accessToken: string, orderId: string) =>
+    apiFetch<Dispute>(`/api/v1/orders/${orderId}/dispute`, { accessToken }),
+
+  submitDisputeStatement: (accessToken: string, orderId: string, text: string) =>
+    apiFetch<Dispute>(`/api/v1/orders/${orderId}/dispute-statements`, {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify({ text }),
+    }),
+
+  /**
+   * Record a decision and receive the call to send.
+   *
+   * Takes only the provider's share: the contract derives the buyer's, so
+   * sending a pair would allow a recorded decision that differs from what is
+   * paid. The response is what the arbiter's own wallet submits; the platform
+   * holds no keys and does not settle.
+   */
+  decideDispute: (
+    accessToken: string,
+    orderId: string,
+    body: { provider_amount: string; reasoning: string },
+  ) =>
+    apiFetch<SettlementInstructions>(
+      `/api/v1/orders/${orderId}/dispute-decision`,
+      { method: "POST", accessToken, body: JSON.stringify(body) },
+    ),
+};
+
+export type DisputeStatement = {
+  id: string;
+  author_user_id: string | null;
+  text: string;
+  created_at: string;
+};
+
+export type Dispute = {
+  order_id: string;
+  order_reference: string;
+  status: string;
+  disputed_at: string | null;
+  reason: string | null;
+  statements_close_at: string | null;
+  statements: DisputeStatement[];
+  resolution: string | null;
+  provider_amount: string | null;
+  buyer_amount: string | null;
+  reasoning: string | null;
+  decided_at: string | null;
+};
+
+export type SettlementInstructions = {
+  order_id: string;
+  order_reference: string;
+  chain_id: number;
+  escrow_contract: string;
+  escrow_id: string;
+  provider_amount: string;
+  provider_amount_base_units: string;
+  buyer_amount: string;
+  buyer_amount_base_units: string;
+};
+
+export type DisputeQueueItem = {
+  order_id: string;
+  order_reference: string;
+  amount: string;
+  currency: string;
+  disputed_at: string | null;
+  hours_waiting: number | null;
+  reason: string | null;
+};
+
+export const adminApi = {
+  /** The arbiter's work queue: undecided disputes, oldest first. */
+  disputeQueue: (accessToken: string) =>
+    apiFetch<DisputeQueueItem[]>("/api/v1/admin/disputes", { accessToken }),
 };
 
 // --- Dashboards, reviews and notifications ----------------------------------

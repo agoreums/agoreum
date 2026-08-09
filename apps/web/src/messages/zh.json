@@ -962,5 +962,39 @@
     "failed": "此链接无法使用。",
     "failedHint": "链接在 24 小时后失效，且只能使用一次。请在个人资料中重新申请。",
     "toProfile": "前往个人资料"
+  },
+  "arbiter": {
+    "title": "争议",
+    "subtitle": "未裁定的争议，最早的在前。",
+    "signInRequired": "请登录后继续。",
+    "loading": "加载中...",
+    "loadFailed": "无法加载队列。",
+    "notArbiter": "此账户不是仲裁方。",
+    "empty": "没有待处理的争议。",
+    "waiting": "已等待 {hours} 小时",
+    "providerShare": "提供者份额（{currency}）",
+    "buyerReceives": "买家获得 {amount} {currency}",
+    "reasoning": "理由",
+    "reasoningHint": "对双方可见，不会公开。",
+    "decide": "记录裁定",
+    "deciding": "记录中...",
+    "decideFailed": "无法记录该裁定。",
+    "recorded": "裁定已记录",
+    "recordedHint": "请从仲裁钱包发送。平台不持有密钥，也不进行结算。"
+  },
+  "dispute": {
+    "title": "争议",
+    "reasonLabel": "提出的理由",
+    "closes": "陈述截止于 {date}",
+    "statementLabel": "你对经过的说明",
+    "statementHint": "对方和仲裁方都会看到。",
+    "submit": "提交陈述",
+    "submitting": "提交中...",
+    "submitFailed": "无法提交。",
+    "loadFailed": "无法加载争议。",
+    "decided": "裁定",
+    "toProvider": "给提供者",
+    "toBuyer": "给买家",
+    "settlementNote": "资金将在链上提交结算时转移。"
   }
 }

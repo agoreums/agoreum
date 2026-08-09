@@ -962,5 +962,39 @@
     "failed": "Dieser Link hat nicht funktioniert.",
     "failedHint": "Links laufen nach 24 Stunden ab und gelten nur einmal. Fordern Sie in Ihrem Profil einen neuen an.",
     "toProfile": "Zum Profil"
+  },
+  "arbiter": {
+    "title": "Streitfaelle",
+    "subtitle": "Unentschiedene Streitfaelle, aelteste zuerst.",
+    "signInRequired": "Bitte anmelden.",
+    "loading": "Wird geladen...",
+    "loadFailed": "Die Warteschlange konnte nicht geladen werden.",
+    "notArbiter": "Dieses Konto ist nicht der Schiedsrichter.",
+    "empty": "Keine offenen Streitfaelle.",
+    "waiting": "Wartet seit {hours} Stunden",
+    "providerShare": "Anteil des Anbieters ({currency})",
+    "buyerReceives": "Kaeufer erhaelt {amount} {currency}",
+    "reasoning": "Begruendung",
+    "reasoningHint": "Fuer beide Parteien sichtbar. Nicht veroeffentlicht.",
+    "decide": "Entscheidung festhalten",
+    "deciding": "Wird festgehalten...",
+    "decideFailed": "Die Entscheidung konnte nicht festgehalten werden.",
+    "recorded": "Entscheidung festgehalten",
+    "recordedHint": "Aus der Schiedsrichter-Wallet senden. Die Plattform haelt keine Schluessel und wickelt nicht ab."
+  },
+  "dispute": {
+    "title": "Streitfall",
+    "reasonLabel": "Angegebener Grund",
+    "closes": "Stellungnahmen enden am {date}",
+    "statementLabel": "Ihre Darstellung",
+    "statementHint": "Die Gegenseite sieht sie, der Schiedsrichter ebenfalls.",
+    "submit": "Stellungnahme senden",
+    "submitting": "Wird gesendet...",
+    "submitFailed": "Konnte nicht gesendet werden.",
+    "loadFailed": "Der Streitfall konnte nicht geladen werden.",
+    "decided": "Entscheidung",
+    "toProvider": "An den Anbieter",
+    "toBuyer": "An den Kaeufer",
+    "settlementNote": "Die Mittel bewegen sich, sobald die Abwicklung on chain eingereicht wird."
   }
 }

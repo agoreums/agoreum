@@ -962,5 +962,39 @@
     "failed": "이 링크는 사용할 수 없습니다.",
     "failedHint": "링크는 24시간 후 만료되며 한 번만 사용할 수 있습니다. 프로필에서 새로 요청하세요.",
     "toProfile": "프로필로 이동"
+  },
+  "arbiter": {
+    "title": "분쟁",
+    "subtitle": "미결 분쟁, 오래된 순.",
+    "signInRequired": "계속하려면 로그인하세요.",
+    "loading": "불러오는 중...",
+    "loadFailed": "목록을 불러오지 못했습니다.",
+    "notArbiter": "이 계정은 중재자가 아닙니다.",
+    "empty": "대기 중인 분쟁이 없습니다.",
+    "waiting": "{hours}시간 대기 중",
+    "providerShare": "제공자 몴 ({currency})",
+    "buyerReceives": "구매자 수령: {amount} {currency}",
+    "reasoning": "사유",
+    "reasoningHint": "양 당사자에게 표시됩니다. 공개되지 않습니다.",
+    "decide": "결정 기록",
+    "deciding": "기록 중...",
+    "decideFailed": "결정을 기록하지 못했습니다.",
+    "recorded": "결정이 기록되었습니다",
+    "recordedHint": "중재자 지갑에서 전송하세요. 플랫폼은 키를 보유하지 않으며 정산하지 않습니다."
+  },
+  "dispute": {
+    "title": "분쟁",
+    "reasonLabel": "제기 사유",
+    "closes": "의견 제출 마감 {date}",
+    "statementLabel": "경위에 대한 귀하의 설명",
+    "statementHint": "상대방과 중재자가 볼 수 있습니다.",
+    "submit": "제출",
+    "submitting": "제출 중...",
+    "submitFailed": "제출하지 못했습니다.",
+    "loadFailed": "분쟁을 불러오지 못했습니다.",
+    "decided": "결정",
+    "toProvider": "제공자에게",
+    "toBuyer": "구매자에게",
+    "settlementNote": "자금은 체인에서 정산이 제출될 때 이동합니다."
   }
 }

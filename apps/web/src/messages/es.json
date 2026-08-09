@@ -962,5 +962,39 @@
     "failed": "Este enlace no ha funcionado.",
     "failedHint": "Los enlaces caducan a las 24 horas y solo se pueden usar una vez. Solicita uno nuevo desde tu perfil.",
     "toProfile": "Ir a tu perfil"
+  },
+  "arbiter": {
+    "title": "Disputas",
+    "subtitle": "Disputas sin decidir, las mas antiguas primero.",
+    "signInRequired": "Inicia sesion para continuar.",
+    "loading": "Cargando...",
+    "loadFailed": "No hemos podido cargar la cola.",
+    "notArbiter": "Esta cuenta no es el arbitro.",
+    "empty": "No hay disputas pendientes.",
+    "waiting": "Esperando {hours} horas",
+    "providerShare": "Parte del proveedor ({currency})",
+    "buyerReceives": "El comprador recibe {amount} {currency}",
+    "reasoning": "Razonamiento",
+    "reasoningHint": "Visible para ambas partes. No se publica.",
+    "decide": "Registrar decision",
+    "deciding": "Registrando...",
+    "decideFailed": "No hemos podido registrar la decision.",
+    "recorded": "Decision registrada",
+    "recordedHint": "Enviala desde la cartera del arbitro. La plataforma no tiene claves y no liquida."
+  },
+  "dispute": {
+    "title": "Disputa",
+    "reasonLabel": "Motivo indicado",
+    "closes": "Las alegaciones cierran el {date}",
+    "statementLabel": "Tu version de lo ocurrido",
+    "statementHint": "La otra parte la ve, y el arbitro tambien.",
+    "submit": "Enviar alegacion",
+    "submitting": "Enviando...",
+    "submitFailed": "No hemos podido enviarlo.",
+    "loadFailed": "No hemos podido cargar la disputa.",
+    "decided": "Decision",
+    "toProvider": "Para el proveedor",
+    "toBuyer": "Para el comprador",
+    "settlementNote": "Los fondos se mueven cuando la liquidacion se envia en la cadena."
   }
 }

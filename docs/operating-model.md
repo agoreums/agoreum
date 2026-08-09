@@ -154,7 +154,7 @@ Re-derived from the state of the code on 2026-08-08, after the previous list was
 finished. Ordered by what would hurt most if left, with the evidence that put each
 one where it is rather than an assertion that it matters.
 
-### 1. Dispute resolution has no ending
+### 1. Dispute resolution has no ending (done)
 
 `AgoreumEscrow.settleDispute(escrowId, providerAmount, buyerAmount)` exists and
 requires `ARBITER_ROLE`. The API has exactly one dispute endpoint, which records an
@@ -162,10 +162,14 @@ intent, and the authoritative dispute is raised on chain by a party's own wallet
 There is nothing between those two facts: no queue of open disputes, no path for an
 arbiter to act, and no record of why a split was chosen.
 
-So today a buyer can raise a dispute and the money stops there. Escrow is the
-platform's entire promise, and the one situation where the platform itself has to
-act is the situation it cannot. This is first because everything else is an
-improvement and this is a missing ending.
+Built and reachable: statements from both parties, a recorded decision with
+reasoning, settlement instructions for the arbiter's own wallet, an arbiter queue
+at `/arbiter`, and a dispute panel on the order for both parties. The design and
+the decisions behind it are in `docs/dispute-resolution-design.md`.
+
+What follows is why it was ranked first. A buyer could raise a dispute and the
+money stopped there. Escrow is the platform's entire promise, and the one
+situation where the platform itself has to act was the situation it could not.
 
 Not a contract change: the on-chain half works and is tested. What is missing is
 the operational half around it.

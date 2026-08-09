@@ -962,5 +962,39 @@
     "failed": "Ce lien n'a pas fonctionné.",
     "failedHint": "Les liens expirent après 24 heures et ne servent qu'une fois. Demandez-en un nouveau depuis votre profil.",
     "toProfile": "Aller à votre profil"
+  },
+  "arbiter": {
+    "title": "Litiges",
+    "subtitle": "Litiges non tranches, les plus anciens en premier.",
+    "signInRequired": "Connectez-vous pour continuer.",
+    "loading": "Chargement...",
+    "loadFailed": "Impossible de charger la file.",
+    "notArbiter": "Ce compte n est pas l arbitre.",
+    "empty": "Aucun litige en attente.",
+    "waiting": "En attente depuis {hours} heures",
+    "providerShare": "Part du prestataire ({currency})",
+    "buyerReceives": "L acheteur recoit {amount} {currency}",
+    "reasoning": "Motivation",
+    "reasoningHint": "Visible par les deux parties. Non publiee.",
+    "decide": "Enregistrer la decision",
+    "deciding": "Enregistrement...",
+    "decideFailed": "Impossible d enregistrer la decision.",
+    "recorded": "Decision enregistree",
+    "recordedHint": "A envoyer depuis le portefeuille de l arbitre. La plateforme ne detient aucune cle et ne regle pas."
+  },
+  "dispute": {
+    "title": "Litige",
+    "reasonLabel": "Motif indique",
+    "closes": "Cloture des observations le {date}",
+    "statementLabel": "Votre version des faits",
+    "statementHint": "L autre partie la voit, ainsi que l arbitre.",
+    "submit": "Envoyer",
+    "submitting": "Envoi...",
+    "submitFailed": "Envoi impossible.",
+    "loadFailed": "Impossible de charger le litige.",
+    "decided": "Decision",
+    "toProvider": "Au prestataire",
+    "toBuyer": "A l acheteur",
+    "settlementNote": "Les fonds sont deplaces lorsque le reglement est soumis sur la chaine."
   }
 }
