@@ -43,6 +43,30 @@ Covers the transitions rather than the probes: below-threshold silence, alerting
 once, not repeating, exactly one all-clear, and a cached HTML page being counted
 as down rather than healthy.
 
+## Token scope
+
+`CLOUDFLARE_API_TOKEN` holds exactly two permission groups, both scoped to the
+account:
+
+- **Workers Scripts Write**, which covers deploying, setting cron triggers,
+  managing the Worker's secrets, and reading logs with `wrangler tail`
+- **Workers KV Storage Write**
+
+That is the whole of what this Worker needs. The token previously carried 273
+permission groups, effectively every account-scoped permission Cloudflare
+offers, including billing, account settings, API token management, Registrar
+domain administration and all of Zero Trust. None of it was used and all of it
+was reachable, so it was narrowed to these two.
+
+Two consequences worth knowing before you reach for it:
+
+- **It cannot widen itself.** `Account API Tokens Write` is gone, so any future
+  permission change has to be made from the Cloudflare dashboard.
+- **It grants nothing at zone level.** No DNS, no zone settings, no firewall
+  rules, no page rules. It can still enumerate the account's zones, which
+  returns names and ids only; that is inherent to an account-scoped token rather
+  than something these two permissions grant.
+
 ## Deploying
 
 Credentials come from the repository root `.env`, as everything else here does.
