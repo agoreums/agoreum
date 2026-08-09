@@ -277,7 +277,5 @@ its own coverage is the wrong kind of wrong.
 | --- | --- | --- |
 | Three Safe multisigs on Base: the two admin addresses and the arbiter | Owner | With the owner. The arbiter joined this list when dispute resolution was built; see docs/contracts.md |
 | Security audit engagement | Owner | With the owner |
-| Revoke the old broad GitHub token | Owner | Replaced by a fine-grained token scoped to this repository, verified against every operation this project performs. The old one granted 21 scopes including `delete_repo`, `admin:org` and `admin:enterprise`. Nothing depends on it any more; revoking is the owner's to do in the GitHub UI |
-| Review the third GitHub credential on the workstation | Owner | `git push` authenticates from Windows Credential Manager with a credential that is neither token in `.env`. Its scopes are unknown and it is what actually pushes to this repository |
 | DMARC to quarantine, then reject | Infrastructure | Deliberately held at `p=none` |
 | Mainnet deployment | Owner | Blocked on the multisigs and the audit, by instruction |
