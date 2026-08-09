@@ -7,13 +7,20 @@ name: Uptime
 # and only reported a problem once it was already back. This runs on GitHub's
 # infrastructure, which shares no failure mode with the host being watched.
 #
-# Five minutes is the finest interval GitHub offers, and scheduled runs can be
-# delayed further under load, so detection is best-effort rather than prompt. It
-# is a large improvement on the previous position, which was that nothing outside
-# the droplet was watching at all.
+# This is the secondary. `infra/uptime-worker` runs the same probes on
+# Cloudflare's cron every minute and is the primary; this exists so that a fault
+# in Cloudflare's scheduler, or in that Worker, still leaves the site watched by
+# something on unrelated infrastructure.
+#
+# Half-hourly, and that is honest rather than a downgrade. This asked for every
+# five minutes and GitHub delivered roughly one run per hundred minutes, because
+# high-frequency schedules are queued at low priority and dropped under load.
+# Declaring a cadence the platform will not honour makes the file lie about its
+# own coverage, and a backup checked every thirty minutes is what this actually
+# was. Asking for less should also see it throttled less.
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
   # So the check can be exercised on demand rather than only on the schedule.
   workflow_dispatch:
 

@@ -12,7 +12,7 @@ outage and reporting a problem only once it was already back.
 | Check | Interval | Role |
 | --- | --- | --- |
 | This Worker | every minute | primary |
-| `.github/workflows/uptime.yml` | every five minutes, best effort | redundant secondary |
+| `.github/workflows/uptime.yml` | every half hour, best effort | redundant secondary |
 
 They share no infrastructure with each other or with the droplet, so a fault in
 either scheduler still leaves the site watched. The GitHub schedule is kept

@@ -293,7 +293,7 @@ channel, so an operator has one place to look rather than four.
 | What | Watches | Alerts |
 | --- | --- | --- |
 | `infra/uptime-worker` on Cloudflare cron | the public site and the API, **every minute** | after two consecutive failures, and again on recovery |
-| `.github/workflows/uptime.yml` | the same two targets, every five minutes, best effort | after three spaced attempts fail, and again on recovery |
+| `.github/workflows/uptime.yml` | the same two targets, every half hour, best effort | after three spaced attempts fail, and again on recovery |
 | `.github/workflows/ci.yml` (`Notify` job) | every CI job on a push to main | naming the jobs that failed, and again when main returns to green |
 
 **Two uptime checks is deliberate.** They run on different providers and share
