@@ -140,10 +140,16 @@ if no RPC endpoint is configured, which is correct, and is why `chain` is
 excluded from the readiness verdict.
 
 ```bash
-cd apps/api && pytest -q      # 319 tests
-cd apps/web  && npm test      # 17 tests
-cd contracts && forge test    # 73 tests
+cd apps/api && pytest -q
+cd apps/web  && npm test
+cd contracts && forge test
 ```
+
+Exact test counts are deliberately not quoted here. They were, and all three had
+drifted to roughly half the real figure, which is worse than saying nothing: a
+number in a document is read as a fact to check against. The counts that carry a
+claim, and are therefore kept current, live in
+[contracts.md](contracts.md) and [audit-readiness.md](audit-readiness.md).
 
 Chain tests skip unless the Anvil fixture is running. That is expected.
 

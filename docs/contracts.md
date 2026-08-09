@@ -110,9 +110,10 @@ would hand over the contract.
 
 ## Testing
 
-**125 tests**, all passing, including fuzz suites at 2000 runs, invariant suites
-at 512 sequences of depth 64, and six fork tests against the real USDC contract
-on Base rather than a mock. Coverage percentages are not quoted here: they were
+**138 tests passing, 6 skipped.** The suites include fuzzing at 2000 runs,
+invariants at 512 sequences of depth 64, and six fork tests against the real
+USDC contract on Base rather than a mock. Those six are the skips: they need a
+Base RPC URL configured, and are the only tests that do. Coverage percentages are not quoted here: they were
 last measured at an earlier revision and are not re-measured on every change, so
 a number in this file would be a claim nobody is checking.
 

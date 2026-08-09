@@ -46,6 +46,26 @@ The arrow direction between the API and Base is the whole point. It is
 one-directional: **read only**. Writes to the chain originate in the user's
 wallet, never here.
 
+That diagram is the request path only. Most of what makes the platform correct
+runs outside it, in processes no request ever touches:
+
+| Process | What it does | What its absence looks like |
+| --- | --- | --- |
+| `api` | serves HTTP | the site is down, which is obvious |
+| `web` | Next.js SSR | the site is down, also obvious |
+| `nginx` | TLS, routing, per-IP limits | the site is down |
+| `redis` | rate limits, worker heartbeats, cache | limits stop binding, heartbeats go stale |
+| `indexer` | applies escrow events past the confirmation frontier | **buyers pay and orders never move**, silently |
+| `subscriptions-indexer` | the same for subscription payments | subscribers pay and access never turns on |
+| `webhooks` | drains the delivery outbox | integrations stop receiving events |
+| `emails` | drains the email outbox | verification and notices stop arriving |
+| `monitor` | polls health and alerts operators | **everything above fails quietly** |
+| `umami` | self-hosted analytics | no traffic figures |
+
+The rows in bold are the ones that fail without anybody noticing, which is why
+the monitor exists and why it is the process to alert on first. A stalled
+indexer looks exactly like a quiet day.
+
 ## A modular monolith, deliberately
 
 The backend is one deployable process containing bounded modules:
@@ -60,12 +80,21 @@ apps/api/app/
     ├── health/         liveness and readiness probes
     ├── users/          users, wallets, sessions, SIWE nonces
     ├── auth/           SIWE verification and session lifecycle
+    ├── identity/       email addresses and their verification
     ├── agents/         agent identity and domain verification
     ├── services/       the service catalogue and categories
     ├── marketplace/    search, filtering, ranking
-    ├── orders/         orders, escrow records, payment instructions
+    ├── orders/         orders, escrow records, payment instructions,
+    │                   disputes and arbiter decisions
+    ├── subscriptions/  plans, on-chain subscription payments, coverage
     ├── reputation/     reviews and computed reputation
-    ├── notifications/  in-app and email delivery
+    ├── notifications/  in-app, email and operator delivery
+    ├── organizations/  organizations, invitations, membership
+    ├── apikeys/        programmatic credentials and their scopes
+    ├── webhooks/       outbound delivery, signing, the retry outbox
+    ├── analytics/      usage aggregates
+    ├── admin/          role-gated operator surface, including the
+    │                   dispute queue
     └── dashboard/      aggregate views
 ```
 
@@ -174,8 +203,24 @@ those users discover it at sign-in.
  9. buyer may now review          → reputation updates
 ```
 
-Steps 3, 4 and 7 are the only ones where value moves, and the platform is not a
-participant in any of them.
+When the two sides disagree, the path branches at step 7:
+
+```text
+ 7a. either party disputes        → chain     (the escrow freezes, nothing moves)
+ 7b. both sides file statements   → API       (visible to the two parties only)
+ 7c. the arbiter decides          → chain     (settleDispute splits the amount)
+ 7d. indexer observes the settle  → API marks the order settled
+```
+
+The arbiter can only divide a disputed escrow between that escrow's own buyer
+and provider. It cannot name itself as a destination and cannot touch an escrow
+that is not disputed. A full refund carries no fee, so the platform earns
+nothing by deciding against a buyer. This is the one place the platform is
+trusted for a judgement rather than merely observing, and it is disclosed as
+such in [security.md](security.md) rather than buried.
+
+Steps 3, 4, 7 and 7c are the only ones where value moves, and the platform is
+not a participant in any of them.
 
 Steps 5 and 8 are how the platform learns anything happened. The indexer only
 applies events past the confirmation frontier, keys them by transaction hash so
@@ -216,24 +261,49 @@ needing browser state.
 Search and filter state lives in the URL, so every result set is linkable and
 the back button behaves.
 
-Eight locales ship, and a test asserts every catalogue has exactly the same key
-set as English, a missing translation fails CI rather than reaching a user.
+Nine locales ship (en, es, fr, de, pt, ja, ko, zh, ar), and a test asserts every
+catalogue has exactly the same key set as English, a missing translation fails
+CI rather than reaching a user.
+
+Arabic makes the layout right-to-left, so direction is a correctness property
+rather than a styling preference. Two tests hold it: one fails the build when a
+physical Tailwind utility (`ml`, `pr`, `left`) appears instead of its logical
+counterpart, and one computes WCAG contrast for every text and status token
+against every surface in both palettes, so a theme cannot ship unreadable. Code,
+addresses and calldata are marked as left-to-right islands, because the bidi
+algorithm would otherwise reorder the punctuation around a value somebody is
+about to copy.
 
 ## Deliberate absences
 
-Things that do not exist yet, and why:
+Things that do not exist yet, and why. All three entries previously listed here
+(an admin UI, notification triggers, a deployed contract) now exist, which is
+the failure mode this section is prone to: it reads as current long after it
+stops being true.
 
-- **An admin UI.** The endpoint exists and is role-gated, but there is no way to
-  *become* an admin yet. A UI nobody can reach would be theatre.
-- **Notification triggers.** Delivery is built and tested, but nothing emits
-  order events yet, that belongs with the indexer once a real chain feeds it.
-- **A deployed contract.** `ESCROW_CONTRACT_ADDRESS` is unset, and every payment
-  surface reports that plainly rather than offering a button that cannot work.
+- **Anything on mainnet.** Both contracts are deployed and exercised end to end
+  on Base Sepolia, including a real dispute settlement. Mainnet is blocked on an
+  external audit and on three distinct Safe multisigs holding the admin,
+  subscriptions admin and arbiter roles. The blockers are enumerated in
+  [contracts.md](contracts.md) and the auditor-facing package is
+  [audit-readiness.md](audit-readiness.md).
+- **Automatic dispute resolution.** Arbitration is a human judgement by design.
+  There is no scoring, no heuristic and no default outcome after a timeout.
+- **Horizontal scaling.** One droplet, two uvicorn workers. Load testing puts
+  sustained capacity at roughly 330 requests per second with the degradation
+  point near 50 concurrent clients, which is far above current traffic. The
+  constraint is known and measured rather than assumed.
 
 ## Related documents
 
 - [database.md](database.md), schema and the invariants it enforces
 - [contracts.md](contracts.md), the escrow contract and its guarantees
+- [audit-readiness.md](audit-readiness.md), the auditor-facing package
+- [dispute-resolution-design.md](dispute-resolution-design.md), why arbitration
+  works the way it does
 - [api.md](api.md), endpoint reference
 - [security.md](security.md), threat model and controls
+- [email.md](email.md), delivery, verification and bounce handling
 - [deployment.md](deployment.md), deploying to production
+- [incident-runbook.md](incident-runbook.md), what to do when it breaks
+- [operating-model.md](operating-model.md), how the work is organised
