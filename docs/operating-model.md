@@ -277,5 +277,6 @@ its own coverage is the wrong kind of wrong.
 | --- | --- | --- |
 | Three Safe multisigs on Base: the two admin addresses and the arbiter | Owner | With the owner. The arbiter joined this list when dispute resolution was built; see docs/contracts.md |
 | Security audit engagement | Owner | With the owner |
+| Narrow the GitHub personal access token | Owner | Grants 21 scopes where 2 are used. `delete_repo`, `admin:org` and `admin:enterprise` are among the rest. Scopes cannot be changed through the API, so this needs the GitHub web UI. A fine-grained token limited to this one repository would be narrower still |
 | DMARC to quarantine, then reject | Infrastructure | Deliberately held at `p=none` |
 | Mainnet deployment | Owner | Blocked on the multisigs and the audit, by instruction |
