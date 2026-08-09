@@ -147,6 +147,20 @@ Earned by getting each of these wrong at least once.
    rather than by reasoning about it, so budget for the looking, and expect the
    thing you find to be adjacent to the thing you went in for.
 
+8. **A measurement measures the instrument too.** The first load test put the API
+   at 67 requests per second. The real figure was 333: four fifths of the
+   apparent load was one endpoint in the test's own mix making an outbound RPC
+   call on every request. The instrument was measuring itself. That first number
+   was not merely imprecise, it pointed at entirely the wrong problem, and acting
+   on it would have meant tuning workers that were never the constraint. Before
+   reporting a number, account for what the act of measuring contributed to it.
+   The corollary is that a surprising result is more often a broken measurement
+   than a broken system, and it is worth ruling that out first. The same trap
+   appeared twice more in one batch: a public URL returned 200 within a second of
+   a reboot because Cloudflare was serving cache while the origin was still down,
+   and a colour-contrast check parsed the wrong CSS block and would have reported
+   a clean palette that had never been read.
+
 ## Working loop
 
 Pick the highest item on the backlog that is not blocked. Build it with tests

@@ -285,9 +285,51 @@ untrue since the monitor gained those topics. A runbook is read during an incide
 by somebody deciding what to trust, so understating its own coverage is the wrong
 kind of wrong.
 
+## Scenario: the host reboots or the stack is recreated
+
+Drilled on production rather than reasoned about, on 2026-08-09.
+
+A reboot was issued, and then, separately, the whole stack was taken down with
+`docker compose down` (removing every container and the internal network) and
+brought back with `up -d`. Nothing was touched by hand in either case.
+
+| Event | Time to full service |
+| --- | --- |
+| Droplet reboot | SSH at 16s, all ten containers running at 30s, verified healthy at 45s |
+| Full stack recreate from cold | 43s from `up -d` returning to everything healthy |
+
+Both returned unattended. What was checked afterwards was not just "the
+containers are running", which proves little, but that the things that fail
+silently were actually working: both indexers resumed from their cursors in
+Postgres and were back to a five block lag, and the webhooks worker was writing
+its heartbeat again within seconds.
+
+Two facts worth keeping in mind:
+
+- **Redis holds nothing that needs to survive.** It has no persistence
+  configured, deliberately. Everything in it is a rate-limit counter, a worker
+  heartbeat or a cache entry, all with expiry, so a cold start loses nothing
+  that matters. If anything durable is ever put in Redis, that changes and this
+  note is the place it will be missed.
+- **Cloudflare will serve a cached page while the origin is still down.** During
+  the drill the public URL returned 200 within a second of the host coming back,
+  well before nginx was accepting connections. Recovery must be confirmed
+  against the origin directly, which is what `curl -k -H "Host: agoreum.xyz"
+  https://localhost/en` on the droplet does. Trusting the public URL would have
+  reported success roughly thirty seconds early.
+
 ## What is not covered
 
 Stated plainly so nobody assumes otherwise:
+
+- **A host-level outage cannot alert.** The monitor runs on the machine it
+  watches, so when the droplet went down in the drill it went down with it and
+  sent nothing. It reported `HTTP 521` only once it was back up and the stack
+  was still settling. Nothing inside the host can page anybody about the host
+  being gone. The daily heartbeat means a dead monitor is eventually noticed,
+  but "eventually" is up to twenty four hours. Closing this needs an uptime
+  check that runs somewhere else, and until that exists the honest position is
+  that total-host failure is discovered by a person, not by the monitoring.
 
 - **No timelock.** Every governance action is immediate. There is no delay in
   which to notice and react to a hostile `setFeeConfig` or `setTreasury`.
