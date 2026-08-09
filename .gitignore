@@ -101,3 +101,11 @@ infra/nginx/certs/
 # The blanket *.crt rule above exists to stop origin certificates and private
 # keys being committed, which is right; this one file is the exception.
 !infra/certs/digitalocean-db-ca.crt
+
+# Cloudflare Worker local state and credentials. .cf-auth carries an API token
+# and .dev.vars carries the Telegram secrets for local runs; neither belongs in
+# version control, and the repository is public.
+infra/uptime-worker/.cf-auth
+infra/uptime-worker/.dev.vars
+infra/uptime-worker/.wrangler/
+infra/uptime-worker/node_modules/

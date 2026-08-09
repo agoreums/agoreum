@@ -1,0 +1,35 @@
+{
+  // No $schema reference: wrangler is run through npx here rather than
+  // installed into this directory, so a node_modules path would point at
+  // nothing and mislead anyone who opened the file.
+  "name": "agoreum-uptime",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-08-01",
+
+  // No public URL. The Worker has a fetch handler so the check can be run on
+  // demand during setup, and on a workers.dev subdomain that would be an
+  // unauthenticated endpoint any stranger could use to make us send Telegram
+  // messages. Cron is the only trigger that should reach it in production.
+  "workers_dev": false,
+
+  // Every minute. This is the primary external check; the GitHub Actions
+  // workflow runs the same probes every five minutes as a redundant secondary,
+  // so a fault in either scheduler does not leave the site unwatched.
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+
+  // Holds the consecutive-failure count and whether an alert has already been
+  // sent, so an outage pages once rather than every minute, and so a recovery
+  // can be recognised as a transition rather than just another healthy check.
+  "kv_namespaces": [
+    { "binding": "STATE", "id": "023534cbd49540eeafab5dad109e934a" }
+  ],
+
+  // Logs are the only way to see what a cron-triggered Worker did, since there
+  // is no request to inspect and a healthy run is deliberately silent.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
