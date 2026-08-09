@@ -287,14 +287,22 @@ kind of wrong.
 
 ### Watched from outside the droplet
 
-Two GitHub Actions workflows report to the same Telegram channel, so an operator
-has one place to look rather than three. They run on GitHub's infrastructure,
-which shares no failure mode with the host, which is the entire point.
+Three things watch from outside the droplet and report to the same Telegram
+channel, so an operator has one place to look rather than four.
 
-| Workflow | Watches | Alerts |
+| What | Watches | Alerts |
 | --- | --- | --- |
-| `.github/workflows/uptime.yml` | the public site and the API, every five minutes | when three spaced attempts all fail, and again when it recovers |
+| `infra/uptime-worker` on Cloudflare cron | the public site and the API, **every minute** | after two consecutive failures, and again on recovery |
+| `.github/workflows/uptime.yml` | the same two targets, every five minutes, best effort | after three spaced attempts fail, and again on recovery |
 | `.github/workflows/ci.yml` (`Notify` job) | every CI job on a push to main | naming the jobs that failed, and again when main returns to green |
+
+**Two uptime checks is deliberate.** They run on different providers and share
+no infrastructure with each other or with the droplet, so a fault in either
+scheduler still leaves the site watched. Cloudflare is the primary because it
+actually runs every minute. GitHub is the backup because it does not: measured,
+its first scheduled run took about a hundred minutes to appear and it has fired
+sparsely since. That is documented GitHub behaviour for high-frequency crons,
+not a misconfiguration, and it is the reason the primary moved.
 
 Both stay silent while healthy, and both check that their own credentials
 resolve before deciding they have nothing to say. Without that, a workflow whose
@@ -306,13 +314,17 @@ answered, but if that is ever turned on a page check alone would silently become
 a test of Cloudflare's cache. JSON that a static cache cannot fake is the guard
 against that.
 
-**Its limits, stated so nobody assumes otherwise.** Five minutes is the finest
-interval GitHub offers, and scheduled runs are queued at low priority and can be
-delayed further, so worst-case detection is on the order of fifteen minutes
-rather than one. GitHub also disables scheduled workflows in a repository with
-no activity for sixty days. A dedicated monitoring service would detect faster
-and more predictably; this is the version that needed no new vendor, no new
-account and no cost.
+**Limits, stated so nobody assumes otherwise.** Detection is about two minutes,
+being two consecutive one-minute checks, not instant. Neither check can report
+that Cloudflare itself is unreachable in a way that also takes down the Worker,
+though the GitHub check covers that case from a different provider, which is
+half the reason it is kept. GitHub additionally disables scheduled workflows in
+a repository with no activity for sixty days.
+
+**When reading Worker state, pass `--remote`.** Without it `wrangler kv key get`
+reads local storage and reports `Value not found` for a key that exists, which
+looks exactly like a Worker that is not running. That cost time during setup:
+the cron was firing correctly the whole while and the reading tool was wrong.
 
 ## Scenario: the host reboots or the stack is recreated
 
@@ -359,13 +371,12 @@ Two facts worth keeping in mind:
 
 Stated plainly so nobody assumes otherwise:
 
-- **A host-level outage is detected slowly, not quickly.** Nothing inside the
-  host can page anybody about the host being gone: the monitor went down with it
-  during the drill and sent nothing. That is now covered from outside by
-  `.github/workflows/uptime.yml`, described above, but on a five minute schedule
-  that can be delayed, so the honest figure is minutes to a quarter of an hour,
-  not seconds. Anything needing faster detection needs a dedicated monitoring
-  service.
+- **A host-level outage is detected in about two minutes, not instantly.**
+  Nothing inside the host can page anybody about the host being gone: the
+  monitor went down with it during the drill and sent nothing. That is covered
+  from outside by the Cloudflare cron Worker, which checks every minute and
+  alerts on the second consecutive failure, with the GitHub workflow behind it.
+  Two minutes is the deliberate cost of not paging on every one-minute blip.
 
 - **No timelock.** Every governance action is immediate. There is no delay in
   which to notice and react to a hostile `setFeeConfig` or `setTreasury`.
