@@ -54,3 +54,19 @@ def _no_live_operator_alerts(monkeypatch):
     monkeypatch.setattr(settings, "TELEGRAM_CHAT_ID", "")
     monkeypatch.setattr(settings, "DISCORD_BOT_TOKEN", SecretStr(""))
     monkeypatch.setattr(settings, "DISCORD_CHANNEL_ID", "")
+
+
+@pytest.fixture(autouse=True)
+def _fresh_chain_health_cache():
+    """No test inherits another test's cached chain probe.
+
+    The readiness probe caches the chain result to keep an unauthenticated
+    endpoint from billing an RPC call per request. That cache is process-global,
+    so without this a test that patches the chain would either read a stale
+    answer or leave one behind for whatever runs next.
+    """
+    from app.modules.health import service
+
+    service.reset_chain_cache()
+    yield
+    service.reset_chain_cache()

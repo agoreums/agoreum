@@ -5,8 +5,9 @@ reports healthy because it was unable to run, failures are reported as failures.
 """
 from __future__ import annotations
 
+import asyncio
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
 from sqlalchemy import text
@@ -27,6 +28,15 @@ PROBE_TIMEOUT_SECONDS = 3.0
 # loop has stopped draining the outbox even though the container may be up.
 WEBHOOK_HEARTBEAT_KEY = "health:worker:webhooks"
 WORKER_HEARTBEAT_STALE_SECONDS = 180
+
+# The chain probe is the only one on the readiness path that leaves our own
+# infrastructure, and it is reported rather than required. Serving it from a
+# short-lived cache keeps the reported status honest to within this window while
+# stopping an unauthenticated endpoint from turning every request into a billed
+# RPC call. The container healthcheck alone asks every 30 seconds; a client can
+# ask far faster, and load testing measured the readiness probe capping the API
+# at roughly a fifth of the throughput it reaches without it.
+CHAIN_CACHE_SECONDS = 15.0
 
 
 @dataclass
@@ -104,7 +114,37 @@ async def check_redis() -> ComponentHealth:
     )
 
 
-async def check_chain() -> ComponentHealth:
+_chain_cache: tuple[float, ComponentHealth] | None = None
+_chain_lock: asyncio.Lock | None = None
+
+
+def _chain_cache_lock() -> asyncio.Lock:
+    """The lock, created on first use so it binds to the running loop."""
+    global _chain_lock
+    if _chain_lock is None:
+        _chain_lock = asyncio.Lock()
+    return _chain_lock
+
+
+def reset_chain_cache() -> None:
+    """Forget the cached chain probe. For tests, and for a forced re-check."""
+    global _chain_cache
+    _chain_cache = None
+
+
+def _cached_chain(now: float) -> ComponentHealth | None:
+    if _chain_cache is None:
+        return None
+    measured_at, health = _chain_cache
+    age = now - measured_at
+    if age >= CHAIN_CACHE_SECONDS:
+        return None
+    # The age travels with the answer. A reader deciding whether the chain is
+    # genuinely down needs to know the figure may predate their request.
+    return replace(health, detail={**health.detail, "age_seconds": str(round(age, 1))})
+
+
+async def check_chain(*, use_cache: bool = True) -> ComponentHealth:
     """Verify the configured chain is reachable and is the chain we expect.
 
     Reported as informational rather than as a hard dependency: the platform
@@ -112,7 +152,35 @@ async def check_chain() -> ComponentHealth:
     RPC provider is having a bad day. Only funding a new escrow needs the chain,
     and that already fails loudly on its own. Marking the whole service unready
     would take the site down over a third party's outage.
+
+    The result is cached for `CHAIN_CACHE_SECONDS`, and concurrent misses are
+    collapsed into a single round-trip, so a burst of readiness checks costs one
+    RPC call rather than one each. Failures are cached too: an RPC provider
+    having an outage should not also be hammered by our health checks.
     """
+    global _chain_cache
+
+    if use_cache:
+        cached = _cached_chain(time.monotonic())
+        if cached is not None:
+            return cached
+
+        async with _chain_cache_lock():
+            # Another request may have refreshed it while we waited for the lock.
+            cached = _cached_chain(time.monotonic())
+            if cached is not None:
+                return cached
+            health = await _probe_chain()
+            _chain_cache = (time.monotonic(), health)
+            return health
+
+    health = await _probe_chain()
+    _chain_cache = (time.monotonic(), health)
+    return health
+
+
+async def _probe_chain() -> ComponentHealth:
+    """One real round-trip to the configured RPC endpoint."""
     from app.chain.client import health_check as chain_health
 
     start = time.perf_counter()
