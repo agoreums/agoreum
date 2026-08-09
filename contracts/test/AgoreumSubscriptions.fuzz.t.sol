@@ -89,4 +89,79 @@ contract AgoreumSubscriptionsFuzzTest is Test {
         // Fresh 30 days from now regardless of how long the lapse was.
         assertEq(subs.getSubscription(alice, 1).expiresAt, block.timestamp + 30 days);
     }
+
+    /// @notice Cancelling is a statement of intent and must never move coverage.
+    /// @dev The refund question is settled by construction: there is nothing to
+    ///      refund because the period was already bought. This asserts the other
+    ///      half, that cancelling does not silently shorten it either.
+    function testFuzz_cancellingNeverChangesCoverage(uint256 price, uint256 warpSeed) public {
+        price = bound(price, 1, 1_000_000e6);
+        uint64 period = subs.MIN_PERIOD() * 30;
+        uint64 warpBy = uint64(bound(warpSeed, 0, period - 1));
+
+        vm.prank(admin);
+        subs.createPlan(1, address(usdc), price, period);
+
+        vm.startPrank(alice);
+        subs.subscribe(1, price);
+        uint64 expiryBefore = subs.getSubscription(alice, 1).expiresAt;
+
+        vm.warp(block.timestamp + warpBy);
+        subs.cancel(1);
+        vm.stopPrank();
+
+        assertEq(
+            subs.getSubscription(alice, 1).expiresAt, expiryBefore, "cancelling moved the expiry"
+        );
+        assertTrue(subs.getSubscription(alice, 1).autoRenewCancelled, "intent not recorded");
+    }
+
+    /// @notice However a subscriber pays, the contract keeps nothing.
+    /// @dev The non-custody claim asserted across arbitrary prices and repeated
+    ///      payments rather than at one convenient amount, and checked between
+    ///      every payment rather than only at the end.
+    function testFuzz_theContractNeverAccumulatesABalance(uint256 price, uint8 payments) public {
+        price = bound(price, 1, 1_000_000e6);
+        uint256 times = bound(payments, 1, 12);
+        uint64 period = subs.MIN_PERIOD();
+
+        vm.prank(admin);
+        subs.createPlan(1, address(usdc), price, period);
+
+        uint256 treasuryBefore = usdc.balanceOf(treasury);
+        vm.startPrank(alice);
+        for (uint256 i = 0; i < times; i++) {
+            subs.subscribe(1, price);
+            assertEq(usdc.balanceOf(address(subs)), 0, "contract held a balance mid-run");
+        }
+        vm.stopPrank();
+
+        assertEq(usdc.balanceOf(treasury) - treasuryBefore, price * times, "treasury short");
+        assertEq(subs.revenueRouted(address(usdc)), price * times, "tally disagrees");
+    }
+
+    /// @notice The revenue tally only ever rises, and by exactly what was paid.
+    /// @dev A tally that can move by anything else is one that can be made to
+    ///      disagree with the treasury, which is the figure reconciliation trusts.
+    function testFuzz_revenueTallyIsMonotonic(uint256 price, uint8 payments) public {
+        price = bound(price, 1, 1_000_000e6);
+        uint256 times = bound(payments, 1, 8);
+
+        // Read before the prank. A view call consumes a pending vm.prank, so
+        // inlining this made createPlan run as the wrong caller. The same trap is
+        // already called out in the escrow governance suite.
+        uint64 period = subs.MIN_PERIOD();
+        vm.prank(admin);
+        subs.createPlan(1, address(usdc), price, period);
+
+        uint256 previous = subs.revenueRouted(address(usdc));
+        vm.startPrank(alice);
+        for (uint256 i = 0; i < times; i++) {
+            subs.subscribe(1, price);
+            uint256 current = subs.revenueRouted(address(usdc));
+            assertEq(current, previous + price, "tally moved by the wrong amount");
+            previous = current;
+        }
+        vm.stopPrank();
+    }
 }

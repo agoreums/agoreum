@@ -231,16 +231,29 @@ contract AgoreumSubscriptions is AccessControl, Pausable, ReentrancyGuard {
         _pause();
     }
 
+    /// @notice Resume accepting subscriptions and renewals.
+    /// @dev Cancelling was never blocked by the pause, so unpausing restores only
+    ///      the ability to pay.
     function unpause() external onlyRole(GOVERNOR_ROLE) {
         _unpause();
     }
 
     // ------------------------------------------------------------------ Views
 
+    /// @notice The full plan record.
+    /// @dev Returns a zeroed struct for an unknown id. Check `exists` rather than
+    ///      reading `price` as zero and concluding the plan is free.
+    /// @param planId The plan to read.
     function getPlan(uint256 planId) external view returns (Plan memory) {
         return _plans[planId];
     }
 
+    /// @notice One subscriber's coverage under one plan.
+    /// @dev A zeroed record means they have never subscribed. A record with
+    ///      `expiresAt` in the past means they lapsed, which is a different
+    ///      thing and is why the two are distinguishable.
+    /// @param subscriber The wallet to read.
+    /// @param planId The plan to read.
     function getSubscription(address subscriber, uint256 planId)
         external
         view

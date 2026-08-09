@@ -387,16 +387,28 @@ contract AgoreumEscrow is AccessControl, Pausable, ReentrancyGuard {
         _pause();
     }
 
+    /// @notice Resume accepting new escrows.
+    /// @dev Pausing never blocked release, refund or settlement, so unpausing
+    ///      restores only the ability to create new ones.
     function unpause() external onlyRole(GOVERNOR_ROLE) {
         _unpause();
     }
 
     // ------------------------------------------------------------------ Views
 
+    /// @notice The full escrow record.
+    /// @dev Returns a zeroed struct for an unknown id, whose `status` is
+    ///      `Status.None`. Callers must check that rather than assuming a zeroed
+    ///      record is a funded one with zero amount.
+    /// @param escrowId The escrow to read.
     function getEscrow(bytes32 escrowId) external view returns (Escrow memory) {
         return _escrows[escrowId];
     }
 
+    /// @notice The lifecycle state of an escrow.
+    /// @dev `Status.None` means it was never created, which is distinct from any
+    ///      terminal state.
+    /// @param escrowId The escrow to read.
     function statusOf(bytes32 escrowId) external view returns (Status) {
         return _escrows[escrowId].status;
     }
