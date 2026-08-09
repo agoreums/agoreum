@@ -167,9 +167,7 @@ contract AgoreumSubscriptionsGovernanceTest is Test {
 
         vm.prank(subscriber);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AgoreumSubscriptions.PriceExceedsMax.selector, PRICE * 2, PRICE
-            )
+            abi.encodeWithSelector(AgoreumSubscriptions.PriceExceedsMax.selector, PRICE * 2, PRICE)
         );
         subs.subscribe(PLAN, PRICE);
     }
