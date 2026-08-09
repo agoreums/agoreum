@@ -434,11 +434,31 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: false
+          load: true
+          tags: agoreum-web:ci
           build-args: |
             NEXT_PUBLIC_APP_URL=https://agoreum.xyz
             NEXT_PUBLIC_API_URL=https://agoreum.xyz
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # A build can install the right dependencies and still ship the wrong ones.
+      # This shipped Next 16.2.11 for two weeks from a lockfile pinning 16.3.0,
+      # because a stale node_modules on the build host was copied over the
+      # installed tree, so a bump that cleared three high advisories never
+      # reached production. Nothing failed, nothing warned. This compares what is
+      # actually inside the image against the lockfile.
+      - name: The image must contain the dependencies the lockfile pins
+        run: |
+          set -euo pipefail
+          expected=$(node -p "require('./apps/web/package-lock.json').packages['node_modules/next'].version")
+          actual=$(docker run --rm --entrypoint node agoreum-web:ci \
+            -p "require('/srv/app/node_modules/next/package.json').version")
+          echo "lockfile pins next $expected, image contains $actual"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::Image ships next $actual but the lockfile pins $expected."
+            exit 1
+          fi
 
   # Continuous deployment. Runs only on a real merge to main, and only once every
   # job that could catch a problem has passed. The droplet's authorized key forces

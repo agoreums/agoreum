@@ -1,0 +1,59 @@
+# Every image builds from the repository root as its context, so anything not
+# excluded here is shipped to the daemon and can be picked up by a COPY.
+#
+# This file did not exist, and its absence was not theoretical. The web image
+# runs `npm ci` from the lockfile in one stage and then does `COPY apps/web ./`
+# in the next, which silently overwrote that freshly installed tree with
+# whatever `node_modules` happened to be lying on the build host. Production ran
+# Next 16.2.11 from a July checkout while the lockfile said 16.3.0, so a
+# dependency bump made specifically to clear three high advisories never reached
+# production and nothing reported a problem.
+
+# Version control and CI. Large, and never needed inside an image.
+.git
+.gitignore
+.github
+
+# Installed dependency trees. The images install their own from a lockfile;
+# copying a host tree in defeats the point of a reproducible build.
+**/node_modules
+
+# Build output. A stale local build must never be mistaken for a fresh one.
+**/.next
+**/dist
+**/build
+**/.turbo
+contracts/out
+contracts/cache
+contracts/lib
+
+# Secrets. Nothing in the tree copies these today, but the cost of one careless
+# `COPY . .` in future is the production environment file inside a shipped
+# image layer.
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Local state and caches.
+backups
+**/__pycache__
+**/*.py[cod]
+**/.venv
+.venv
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/coverage
+**/htmlcov
+**/*.log
+
+# Editor and OS noise.
+.vscode
+.idea
+**/.DS_Store
+
+# Documentation. Read on GitHub, not from inside a container.
+docs
+*.md
+LICENSE

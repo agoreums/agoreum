@@ -24,6 +24,31 @@ echo "deploying ${BEFORE} -> ${AFTER}"
 log "build images"
 $COMPOSE build api web indexer webhooks emails subscriptions-indexer
 
+# A build can install the right dependencies and still ship the wrong ones.
+#
+# The web image ran `npm ci` from the lockfile and then copied apps/web over the
+# top, which replaced the freshly installed tree with whatever node_modules was
+# lying on this host. It had been there since July. Production served Next
+# 16.2.11 for two weeks while the lockfile pinned 16.3.0, so a bump made
+# specifically to clear three high advisories never arrived, and every deploy
+# reported success throughout.
+#
+# The root fix is the .dockerignore, and the Dockerfile now copies in an order
+# that survives its absence. This is the check that would actually have caught
+# it, and it has to run here: a CI runner has no stale tree, so the fault is
+# invisible there and only appears on a machine that has ever run npm locally.
+log "verify the built image matches the lockfile"
+EXPECTED=$(node -p "require('./apps/web/package-lock.json').packages['node_modules/next'].version" 2>/dev/null \
+  || python3 -c "import json;print(json.load(open('apps/web/package-lock.json'))['packages']['node_modules/next']['version'])")
+ACTUAL=$($COMPOSE run --rm --no-deps --entrypoint node web \
+  -p "require('/srv/app/node_modules/next/package.json').version" 2>/dev/null | tr -d '\r\n')
+if [ "${EXPECTED}" != "${ACTUAL}" ]; then
+  echo "FATAL: web image ships next ${ACTUAL} but the lockfile pins ${EXPECTED}" >&2
+  echo "the build context is contaminated; check .dockerignore and apps/web/node_modules" >&2
+  exit 1
+fi
+echo "  next ${ACTUAL} matches the lockfile"
+
 log "run migrations"
 $COMPOSE run --rm api alembic upgrade head
 

@@ -20,8 +20,15 @@ WORKDIR /build
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=deps /build/node_modules ./node_modules
+# Source first, then the installed tree on top. The order matters: with the
+# copies the other way round, `COPY apps/web ./` overwrote the node_modules that
+# `npm ci` had just installed with whatever tree existed on the build host, and
+# that is exactly what happened. Production served a July dependency tree for
+# two weeks while the lockfile said otherwise. A .dockerignore at the repository
+# root now keeps node_modules out of the context, and this ordering means the
+# installed tree still wins if anything ever slips past it.
 COPY apps/web ./
+COPY --from=deps /build/node_modules ./node_modules
 # The ABI is generated into src/lib by scripts/sync_abi.py and committed, so no
 # Solidity toolchain is needed here.
 
