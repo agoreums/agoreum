@@ -206,7 +206,8 @@ code alone.
 | `ESCROW_ADMIN_ADDRESS` is a Safe multisig | A single admin key can grant itself any role, including arbiter |
 | `SUBSCRIPTIONS_ADMIN_ADDRESS` is a Safe multisig | Same, and it can redirect the treasury |
 | `ESCROW_ARBITER_ADDRESS` is a Safe multisig | It decides how disputed escrow is split between two parties. A single key means one compromised key decides other people's money, and settlements are immediate with no timelock and no appeal |
-| The arbiter and the admin are **different addresses** | Not theoretical. On the deployed testnet contract they are the same address: `hasRole(ARBITER_ROLE, ...)` returns true for the deployer, which also holds `DEFAULT_ADMIN_ROLE`, while the address named in configuration held no role at all. One key that can both grant itself roles and divide disputed escrow is the collapse the incident runbook warns about, and it happened by default rather than by decision |
+| The fee recipient is a **different address** too | The deploy script enforces all three being pairwise distinct on mainnet, and does not on a test network. On the deployed testnet contract all three are the same address, which is how that latitude actually gets used |
+| The arbiter and the admin are **different addresses** | Not theoretical. On the deployed testnet contract they are the same address: `hasRole(ARBITER_ROLE, ...)` returns true for the deployer, which also holds `DEFAULT_ADMIN_ROLE`, while the address named in configuration held no role at all. One key that can both grant itself roles and divide disputed escrow is the collapse the incident runbook warns about, and it happened by default rather than by decision. Found by running a dispute end to end and watching the fee land somewhere other than the configured address |
 | A security audit has been performed | No third party has reviewed this code |
 
 The arbiter blocker was added when dispute resolution was built. It is the same
