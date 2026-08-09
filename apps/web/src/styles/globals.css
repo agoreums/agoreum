@@ -46,6 +46,10 @@
   --color-ink-100: #eceef6;
   --color-ink-200: #d5d9e8;
   --color-ink-300: #b0b7d0;
+  /* Exists so muted text clears AA on the overlay surface, not for styling
+     latitude. ink-400 measures 4.08:1 on ink-800, which is a real failure for
+     the labels, hints and timestamps that use it. Verified in contrast.test.ts. */
+  --color-ink-350: #8f98bd;
   --color-ink-400: #848db3;
   --color-ink-500: #656d97;
   --color-ink-600: #50567c;
@@ -68,7 +72,12 @@
   --color-accent-500: #e0a04a;
   --color-accent-600: #c48334;
 
-  /* --- Semantic status ---------------------------------------------------- */
+  /* --- Semantic status ----------------------------------------------------
+     These are the dark-field values. No single value clears AA 4.5:1 against
+     both a white and a near-black surface, so the light palette overrides them
+     with darker variants of the same hue in the base layer below. Status text
+     says an order failed or a payout landed, so it is held to body-text
+     contrast rather than the large-text threshold. */
   --color-success-500: #34b981;
   --color-success-600: #279268;
   --color-warning-500: #e0a04a;
@@ -127,7 +136,10 @@
     --surface-overlay: var(--color-ink-800);
     --text-primary: var(--color-ink-50);
     --text-secondary: var(--color-ink-300);
-    --text-muted: var(--color-ink-400);
+    --text-muted: var(--color-ink-350);
+    /* The one status hue that does not clear 4.5:1 on the overlay surface at
+       its default value. Lifted rather than left to fail on dropdowns. */
+    --color-danger-500: #f16b7d;
     --border-subtle: color-mix(in oklab, var(--color-ink-100) 10%, transparent);
     --border-strong: color-mix(in oklab, var(--color-ink-100) 18%, transparent);
     color-scheme: dark;
@@ -143,6 +155,15 @@
     --text-primary: var(--color-ink-950);
     --text-secondary: var(--color-ink-700);
     --text-muted: var(--color-ink-600);
+    /* Darker variants of the same hues. The dark-field values measure between
+       2.26:1 and 3.30:1 on white, which is unreadable for the error and status
+       text they carry. Every one of these clears 4.5:1 on all three light
+       surfaces. Backgrounds only ever use these at low opacity, so darkening
+       them tints rather than fills. */
+    --color-success-500: #227a55;
+    --color-warning-500: #8c642e;
+    --color-danger-500: #b84555;
+    --color-signal-500: #0f7977;
     --border-subtle: color-mix(in oklab, var(--color-ink-950) 10%, transparent);
     --border-strong: color-mix(in oklab, var(--color-ink-950) 16%, transparent);
     color-scheme: light;
@@ -157,7 +178,13 @@
       --surface-overlay: var(--color-ink-800);
       --text-primary: var(--color-ink-50);
       --text-secondary: var(--color-ink-300);
-      --text-muted: var(--color-ink-400);
+      --text-muted: var(--color-ink-350);
+      /* Must mirror the dark block above, including the status overrides it
+         reverses. A device set to dark gets the dark palette in full. */
+      --color-success-500: #34b981;
+      --color-warning-500: #e0a04a;
+      --color-danger-500: #f16b7d;
+      --color-signal-500: #17bcb8;
       --border-subtle: color-mix(in oklab, var(--color-ink-100) 10%, transparent);
       --border-strong: color-mix(in oklab, var(--color-ink-100) 18%, transparent);
       color-scheme: dark;
@@ -166,6 +193,21 @@
 
   * {
     border-color: var(--border-subtle);
+  }
+
+  /* Code is always left-to-right, whatever the page direction.
+     Under Arabic, the bidi algorithm reorders the punctuation around Latin
+     runs, so `settleDispute(escrowId: 12)` renders with its brackets and colons
+     in the wrong places, and a wallet address or API key can be displayed in an
+     order it was not issued in. Isolating stops the surrounding paragraph's
+     direction leaking in, which matters most for the values a user copies. */
+  code,
+  pre,
+  kbd,
+  samp {
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: start;
   }
 
   html {

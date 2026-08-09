@@ -1,5 +1,6 @@
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypeScript from "eslint-config-next/typescript";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 
 /**
  * ESLint flat config.
@@ -11,6 +12,23 @@ const config = [
   { ignores: [".next/**", "node_modules/**", "next-env.d.ts"] },
   ...nextCoreWebVitals,
   ...nextTypeScript,
+  // eslint-config-next enables only a handful of jsx-a11y rules (alt text and
+  // basic ARIA validity). The recommended set adds the ones that catch the
+  // failures that actually strand a keyboard or screen reader user: unlabelled
+  // controls, click handlers on non-interactive elements, and focus order.
+  //
+  // Only the rules are taken. eslint-config-next already registers the plugin,
+  // and spreading the whole flat config redefines it, which is a hard error.
+  { rules: jsxA11y.flatConfigs.recommended.rules },
+  {
+    rules: {
+      // Our checkbox rows are `<label><input/><span><span>text</span></span></label>`:
+      // the control is implicitly associated and the text is real, it is just
+      // nested deeper than the default allowance of 2. Raised rather than
+      // switched off, so a label with genuinely no text still fails.
+      "jsx-a11y/label-has-associated-control": ["error", { depth: 4 }],
+    },
+  },
   {
     rules: {
       "@typescript-eslint/no-unused-vars": [

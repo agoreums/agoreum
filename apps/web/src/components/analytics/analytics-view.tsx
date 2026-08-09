@@ -234,7 +234,7 @@ function Delta({ pct }: { pct: number | null }) {
       ? "text-success-500"
       : "text-danger-500";
   return (
-    <span className={`ml-2 text-xs ${tone}`}>
+    <span className={`ms-2 text-xs ${tone}`}>
       {rising ? "+" : ""}
       {pct}%
     </span>

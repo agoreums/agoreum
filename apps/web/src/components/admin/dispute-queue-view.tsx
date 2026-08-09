@@ -137,7 +137,15 @@ function DisputeCard({
         <div className="mt-4 rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-raised)] p-4">
           <p className="text-sm font-semibold">{t("recorded")}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">{t("recordedHint")}</p>
-          <dl className="mt-3 space-y-1 font-mono text-xs">
+          {/*
+            An LTR island. This is a Solidity call signature with hex addresses
+            and base-unit integers, which an operator may copy verbatim. Under
+            an RTL locale the bidi algorithm reorders the punctuation around
+            those values, so it must not inherit page direction. The physical
+            padding below is deliberate for the same reason: the indentation
+            belongs to the code, not to the reading direction.
+          */}
+          <dl dir="ltr" className="mt-3 space-y-1 font-mono text-xs">
             <div>settleDispute(</div>
             <div className="pl-4">escrowId: {instructions.escrow_id}</div>
             <div className="pl-4">

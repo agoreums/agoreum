@@ -78,7 +78,13 @@ export function WalletView() {
               className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
             >
               <div className="min-w-0">
-                <p className="break-all font-mono text-sm text-[var(--text-primary)]">
+                {/* An address is shown so it can be verified by eye. Under an
+                    RTL locale the bidi algorithm would reorder it, defeating
+                    the only reason it is on screen. */}
+                <p
+                  dir="ltr"
+                  className="break-all font-mono text-sm text-[var(--text-primary)]"
+                >
                   {w.address}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">

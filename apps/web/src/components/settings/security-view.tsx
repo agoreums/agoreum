@@ -92,7 +92,7 @@ export function SecurityView() {
           <ul className="mt-4 divide-y divide-[var(--border-subtle)] rounded-[var(--radius-card)] border border-[var(--border-subtle)]">
             {sessions.map((s) => (
               <li key={s.id} className="px-5 py-4">
-                <p className="font-mono text-sm text-[var(--text-primary)]">
+                <p dir="ltr" className="font-mono text-sm text-[var(--text-primary)]">
                   {truncateAddress(s.address)}
                 </p>
                 {s.user_agent ? (

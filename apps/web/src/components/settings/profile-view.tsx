@@ -101,7 +101,10 @@ function ProfileForm({ user }: { user: UserProfile }) {
       }}
     >
       <Field label={t("addressLabel")} hint={t("addressHint")}>
-        <p className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-2.5 font-mono text-sm text-[var(--text-secondary)]">
+        <p
+          dir="ltr"
+          className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-2.5 font-mono text-sm text-[var(--text-secondary)]"
+        >
           <span className="hidden sm:inline">{user.primary_address}</span>
           <span className="sm:hidden">{truncateAddress(user.primary_address)}</span>
         </p>

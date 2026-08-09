@@ -54,7 +54,7 @@ export function UserMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] py-1.5 pl-1.5 pr-2.5 text-sm transition-colors hover:border-[var(--border-strong)]"
+        className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] py-1.5 ps-1.5 pe-2.5 text-sm transition-colors hover:border-[var(--border-strong)]"
       >
         <span className="grid size-7 place-items-center rounded-lg bg-brand-500/15 text-brand-500">
           <Icon name="user" size={16} />

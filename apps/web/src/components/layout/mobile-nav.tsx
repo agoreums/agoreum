@@ -77,6 +77,13 @@ export function MobileNav({
         </svg>
       </button>
 
+      {/*
+        The click handler is backdrop dismissal only, and it is not the sole way
+        out: the drawer is opened with showModal(), so Escape closes it natively
+        and fires onClose, and there is an explicit close button inside. The rule
+        treats <dialog> as non-interactive and cannot see either path.
+      */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <dialog
         ref={dialogRef}
         onClose={() => setOpen(false)}
