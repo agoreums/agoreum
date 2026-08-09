@@ -137,6 +137,15 @@ Earned by getting each of these wrong at least once.
    consuming side.
 6. **When a claim is convenient, check it harder.** Most of the real defects here
    were found by testing something already believed to be true.
+7. **The item as written is rarely the real problem.** Standing doctrine rather
+   than an observation. Service versioning turned out to be unfrozen dispute
+   windows. Organization refinement turned out to be a consent bug. Writing tests
+   for the order state machine found an auto release hole in a fix already
+   declared complete. A restore drill found a dual URL trap that would have
+   migrated production during an incident. Preparing a testnet exercise found the
+   configured arbiter held no on-chain role. Every one surfaced by going to look
+   rather than by reasoning about it, so budget for the looking, and expect the
+   thing you find to be adjacent to the thing you went in for.
 
 ## Working loop
 
