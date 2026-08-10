@@ -2,14 +2,16 @@
 
 Solidity 0.8.36, built with Foundry on OpenZeppelin 5.1.0. Target network: Base.
 
-> **Status: deployed to Base Sepolia testnet and proven end to end with real
-> testnet USDC. Not on mainnet. No audit has been performed.**
+> **Status: deployed to Base Sepolia testnet, both contracts verified on
+> Basescan, and proven end to end with real testnet USDC. Not on mainnet. No
+> audit has been performed.**
 >
-> **Explorer verification is uneven and that is stated rather than smoothed
-> over.** `AgoreumEscrow` is verified on Basescan. `AgoreumSubscriptions` is
-> **not**, so its source cannot be read from the explorer. This paragraph
-> previously said "verified" without qualification, which was true of one
-> contract out of two.
+> `AgoreumSubscriptions` was unverified until 2026-08-10 while this paragraph
+> claimed otherwise. It is verified against the current source in this
+> repository. `AgoreumEscrow` is verified against the source as it stood at
+> deployment, when the pragma was 0.8.28; that text differs from the repository
+> in comments only and compiles to identical bytecode, which is checkable and
+> shown in [audit-readiness.md](audit-readiness.md).
 >
 > The testnet address and deploy block are in [deployment.md](deployment.md).
 > Everything below is tested locally and exercised once on a live testnet. It has

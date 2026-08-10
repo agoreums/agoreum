@@ -165,18 +165,27 @@ Reproduce it with `forge build`, then compare `deployedBytecode.object` from
 no metadata trailer to account for: `foundry.toml` sets `bytecode_hash = "none"`
 and `cbor_metadata = false`, so the compared bytes are all executable code.
 
-Two things an auditor should know before reading the explorer:
+Both contracts are verified on Basescan, but not against the same revision, and
+the difference is worth understanding before you diff anything:
 
-- **The escrow's verified source on Basescan is older than this repository.** It
-  was verified at deployment, when the pragma was 0.8.28; the repo has since
-  moved to 0.8.36 (`49588c6`) and gained natspec. The runtime bytecode is
-  nevertheless identical, which is checkable above, so the difference is
-  comments and a compiler bump that changed no codegen for this contract. Read
-  the repository for the source and treat the explorer as confirmation of the
-  address, not of the text.
-- **`AgoreumSubscriptions` is not verified on the explorer at all.** Its source
-  is in this repository and its bytecode matches, but nothing can be read from
-  Basescan.
+| Contract | Verified against | Compiler on the explorer |
+| --- | --- | --- |
+| `AgoreumEscrow` | the source as it stood at deployment | `v0.8.28` |
+| `AgoreumSubscriptions` | the current source in this repository | `v0.8.36` |
+
+**The escrow's verified source is older than this repository.** It was verified
+at deployment, when the pragma was 0.8.28; the repo has since moved to 0.8.36
+(`49588c6`) and gained natspec. The runtime bytecode is identical regardless,
+which is checkable above, so the difference is comments and a compiler bump that
+changed no codegen for this contract. Read the repository for the source and
+treat the explorer as confirmation of the address rather than of the text.
+
+**The subscriptions contract gives that claim independent support.** It was
+unverified until 2026-08-10 and was then verified by submitting the *current*
+0.8.36 source. Etherscan recompiles and matches before it will verify, so a
+third party has now confirmed that today's source in this repository reproduces
+bytecode deployed months earlier. That is a stronger statement than our own
+comparison, because it was made by something with no interest in the answer.
 
 ## How to run what we run
 
