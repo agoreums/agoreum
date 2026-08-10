@@ -168,6 +168,31 @@ Earned by getting each of these wrong at least once.
    checked too, and here it cost a false line in the runbook telling a future
    operator not to trust the one signal that was telling the truth.
 
+9. **What uses a thing and what a thing created are different questions.** Before
+   removing anything, ask both. A GitHub token was replaced, and every operation
+   that reads it was verified against the replacement first: pushing, editing
+   workflow files, reading run status and logs, setting Actions secrets. All of
+   it passed, the old token was declared safe to revoke, and revoking it broke
+   production deploys.
+
+   The droplet pulls over SSH with a key that had been added to the account, and
+   GitHub removes account SSH keys that were created using a token when that
+   token is revoked. Nothing *used* the old token to deploy. The old token had
+   *created* the credential that did. The check answered "what reads this" and
+   the question that mattered was "what exists because of this".
+
+   The shape generalises past credentials. Anything that provisions leaves
+   descendants that hold no reference back to their parent, so a search for
+   references finds nothing and reports safety. Ask what a thing brought into
+   existence, and prefer the narrower successor when re-creating it: the key is
+   now a read-only deploy key on the one repository, which no future revocation
+   can reach.
+
+   The failure was legible for the right reason, which is the one consolation
+   worth recording. Every test passed and only the deploy job failed, so nothing
+   pointed at the code. A pipeline that fails in the shape of the actual fault is
+   worth more than one that simply goes red.
+
 ## Working loop
 
 Pick the highest item on the backlog that is not blocked. Build it with tests
