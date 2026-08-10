@@ -356,6 +356,19 @@ jobs:
           pip install -e .
           pip-audit --progress-spinner off || true
 
+  # A service can drift out of the deploy path in two ways, both silent at deploy
+  # time and both of which have caused incidents here: an image that is never
+  # rebuilt, and a bind-mounted file whose container is never recreated.
+  compose:
+    name: Deploy coverage
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml
+      - name: Every compose service must be reachable by the deploy script
+        run: python scripts/check_deploy_coverage.py
+
   nginx:
     name: Nginx config
     runs-on: ubuntu-24.04
@@ -469,7 +482,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-24.04
-    needs: [backend, frontend, contracts, secrets, docker, nginx]
+    needs: [backend, frontend, contracts, secrets, docker, nginx, compose]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     concurrency:
       group: deploy-production
@@ -494,7 +507,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       [backend, frontend, contracts, sdk-python, sdk-typescript, sdk-go,
-       secrets, audit, nginx, docker, deploy]
+       secrets, audit, nginx, compose, docker, deploy]
     # always(), so it reports whatever the other jobs did rather than being
     # skipped by their failure. Restricted to pushes on main because a fork pull
     # request cannot read the secrets anyway, and a contributor already sees
