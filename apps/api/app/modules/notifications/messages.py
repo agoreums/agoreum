@@ -536,3 +536,45 @@ def render(key: str, locale: str | None, /, **params: object) -> tuple[str, str]
     chosen = locale if locale in catalogue else FALLBACK
     title, body = catalogue[chosen]
     return title.format(**params), body.format(**params)
+
+
+def localise_url(url: str | None, locale: str | None, /) -> str | None:
+    """Point a link at the language the message around it is written in.
+
+    Every page on the site lives under a locale segment, and a link without one
+    is resolved by the browser's `Accept-Language` rather than by the account.
+    So a subscriber whose language is Japanese received a Japanese email whose
+    link landed them on the English page, because their browser said English.
+    The message and its destination disagreed.
+
+    This lives beside `render` deliberately. Both have to make the same choice
+    from the same locale, including the same fallback, and separating them is
+    how a body in one language acquires a link in another.
+
+    Left alone: anything that is not one of our own URLs, and anything already
+    carrying a locale segment.
+    """
+    if not url:
+        return url
+
+    from app.core.config import settings
+
+    base = settings.APP_URL.rstrip("/")
+    if not url.startswith(base):
+        return url
+
+    rest = url[len(base):]
+    if rest and not rest.startswith(("/", "?", "#")):
+        # A different host that merely shares this prefix, not a path of ours.
+        return url
+
+    # Split the path from a query string or fragment, keeping whichever it was.
+    cut = min((i for i in (rest.find("?"), rest.find("#")) if i != -1), default=len(rest))
+    path, suffix = rest[:cut], rest[cut:]
+
+    segments = [s for s in path.split("/") if s]
+    if segments and segments[0] in LOCALES:
+        return url
+
+    chosen = locale if locale in LOCALES else FALLBACK
+    return f"{base}/{chosen}" + ("/" + "/".join(segments) if segments else "") + suffix

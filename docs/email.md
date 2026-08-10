@@ -3,18 +3,35 @@
 Transactional email runs through Resend, sending as `support@agoreum.xyz` from
 the verified domain `agoreum.xyz`.
 
-## Status: not enabled, and not yet ready to be
+## Status: enabled and sending
 
-`EMAIL_SENDING_ENABLED` defaults to `False` in `apps/api/app/core/config.py`, and
-`email_sending_available()` requires both that flag and a non-empty
-`RESEND_API_KEY`. An unset value is off, and a malformed one fails at startup
-rather than defaulting on. That gate is correct.
+`EMAIL_SENDING_ENABLED=true` in production. Real mail goes to real people, and
+everything below describes live behaviour rather than a plan.
 
-`notify()` in `apps/api/app/modules/notifications/service.py` is the only path to
-the Resend call. It now has real call sites, listed under "What would send" below,
-so the flag is no longer inert: flipping it would produce actual mail. Everything
-in this document assumes it stays off until that list has been reviewed by a
-person.
+This section previously read "not enabled, and not yet ready to be", and said
+that everything in the document assumed it stayed off. That had been untrue
+since the flag was turned on, after the checklist under "Before enabling
+sending" was worked through and each item struck off. A status line is the part
+of a document people read and stop, so it is the worst place to leave a claim
+that has expired.
+
+The gate itself is unchanged and still correct. `EMAIL_SENDING_ENABLED` defaults
+to `False` in `apps/api/app/core/config.py`, `email_sending_available()` requires
+both that flag and a non-empty `RESEND_API_KEY`, an unset value is off, and a
+malformed one fails at startup rather than defaulting on.
+
+`notify()` in `apps/api/app/modules/notifications/service.py` remains the only
+path to the Resend call.
+
+**Links point at the reader's own language.** The body is rendered in the
+recipient's `preferred_locale`, and `action_url` is put through
+`messages.localise_url` in the same function, for the same reason: that is where
+the recipient is known. Without it a Japanese message carried a link with no
+locale segment, which the site resolves from the browser's `Accept-Language`, so
+the reader could be sent to the English page by a message written in Japanese.
+The verification mail localises its link at the call site too, because that one
+appears in the body as well as underneath it, and two different URLs in one
+message is worse than either.
 
 ## What would send, and to whom
 

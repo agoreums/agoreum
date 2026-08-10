@@ -113,3 +113,117 @@ class TestRendering:
         """Loud, because a typo would otherwise send an empty notification."""
         with pytest.raises(KeyError):
             messages.render("order.nonexistent", "en")
+
+
+class TestLinksMatchTheLanguageOfTheMessage:
+    """A localised message with an unlocalised link is half translated.
+
+    Every page lives under a locale segment, so a link without one is resolved
+    by the reader's browser rather than by their account. A Japanese email whose
+    link opened the English page is the failure this prevents, and it is
+    invisible to anyone testing in English.
+    """
+
+    def test_a_bare_path_gains_the_recipients_locale(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        assert messages.localise_url("https://agoreum.xyz/orders/AGO-1", "ja") == (
+            "https://agoreum.xyz/ja/orders/AGO-1"
+        )
+
+    def test_a_query_string_survives(self, monkeypatch) -> None:
+        """The verification link carries its token this way; losing it would
+        make the one message that must work the one that silently cannot."""
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        assert messages.localise_url(
+            "https://agoreum.xyz/verify-email?token=abc123", "es"
+        ) == "https://agoreum.xyz/es/verify-email?token=abc123"
+
+    def test_a_fragment_survives(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        assert messages.localise_url("https://agoreum.xyz/settings#email", "de") == (
+            "https://agoreum.xyz/de/settings#email"
+        )
+
+    def test_an_already_localised_link_is_left_alone(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        for locale in messages.LOCALES:
+            url = f"https://agoreum.xyz/{locale}/settings"
+            assert messages.localise_url(url, "fr") == url, (
+                "a link that already had a locale was prefixed twice"
+            )
+
+    def test_an_unknown_locale_falls_back_the_same_way_the_text_does(
+        self, monkeypatch
+    ) -> None:
+        """The link and the body must agree, including when they disagree with
+        the request. If render falls back to English, so must the link."""
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        assert messages.localise_url("https://agoreum.xyz/settings", "kl") == (
+            f"https://agoreum.xyz/{messages.FALLBACK}/settings"
+        )
+
+    def test_a_foreign_link_is_untouched(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        for url in (
+            "https://sepolia.basescan.org/tx/0xabc",
+            "https://example.com/agoreum.xyz/spoof",
+            "https://agoreum.xyz.evil.test/settings",
+        ):
+            assert messages.localise_url(url, "ja") == url, f"rewrote {url}"
+
+    def test_nothing_is_invented_from_nothing(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        assert messages.localise_url(None, "ja") is None
+        assert messages.localise_url("", "ja") == ""
+
+    def test_a_trailing_slash_on_app_url_does_not_double_up(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz/")
+
+        assert messages.localise_url("https://agoreum.xyz/settings", "pt") == (
+            "https://agoreum.xyz/pt/settings"
+        )
+
+    def test_the_root_url_is_localised_too(self, monkeypatch) -> None:
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        assert messages.localise_url("https://agoreum.xyz", "ko") == (
+            "https://agoreum.xyz/ko"
+        )
+
+    def test_localising_twice_is_the_same_as_once(self, monkeypatch) -> None:
+        """The verification link is localised at both the call site and in
+        notify, because it appears in the body and again as the action URL.
+        Idempotence is what makes that safe rather than a double prefix."""
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        once = messages.localise_url("https://agoreum.xyz/verify-email?token=t", "ja")
+        twice = messages.localise_url(once, "ja")
+        assert once == twice == "https://agoreum.xyz/ja/verify-email?token=t"
+
+    def test_a_second_pass_with_a_different_locale_does_not_relabel(
+        self, monkeypatch
+    ) -> None:
+        """If the two passes ever disagreed on locale, the first must win, since
+        it is the one the surrounding text was written in."""
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "APP_URL", "https://agoreum.xyz")
+
+        once = messages.localise_url("https://agoreum.xyz/settings", "ja")
+        assert messages.localise_url(once, "de") == "https://agoreum.xyz/ja/settings"

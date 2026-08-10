@@ -173,7 +173,11 @@ async def notify(
         event_type=event_type,
         title=title,
         body=body,
-        action_url=action_url,
+        # Localised here for the same reason the text is: this is where the
+        # recipient is known. A link without a locale segment is resolved by the
+        # reader's browser, so a message written in one language could land them
+        # on a page in another.
+        action_url=messages.localise_url(action_url, user.preferred_locale),
         locale=user.preferred_locale,
         payload=payload,
         related_order_id=related_order_id,

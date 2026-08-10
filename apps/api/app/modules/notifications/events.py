@@ -105,8 +105,17 @@ async def email_verification_requested(
     who later opened that session.
     """
     from app.core.config import settings
+    from app.modules.notifications import messages
 
-    link = f"{settings.APP_URL.rstrip('/')}/verify-email?token={token}"
+    # Localised here as well as in `notify`, because this link goes into the
+    # message body through `{link}` and the email also prints `action_url`
+    # underneath it. Localising only one of the two would put two different URLs
+    # in front of the reader. `localise_url` leaves an already-localised link
+    # alone, so the second pass is a no-op rather than a second prefix.
+    link = messages.localise_url(
+        f"{settings.APP_URL.rstrip('/')}/verify-email?token={token}",
+        user.preferred_locale,
+    )
     await _safe_notify(
         db,
         user_id=user.id,
