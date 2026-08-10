@@ -24,8 +24,8 @@ from app.core.logging import get_logger
 from app.db.enums import WebhookDeliveryStatus
 from app.modules.organizations.models import Organization
 from app.modules.users.models import User
+from app.modules.webhooks import destinations, signing
 from app.modules.webhooks import events as event_catalog
-from app.modules.webhooks import signing
 from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
 logger = get_logger(__name__)
@@ -55,6 +55,12 @@ async def create_endpoint(
         raise ValidationError(
             "A webhook URL must be https.", code="insecure_webhook_url"
         )
+    try:
+        # Not enforced for a name that simply does not resolve yet: that is a
+        # plausible mistake rather than an attack, and delivery checks again.
+        destinations.assert_allowed(url, enforce_unresolvable=False)
+    except destinations.DestinationNotAllowed as exc:
+        raise ValidationError(str(exc), code="webhook_destination_not_allowed") from exc
     unknown = event_catalog.unknown_events(events)
     if unknown:
         raise ValidationError(
@@ -284,6 +290,18 @@ async def deliver_one(
             secret=endpoint.secret, timestamp=timestamp, body=body
         ),
     }
+
+    # Re-checked at delivery, not only at registration. A name that resolved to
+    # a public address when it was registered can resolve to a private one by
+    # now, and this worker runs inside the network the answer would reach.
+    try:
+        destinations.assert_allowed(endpoint.url)
+    except destinations.DestinationNotAllowed as exc:
+        delivery.status = WebhookDeliveryStatus.SUPPRESSED
+        delivery.last_error = f"destination refused: {exc}"
+        endpoint.last_delivery_at = now
+        await db.commit()
+        return delivery.status
 
     started = time.perf_counter()
     endpoint.last_delivery_at = now

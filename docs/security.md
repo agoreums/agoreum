@@ -203,6 +203,39 @@ declared multi-gigabyte body can exhaust memory before any validator sees it.
 Every payload is validated by Pydantic with explicit bounds; pagination is
 capped; timeouts bound slow-request attacks.
 
+## Outbound webhooks
+
+The one place the platform makes an HTTP request to an address a customer chose,
+from a worker inside our own network. That is the classic position for
+server-side request forgery, so the constraints are listed rather than assumed.
+
+| Constraint | Why it is load-bearing |
+| --- | --- |
+| `https` only, enforced at registration | The cloud metadata service speaks plain HTTP, so it is out of reach |
+| Redirects are not followed | Without this an endpoint answering on https could redirect to `http://169.254.169.254` and undo the line above |
+| Destination must resolve to a public address | Checked at registration and again at delivery |
+| Payloads are signed, secret shown once | A receiver can prove a request came from us |
+| Bounded timeout, capped retries with backoff | A slow or dead endpoint cannot tie up the worker |
+
+**The address check was added after the fact and is worth explaining.** The first
+two constraints already made the usual attack impossible, but neither is about
+addresses: the metadata service was unreachable because of its choice of
+protocol, not because of a decision here. Meanwhile the delivery record returns
+`last_status_code` and `last_error` to the organization, which turns the worker
+into an oracle for probing the private network by registering endpoints and
+reading the results.
+
+It is checked **twice, and that is not redundant**. At registration for
+immediate feedback, and again at delivery because a name that resolved to a
+public address when it was registered can resolve to a private one by the time
+anything is sent. Every address a name resolves to is examined, not just the
+first, since a name answering with one public and one private address would
+otherwise pass and let the client connect to whichever it picked.
+
+An unresolvable name is tolerated at registration, where it is more likely a
+typo than an attack, and refused at delivery. A private address literal is
+refused at both, so the lenient path is not a way in.
+
 ## On-chain
 
 See [contracts.md](contracts.md). In summary: the contract cannot pay out more
@@ -270,6 +303,7 @@ Closed since this table was written:
 | `CF-Connecting-IP` forwarded from the client | nginx sets it from `$remote_addr` behind `set_real_ip_from`, so a forged header is discarded. This also repaired the edge rate limits, which were keyed on the Cloudflare edge rather than the visitor. |
 | Per-user rate limiting | Was dead code: the limiter read `request.state.user_id`, which nothing ever assigned, so every authenticated request fell through to the IP bucket. Assigning it was not enough either, because route-level dependencies resolve before the path function's parameters, so the limiter had already run. The account now comes from the bearer token. |
 | Rate limits unenforced over IPv6 | Anonymous callers were counted per address, and a client with a routed /64 can source from eighteen quintillion of them. Collapsed to the /64 before counting. |
+| Webhook destinations unrestricted by address | Only the scheme was checked, so an endpoint could point inside the private network. Reaching anything still required it to speak TLS, and the metadata service does not, but that was luck rather than design. Destinations must now resolve to a public address, checked at registration and again at delivery. |
 | Governance changes unmonitored | Fee changes, treasury changes, pauses and role grants alert to Telegram. |
 
 ## Verification
