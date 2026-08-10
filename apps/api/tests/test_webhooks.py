@@ -20,13 +20,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.core import outbound
 from app.core.config import settings
 from app.db.enums import WebhookDeliveryStatus
 from app.db.session import get_db
 from app.main import app
 from app.modules.organizations.models import Organization
-from app.modules.webhooks import destinations, service, signing
 from app.modules.webhooks import events as event_catalog
+from app.modules.webhooks import service, signing
 from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
 pytestmark = pytest.mark.asyncio
@@ -313,7 +314,7 @@ def _endpoints_resolve_publicly(monkeypatch):
     the same spirit as the injected HTTP client. A test that wants the guard to
     refuse overrides this.
     """
-    monkeypatch.setattr(destinations, "resolved_addresses", lambda host: ["93.184.216.34"])
+    monkeypatch.setattr(outbound, "resolved_addresses", lambda *a, **k: ["93.184.216.34"])
 
 
 class TestDelivery:
@@ -353,7 +354,7 @@ class TestDelivery:
         """
         monkeypatch.setattr(settings, "WEBHOOK_DELIVERY_ENABLED", True)
         monkeypatch.setattr(
-            destinations, "resolved_addresses", lambda host: ["10.1.2.3"]
+            outbound, "resolved_addresses", lambda *a, **k: ["10.1.2.3"]
         )
         _, user_id = await sign_in(client)
         d = await self._one_delivery(db, user_id)

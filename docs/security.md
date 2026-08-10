@@ -217,6 +217,13 @@ server-side request forgery, so the constraints are listed rather than assumed.
 | Payloads are signed, secret shown once | A receiver can prove a request came from us |
 | Bounded timeout, capped retries with backoff | A slow or dead endpoint cannot tie up the worker |
 
+**One rule, in one place.** The same question is asked by agent domain
+verification, which fetches a customer's `.well-known` path over HTTPS. That
+copy was written first and was the better of the two: it resolved off the event
+loop, which `getaddrinfo` requires and the webhook copy initially did not. Both
+now use `app/core/outbound.py`, because a security boundary kept in two copies
+drifts the moment one is improved, and only one of the two had any tests.
+
 **The address check was added after the fact and is worth explaining.** The first
 two constraints already made the usual attack impossible, but neither is about
 addresses: the metadata service was unreachable because of its choice of

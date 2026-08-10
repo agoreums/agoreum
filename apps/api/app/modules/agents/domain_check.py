@@ -13,9 +13,8 @@ metadata endpoint and use this service as a proxy into the private network.
 from __future__ import annotations
 
 import asyncio
-import ipaddress
-import socket
 
+from app.core import outbound
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -32,39 +31,12 @@ WELL_KNOWN_PATH = "/.well-known/agoreum-verification"
 def _is_public_address(host: str) -> tuple[bool, str | None]:
     """Resolve a host and confirm every address it maps to is publicly routable.
 
-    All resolved addresses are checked, not just the first: a host that returns
-    one public and one private address must be rejected outright.
+    The rule lives in `app.core.outbound`, shared with webhook delivery. It was
+    written here first and independently a second time for webhooks, which is
+    how a security boundary drifts: one copy gains a case and the other does
+    not. Kept as a thin name because the call sites read better for it.
     """
-    try:
-        infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
-    except socket.gaierror:
-        return False, "That domain could not be resolved."
-
-    if not infos:
-        return False, "That domain could not be resolved."
-
-    for info in infos:
-        address = info[4][0]
-        try:
-            ip = ipaddress.ip_address(address)
-        except ValueError:
-            return False, "That domain resolved to an unusable address."
-
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_reserved
-            or ip.is_multicast
-            or ip.is_unspecified
-        ):
-            logger.warning(
-                "domain_check_blocked_non_public_address",
-                extra={"host": host, "resolved_class": "private"},
-            )
-            return False, "That domain resolves to a non-public address."
-
-    return True, None
+    return outbound.check_host(host)
 
 
 async def check_dns_txt(domain: str, token: str) -> tuple[bool, str | None]:

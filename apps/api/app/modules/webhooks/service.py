@@ -58,7 +58,7 @@ async def create_endpoint(
     try:
         # Not enforced for a name that simply does not resolve yet: that is a
         # plausible mistake rather than an attack, and delivery checks again.
-        destinations.assert_allowed(url, enforce_unresolvable=False)
+        await destinations.assert_allowed(url, enforce_unresolvable=False)
     except destinations.DestinationNotAllowed as exc:
         raise ValidationError(str(exc), code="webhook_destination_not_allowed") from exc
     unknown = event_catalog.unknown_events(events)
@@ -295,7 +295,7 @@ async def deliver_one(
     # a public address when it was registered can resolve to a private one by
     # now, and this worker runs inside the network the answer would reach.
     try:
-        destinations.assert_allowed(endpoint.url)
+        await destinations.assert_allowed(endpoint.url)
     except destinations.DestinationNotAllowed as exc:
         delivery.status = WebhookDeliveryStatus.SUPPRESSED
         delivery.last_error = f"destination refused: {exc}"
