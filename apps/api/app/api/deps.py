@@ -91,14 +91,16 @@ async def get_current_user(
             code="account_suspended",
         )
 
-    # Publish the identity for the rate limiter. `client_identity` in
-    # core/rate_limit.py reads `request.state.user_id` to bucket an authenticated
-    # caller by account, and nothing anywhere assigned it, so that branch was dead
-    # and every authenticated request fell through to the IP bucket. That is the
-    # opposite of the documented intent: one abusive account could exhaust the
-    # quota for everyone behind the same NAT, and an attacker could dodge their own
-    # limit by rotating source addresses. Set here, after the session and account
-    # status checks, so only a fully authorised principal is ever counted as one.
+    # Publish the identity for anything later in the request that wants a fully
+    # authorised principal rather than a token subject. Set after the session and
+    # account status checks for that reason.
+    #
+    # This is no longer what makes the rate limiter count by account, and a
+    # previous version of this comment claimed it was. Limiters are declared as
+    # route-level dependencies, and FastAPI resolves those before the path
+    # function's own parameters, so the limiter has already run by the time this
+    # line executes. `client_identity` reads the bearer token itself for that
+    # reason. Moving this earlier would not help; the ordering is the point.
     request.state.user_id = str(user.id)
     # The session this token belongs to, so a handler can act on the caller's own
     # session without being handed the refresh token. Logout uses it to end the

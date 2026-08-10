@@ -149,7 +149,29 @@ Two independent layers:
 | API | Per identity (user id when authenticated) | A single abusive actor |
 
 Per-identity counting matters: one abusive account behind a shared NAT must not
-exhaust everyone else's allowance.
+exhaust everyone else's allowance, and rotating addresses must not reset a
+quota.
+
+Two things about that identity are load-bearing and were each wrong once.
+
+**The account is read from the bearer token, not from request state.** Limiters
+are declared as route-level dependencies and FastAPI resolves those before the
+path function's own parameters, so the limiter runs before authentication has
+set anything. Assigning `request.state.user_id` during authentication was
+therefore too late, and every authenticated route quietly used the IP bucket
+even after that assignment was added. The token is signature-verified and needs
+no database round trip; an expired or forged one resolves to nobody and falls
+through to the address, which is correct because such a caller is not
+authenticated.
+
+**An anonymous caller is counted per IPv6 allocation, not per address.** A
+residential IPv6 allocation is typically a /64, eighteen quintillion addresses
+the same client may source from at will, so counting per address imposed no
+limit on anyone using IPv6. That included `auth:verify-email`, whose stated
+purpose is to stop rapid-fire mail to a victim. Addresses are collapsed to their
+/64 before counting; IPv4 is counted whole, and an IPv4-mapped address is
+treated as the IPv4 it is rather than collapsed into a range shared with every
+other mapped address.
 
 Counters live in Redis, not in process memory, behind a load balancer an
 in-memory limiter gives an attacker one full allowance per replica and resets
@@ -246,7 +268,8 @@ Closed since this table was written:
 | No automated dependency scanning | `npm audit` and `pip-audit` run in CI as an advisory job. Deliberately not gating the deploy: an advisory published today is not a regression in whatever commit is pushed today. |
 | Origin reachable directly, bypassing the CDN | 80 and 443 are restricted to Cloudflare's ranges by a DigitalOcean Cloud Firewall. Verified: a direct request to the droplet address times out. |
 | `CF-Connecting-IP` forwarded from the client | nginx sets it from `$remote_addr` behind `set_real_ip_from`, so a forged header is discarded. This also repaired the edge rate limits, which were keyed on the Cloudflare edge rather than the visitor. |
-| Per-user rate limiting | Was dead code: the limiter read `request.state.user_id`, which nothing ever assigned, so every authenticated request fell through to the IP bucket. |
+| Per-user rate limiting | Was dead code: the limiter read `request.state.user_id`, which nothing ever assigned, so every authenticated request fell through to the IP bucket. Assigning it was not enough either, because route-level dependencies resolve before the path function's parameters, so the limiter had already run. The account now comes from the bearer token. |
+| Rate limits unenforced over IPv6 | Anonymous callers were counted per address, and a client with a routed /64 can source from eighteen quintillion of them. Collapsed to the /64 before counting. |
 | Governance changes unmonitored | Fee changes, treasury changes, pauses and role grants alert to Telegram. |
 
 ## Verification

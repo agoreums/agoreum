@@ -19,6 +19,7 @@ tradeoff is stated here so it is a decision rather than an accident.
 """
 from __future__ import annotations
 
+import ipaddress
 import time
 from dataclasses import dataclass
 
@@ -168,21 +169,80 @@ async def check(
     )
 
 
+def rate_limit_scope(ip: str) -> str:
+    """The smallest unit of address a caller cannot trivially change.
+
+    An IPv4 address is that unit. An IPv6 one is not: a residential allocation
+    is typically a /64, which is eighteen quintillion addresses the same client
+    may source from at will. Counting per /128 therefore imposes no limit at all
+    on anyone using IPv6, including on `auth:verify-email`, whose whole stated
+    purpose is to stop rapid-fire mail to a victim.
+
+    Collapsed to the /64 so the quota applies to the party, not the address.
+    Anything unparseable is returned unchanged rather than guessed at.
+    """
+    try:
+        address = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+
+    if address.version == 6:
+        mapped = address.ipv4_mapped
+        if mapped is not None:
+            return str(mapped)
+        return f"{ipaddress.IPv6Network((address, 64), strict=False).network_address}/64"
+    return str(address)
+
+
 def client_identity(request: Request) -> str:
     """Who to count against.
 
     An authenticated caller is counted by user id, so one abusive account cannot
-    exhaust the quota of everyone sharing an IP, a real problem behind
-    corporate NAT or a mobile carrier. Anonymous callers fall back to the
-    client IP as resolved by `client_ip`, which trusts only Cloudflare's header.
+    exhaust the quota of everyone sharing an IP, a real problem behind corporate
+    NAT or a mobile carrier, and so rotating addresses does not reset a quota.
+    Anonymous callers fall back to the client IP as resolved by `client_ip`,
+    which trusts only Cloudflare's header.
+
+    The account is read from `request.state.user_id` when something has already
+    resolved it, and otherwise from the bearer token directly. That second path
+    is not redundant. Limiters are declared as route-level dependencies, and
+    FastAPI resolves those before the path function's own parameters, so the
+    limiter runs before `get_current_user` has set anything. Relying on the
+    state alone meant every authenticated route silently used the IP bucket,
+    which is the opposite of what this function documents.
+
+    Decoding is signature-verified and costs no database round trip: only the
+    subject is needed, not the account. An expired or forged token resolves to
+    nobody and falls through to the address, which is correct, since such a
+    caller is not authenticated.
     """
     from app.api.deps import client_ip
 
     user = getattr(request.state, "user_id", None)
+    if not user:
+        user = _subject_from_bearer(request)
     if user:
         return f"user:{user}"
 
-    return f"ip:{client_ip(request) or 'unknown'}"
+    return f"ip:{rate_limit_scope(client_ip(request) or 'unknown')}"
+
+
+def _subject_from_bearer(request: Request) -> str | None:
+    """The account a valid bearer token belongs to, or None."""
+    header = request.headers.get("Authorization") or ""
+    scheme, _, token = header.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+
+    from app.core.security import decode_access_token
+
+    try:
+        return decode_access_token(token.strip()).get("sub")
+    except Exception:
+        # Any invalid token counts as anonymous. Refusing the request is the
+        # authentication layer's job, and doing it here would turn a stale
+        # browser token into a failure on endpoints that allow anonymous use.
+        return None
 
 
 def retry_phrase(seconds: int) -> str:
