@@ -25,8 +25,8 @@ from app.db.enums import WebhookDeliveryStatus
 from app.db.session import get_db
 from app.main import app
 from app.modules.organizations.models import Organization
+from app.modules.webhooks import destinations, service, signing
 from app.modules.webhooks import events as event_catalog
-from app.modules.webhooks import service, signing
 from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
 pytestmark = pytest.mark.asyncio
@@ -300,6 +300,22 @@ class TestDispatch:
         assert queued == 0
 
 
+@pytest.fixture(autouse=True)
+def _endpoints_resolve_publicly(monkeypatch):
+    """Make the fixture host resolve, without touching DNS.
+
+    These tests use `example.test`, a reserved TLD that never resolves, which is
+    correct: a test must not depend on somebody else's nameserver. Delivery
+    refuses a destination it cannot resolve, so the guard would suppress every
+    delivery here and the tests would assert nothing about delivery.
+
+    The guard still runs in full; only the resolution it reads is stubbed, in
+    the same spirit as the injected HTTP client. A test that wants the guard to
+    refuse overrides this.
+    """
+    monkeypatch.setattr(destinations, "resolved_addresses", lambda host: ["93.184.216.34"])
+
+
 class TestDelivery:
     async def _one_delivery(
         self, db: AsyncSession, user_id: uuid.UUID
@@ -325,6 +341,27 @@ class TestDelivery:
         status = await service.deliver_one(db, fake, d)
         assert status == WebhookDeliveryStatus.SUPPRESSED
         assert fake.calls == []  # nothing was sent
+
+    async def test_suppressed_when_the_destination_is_refused(
+        self, client: AsyncClient, db: AsyncSession, monkeypatch
+    ) -> None:
+        """The guard is wired into delivery, not merely unit tested beside it.
+
+        A name that resolved somewhere public at registration can resolve
+        somewhere private by the time anything is sent, which is the whole
+        reason the check runs again here. Nothing may leave the worker.
+        """
+        monkeypatch.setattr(settings, "WEBHOOK_DELIVERY_ENABLED", True)
+        monkeypatch.setattr(
+            destinations, "resolved_addresses", lambda host: ["10.1.2.3"]
+        )
+        _, user_id = await sign_in(client)
+        d = await self._one_delivery(db, user_id)
+        fake = FakeClient(status_code=200)
+        status = await service.deliver_one(db, fake, d)
+        assert status == WebhookDeliveryStatus.SUPPRESSED
+        assert fake.calls == [], "a request was made to a private address"
+        assert "destination refused" in (d.last_error or "")
 
     async def test_success(
         self, client: AsyncClient, db: AsyncSession, monkeypatch
