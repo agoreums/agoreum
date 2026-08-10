@@ -150,9 +150,37 @@ the next ones are. Every item below was found by us, before any external review.
 | Sign-in security notice echoed an attacker-controlled `User-Agent` as prose | Text chosen by an intruder appeared as our own words in the one message warning about that intruder | Quoted, truncated, disclaimed; `8e1b0ab` |
 | Monitoring change never reached the running process | An added governance alert was committed, deployed and documented while the process ran older code; a real settlement passed unannounced | Bind-mount redeploy; `d92b97b` |
 
+## Does the deployed code match this repository
+
+Checked on 2026-08-10 rather than assumed, because it is the first thing worth
+knowing and the easiest to take on trust.
+
+| Contract | Base Sepolia address | Runtime bytecode vs a build of this repo |
+| --- | --- | --- |
+| `AgoreumEscrow` | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` | **byte-identical**, sha256 `6e954a979c23746c…` |
+| `AgoreumSubscriptions` | `0x509D50f826067452447cB24449A34B497e010017` | **byte-identical** |
+
+Reproduce it with `forge build`, then compare `deployedBytecode.object` from
+`out/<name>.sol/<name>.json` against `eth_getCode` at the address above. There is
+no metadata trailer to account for: `foundry.toml` sets `bytecode_hash = "none"`
+and `cbor_metadata = false`, so the compared bytes are all executable code.
+
+Two things an auditor should know before reading the explorer:
+
+- **The escrow's verified source on Basescan is older than this repository.** It
+  was verified at deployment, when the pragma was 0.8.28; the repo has since
+  moved to 0.8.36 (`49588c6`) and gained natspec. The runtime bytecode is
+  nevertheless identical, which is checkable above, so the difference is
+  comments and a compiler bump that changed no codegen for this contract. Read
+  the repository for the source and treat the explorer as confirmation of the
+  address, not of the text.
+- **`AgoreumSubscriptions` is not verified on the explorer at all.** Its source
+  is in this repository and its bytecode matches, but nothing can be read from
+  Basescan.
+
 ## How to run what we run
 
-```
+```bash
 cd contracts
 forge test                 # 138 pass, 6 skip without a fork URL
 forge test --match-path 'test/*invariant*'
