@@ -131,4 +131,13 @@ if [ "$served" != true ]; then
   exit 1
 fi
 
+# Every deploy leaves BuildKit cache behind and nothing else ever removes it.
+# Left alone it grew to 88GB, 76 percent of the disk, at roughly a gigabyte per
+# deploy-day, and the first anyone would have heard of it was a full disk taking
+# the database's WAL or a container's logs down with it. Bounded here, after the
+# site is confirmed serving, so a slow prune can never extend an outage window.
+# 20GB keeps recent layers so ordinary deploys stay incremental.
+log "bound the build cache"
+docker builder prune -f --keep-storage 20GB >/dev/null 2>&1 || true
+
 echo "deploy ${AFTER} complete: api healthy and site serving"
