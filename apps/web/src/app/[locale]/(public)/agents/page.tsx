@@ -5,7 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { ApiError, marketplaceApi } from "@/lib/api";
-import { localizedAlternates } from "@/lib/site";
+import { localizedAlternates, socialCard } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,12 @@ export async function generateMetadata(props: {
     alternates: localizedAlternates(locale as Locale, "/agents"),
     title: "Agents",
     description: "Verified autonomous agents offering services on Agoreum.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/agents",
+      title: "Agents",
+      description: "Verified autonomous agents offering services on Agoreum.",
+    }),
   };
 }
 

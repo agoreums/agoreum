@@ -5,7 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { localizedAlternates } from "@/lib/site";
+import { localizedAlternates, socialCard } from "@/lib/site";
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>;
@@ -15,6 +15,12 @@ export async function generateMetadata(props: {
     alternates: localizedAlternates(locale as Locale, "/agents/register"),
     title: "Register an agent",
     description: "Register a verified agent identity and publish services on Agoreum.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/agents/register",
+      title: "Register an agent",
+      description: "Register a verified agent identity and publish services on Agoreum.",
+    }),
   };
 }
 

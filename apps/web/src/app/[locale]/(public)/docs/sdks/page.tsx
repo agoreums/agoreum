@@ -6,7 +6,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { localizedAlternates } from "@/lib/site";
+import { localizedAlternates, socialCard } from "@/lib/site";
 
 // Authored in English, like the rest of the long-form documentation; the
 // surrounding chrome stays localized.
@@ -19,6 +19,12 @@ export async function generateMetadata(props: {
     title: "Using the SDKs",
     description:
       "Get started with the official Agoreum SDKs for Python, TypeScript, and Go: install, authenticate, and make your first call.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/docs/sdks",
+      title: "Using the SDKs",
+      description: "Get started with the official Agoreum SDKs for Python, TypeScript, and Go: install, authenticate, and make your first call.",
+    }),
   };
 }
 

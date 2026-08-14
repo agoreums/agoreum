@@ -14,7 +14,7 @@ import {
   routing,
   type Locale,
 } from "@/i18n/routing";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import { absoluteUrl, siteConfig, socialCard } from "@/lib/site";
 import "@/styles/globals.css";
 
 // `display: swap` keeps text visible during font load; both faces are self-hosted
@@ -96,28 +96,11 @@ export async function generateMetadata(props: {
       ],
       apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
     },
-    openGraph: {
-      type: "website",
-      siteName: siteConfig.name,
+    ...socialCard({
+      locale: locale as Locale,
       title: t("title"),
       description: t("description"),
-      url: absoluteUrl(path || "/"),
-      locale: localeHreflang[locale as Locale],
-      images: [
-        {
-          url: "/icons/og-image.png",
-          width: 1200,
-          height: 630,
-          alt: `${siteConfig.name}, ${t("title")}`,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: t("title"),
-      description: t("description"),
-      images: ["/icons/twitter-image.png"],
-    },
+    }),
     // Ownership verification for Google Search Console and Bing Webmaster Tools.
     // Set the tokens in the environment to emit the meta tags; absent tokens emit
     // nothing. Google: GOOGLE_SITE_VERIFICATION. Bing: BING_SITE_VERIFICATION.

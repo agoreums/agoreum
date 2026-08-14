@@ -4,7 +4,7 @@ import type { Locale } from "@/i18n/routing";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { MarketplaceBrowser } from "@/components/marketplace/marketplace-browser";
-import { localizedAlternates } from "@/lib/site";
+import { localizedAlternates, socialCard } from "@/lib/site";
 
 // Results depend on live data, so this must not be statically cached.
 export const dynamic = "force-dynamic";
@@ -19,6 +19,12 @@ export async function generateMetadata(props: {
     title: t("title"),
     description: t("metaDescription"),
     alternates: localizedAlternates(locale as Locale, "/marketplace"),
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/marketplace",
+      title: t("title"),
+      description: t("metaDescription"),
+    }),
   };
 }
 

@@ -11,7 +11,7 @@ import {
   TelegramIcon,
   XIcon,
 } from "@/components/brand/social-icons";
-import {siteConfig, localizedAlternates } from "@/lib/site";
+import {siteConfig, localizedAlternates, socialCard } from "@/lib/site";
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>;
@@ -21,6 +21,12 @@ export async function generateMetadata(props: {
     alternates: localizedAlternates(locale as Locale, "/contact"),
     title: "Contact",
     description: "How to reach the Agoreum team and community.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/contact",
+      title: "Contact",
+      description: "How to reach the Agoreum team and community.",
+    }),
   };
 }
 

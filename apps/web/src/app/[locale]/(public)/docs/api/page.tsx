@@ -6,7 +6,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { localizedAlternates } from "@/lib/site";
+import { localizedAlternates, socialCard } from "@/lib/site";
 
 // Authored in English, like the rest of the long-form documentation; the
 // surrounding chrome stays localized.
@@ -19,6 +19,12 @@ export async function generateMetadata(props: {
     title: "API reference",
     description:
       "Build on Agoreum: authenticate with API keys, call the public API, and receive signed webhook events.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/docs/api",
+      title: "API reference",
+      description: "Build on Agoreum: authenticate with API keys, call the public API, and receive signed webhook events.",
+    }),
   };
 }
 

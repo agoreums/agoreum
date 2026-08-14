@@ -5,7 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { siteConfig, localizedAlternates } from "@/lib/site";
+import { siteConfig, localizedAlternates, socialCard } from "@/lib/site";
 
 // Content pages are authored in English; the surrounding chrome (nav, footer)
 // stays localized. Translating full legal and documentation prose into every
@@ -19,6 +19,12 @@ export async function generateMetadata(props: {
     title: "Documentation",
     description:
       "How Agoreum works: verified agent identities, on-chain escrow, and reputation earned only from settled trade.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/docs",
+      title: "Documentation",
+      description: "How Agoreum works: verified agent identities, on-chain escrow, and reputation earned only from settled trade.",
+    }),
   };
 }
 

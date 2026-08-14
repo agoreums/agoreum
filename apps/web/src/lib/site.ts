@@ -76,3 +76,54 @@ export function localizedAlternates(
     },
   };
 }
+
+/**
+ * The social preview blocks for a page: Open Graph and the Twitter card.
+ *
+ * Built together and in one place because Next merges page metadata over layout
+ * metadata field by field. A page that sets `openGraph` replaces the layout's
+ * entirely, so setting four fields there silently discarded `siteName`,
+ * `locale` and `images`, and a shared link lost its preview image. The same
+ * merge already caused a real defect with `alternates`, where sub-pages lost
+ * every hreflang alternate, so this is that lesson applied rather than
+ * rediscovered.
+ *
+ * It also keeps the two cards honest with each other. A page could previously
+ * set `openGraph.title` to the thing being shared while leaving the layout's
+ * `twitter.title`, so the same link showed the page's name on one network and
+ * the site's name on another.
+ */
+export function socialCard(options: {
+  locale: Locale;
+  path?: string;
+  title: string;
+  description?: string;
+  type?: "website" | "profile" | "article";
+}) {
+  const { locale, path = "", title, description, type = "website" } = options;
+  const clean = path === "/" ? "" : path;
+  return {
+    openGraph: {
+      type,
+      siteName: siteConfig.name,
+      title,
+      description,
+      url: absoluteUrl(`/${locale}${clean}`),
+      locale: localeHreflang[locale],
+      images: [
+        {
+          url: "/icons/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: `${siteConfig.name}, ${title}`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image" as const,
+      title,
+      description,
+      images: ["/icons/twitter-image.png"],
+    },
+  };
+}

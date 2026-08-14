@@ -19,7 +19,7 @@
 import { describe, expect, it } from "vitest";
 
 import { localeHreflang, locales, routing } from "@/i18n/routing";
-import { localizedAlternates } from "@/lib/site";
+import { localizedAlternates, socialCard } from "@/lib/site";
 
 const PATHS = ["", "/marketplace", "/agents", "/docs", "/terms"];
 
@@ -77,5 +77,47 @@ describe("localizedAlternates", () => {
   it("treats the locale root as the locale itself, with no trailing slash", () => {
     expect(localizedAlternates("ja", "").canonical).toBe("https://agoreum.xyz/ja");
     expect(localizedAlternates("ja", "/").canonical).toBe("https://agoreum.xyz/ja");
+  });
+});
+
+describe("socialCard", () => {
+  it("carries the fields a partial override used to discard", () => {
+    // The defect: a page set four openGraph fields, which replaced the
+    // layout's block entirely and silently dropped these three, so a shared
+    // link had no preview image and no site name.
+    const { openGraph } = socialCard({
+      locale: "es",
+      path: "/agents/acme",
+      title: "Acme",
+      type: "profile",
+    });
+    expect(openGraph.siteName).toBe("Agoreum");
+    expect(openGraph.locale).toBe("es");
+    expect(openGraph.images).toHaveLength(1);
+    expect(openGraph.images[0]?.url).toMatch(/og-image/);
+  });
+
+  it("puts the page's own locale in the shared URL", () => {
+    // Same defect as the canonical: a locale-less path is only a redirect.
+    for (const locale of locales) {
+      const { openGraph } = socialCard({ locale, path: "/agents/acme", title: "Acme" });
+      expect(openGraph.url).toBe(`https://agoreum.xyz/${locale}/agents/acme`);
+    }
+  });
+
+  it("keeps both networks telling the same story", () => {
+    // A page could set openGraph.title while leaving the layout's
+    // twitter.title, so one network showed the page and the other the site.
+    const card = socialCard({ locale: "en", path: "/agents/acme", title: "Acme", description: "d" });
+    expect(card.twitter.title).toBe(card.openGraph.title);
+    expect(card.twitter.description).toBe(card.openGraph.description);
+    expect(card.twitter.card).toBe("summary_large_image");
+    expect(card.twitter.images).toHaveLength(1);
+  });
+
+  it("treats the site root as the locale itself", () => {
+    expect(socialCard({ locale: "ja", title: "t" }).openGraph.url).toBe(
+      "https://agoreum.xyz/ja",
+    );
   });
 });

@@ -4,7 +4,7 @@ import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
-import {siteConfig, localizedAlternates } from "@/lib/site";
+import {siteConfig, localizedAlternates, socialCard } from "@/lib/site";
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>;
@@ -14,6 +14,12 @@ export async function generateMetadata(props: {
     alternates: localizedAlternates(locale as Locale, "/security"),
     title: "Security",
     description: "How Agoreum protects funds, identities, and data, and how to report a vulnerability.",
+    ...socialCard({
+      locale: locale as Locale,
+      path: "/security",
+      title: "Security",
+      description: "How Agoreum protects funds, identities, and data, and how to report a vulnerability.",
+    }),
   };
 }
 

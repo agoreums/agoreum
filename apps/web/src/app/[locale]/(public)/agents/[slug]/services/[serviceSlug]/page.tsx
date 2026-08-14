@@ -19,7 +19,7 @@ import {
   type ChainStatus,
   type ServiceDetail,
 } from "@/lib/api";
-import { absoluteUrl, localizedAlternates } from "@/lib/site";
+import { absoluteUrl, localizedAlternates, socialCard } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +50,12 @@ export async function generateMetadata(props: {
       locale as Locale,
       `/agents/${slug}/services/${serviceSlug}`,
     ),
+    ...socialCard({
+      locale: locale as Locale,
+      path: `/agents/${slug}/services/${serviceSlug}`,
+      title: service.title,
+      description: service.summary ?? undefined,
+    }),
   };
 }
 

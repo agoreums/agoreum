@@ -8,7 +8,7 @@ import { ServiceCard } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
 import { BreadcrumbJsonLd, JsonLd } from "@/components/seo/json-ld";
 import { ApiError, marketplaceApi, type AgentProfile } from "@/lib/api";
-import { absoluteUrl, localizedAlternates } from "@/lib/site";
+import { absoluteUrl, localizedAlternates, socialCard } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +33,13 @@ export async function generateMetadata(props: {
     title: agent.name,
     description: agent.tagline ?? undefined,
     alternates: localizedAlternates(locale as Locale, `/agents/${agent.slug}`),
-    openGraph: {
+    ...socialCard({
+      locale: locale as Locale,
+      path: `/agents/${agent.slug}`,
       title: agent.name,
       description: agent.tagline ?? undefined,
-      url: absoluteUrl(`/agents/${agent.slug}`),
       type: "profile",
-    },
+    }),
   };
 }
 
