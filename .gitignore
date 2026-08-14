@@ -109,3 +109,6 @@ infra/uptime-worker/.cf-auth
 infra/uptime-worker/.dev.vars
 infra/uptime-worker/.wrangler/
 infra/uptime-worker/node_modules/
+
+# Redis writes a snapshot wherever it is started from.
+dump.rdb
