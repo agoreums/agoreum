@@ -1,3 +1,5 @@
+import { localeHreflang, locales, routing, type Locale } from "@/i18n/routing";
+
 /**
  * Canonical site constants.
  *
@@ -36,4 +38,41 @@ export const apiBaseUrl =
 export function absoluteUrl(path = "/"): string {
   const base = siteConfig.url.replace(/\/$/, "");
   return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+}
+
+/**
+ * The `alternates` block for a page, in every locale.
+ *
+ * Next merges page metadata over layout metadata field by field, so a page that
+ * sets `alternates` replaces the layout's entirely. Pages were setting only a
+ * canonical, and a locale-less one, which had two consequences on every page
+ * except the locale root.
+ *
+ * All nine locales advertised the *same* canonical URL, which tells a search
+ * engine they are duplicates of one page, so eight of the nine would be dropped
+ * and the whole point of shipping nine languages with them. The canonical also
+ * pointed at a path with no locale segment, which only exists as a 307 to a
+ * negotiated locale, and a canonical must name an indexable page rather than a
+ * redirect. Replacing `alternates` also discarded the hreflang map and
+ * `x-default` the layout supplies, so those pages advertised no translations at
+ * all while the sitemap insisted they had eight.
+ *
+ * Every page therefore builds the whole block, not just its canonical.
+ */
+export function localizedAlternates(
+  locale: Locale,
+  path = "",
+): { canonical: string; languages: Record<string, string> } {
+  const clean = path === "/" ? "" : path;
+  return {
+    canonical: absoluteUrl(`/${locale}${clean}`),
+    languages: {
+      ...Object.fromEntries(
+        locales.map((l) => [localeHreflang[l], absoluteUrl(`/${l}${clean}`)]),
+      ),
+      // Where a reader's language matches none of the above. Points at the
+      // default locale, which is also where a locale-less path lands.
+      "x-default": absoluteUrl(`/${routing.defaultLocale}${clean}`),
+    },
+  };
 }

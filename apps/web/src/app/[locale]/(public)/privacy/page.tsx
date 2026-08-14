@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import {siteConfig, localizedAlternates } from "@/lib/site";
 
-export const metadata: Metadata = {
-  alternates: { canonical: absoluteUrl("/privacy") },
-  title: "Privacy",
-  description: "What Agoreum collects, why, and the choices you have.",
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/privacy"),
+    title: "Privacy",
+    description: "What Agoreum collects, why, and the choices you have.",
+  };
+}
 
 export default async function PrivacyPage(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;

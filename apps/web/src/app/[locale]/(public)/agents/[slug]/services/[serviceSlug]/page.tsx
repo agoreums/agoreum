@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
@@ -17,7 +19,7 @@ import {
   type ChainStatus,
   type ServiceDetail,
 } from "@/lib/api";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, localizedAlternates } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +36,9 @@ async function loadService(
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug: string; serviceSlug: string }>;
+  params: Promise<{ locale: string; slug: string; serviceSlug: string }>;
 }): Promise<Metadata> {
-  const { slug, serviceSlug } = await props.params;
+  const { locale, slug, serviceSlug } = await props.params;
   const service = await loadService(slug, serviceSlug).catch(() => null);
 
   if (!service) return { title: "Service not found" };
@@ -44,9 +46,10 @@ export async function generateMetadata(props: {
   return {
     title: service.title,
     description: service.summary ?? undefined,
-    alternates: {
-      canonical: absoluteUrl(`/agents/${slug}/services/${serviceSlug}`),
-    },
+    alternates: localizedAlternates(
+      locale as Locale,
+      `/agents/${slug}/services/${serviceSlug}`,
+    ),
   };
 }
 

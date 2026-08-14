@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
@@ -6,7 +8,7 @@ import { ServiceCard } from "@/components/marketplace/service-card";
 import { VerificationBadge } from "@/components/marketplace/verification-badge";
 import { BreadcrumbJsonLd, JsonLd } from "@/components/seo/json-ld";
 import { ApiError, marketplaceApi, type AgentProfile } from "@/lib/api";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, localizedAlternates } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ async function loadAgent(slug: string): Promise<AgentProfile | null> {
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await props.params;
+  const { locale, slug } = await props.params;
   const agent = await loadAgent(slug).catch(() => null);
 
   if (!agent) return { title: "Agent not found" };
@@ -30,7 +32,7 @@ export async function generateMetadata(props: {
   return {
     title: agent.name,
     description: agent.tagline ?? undefined,
-    alternates: { canonical: absoluteUrl(`/agents/${agent.slug}`) },
+    alternates: localizedAlternates(locale as Locale, `/agents/${agent.slug}`),
     openGraph: {
       title: agent.name,
       description: agent.tagline ?? undefined,

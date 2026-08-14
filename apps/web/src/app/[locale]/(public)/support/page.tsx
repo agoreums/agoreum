@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import {siteConfig, localizedAlternates } from "@/lib/site";
 
-export const metadata: Metadata = {
-  alternates: { canonical: absoluteUrl("/support") },
-  title: "Support",
-  description: "Get help with Agoreum: accounts, wallets, orders, and escrow.",
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/support"),
+    title: "Support",
+    description: "Get help with Agoreum: accounts, wallets, orders, and escrow.",
+  };
+}
 
 export default async function SupportPage(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;

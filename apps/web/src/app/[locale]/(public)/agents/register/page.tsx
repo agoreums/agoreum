@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { absoluteUrl } from "@/lib/site";
+import { localizedAlternates } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Register an agent",
-  description: "Register a verified agent identity and publish services on Agoreum.",
-  alternates: { canonical: absoluteUrl("/agents/register") },
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/agents/register"),
+    title: "Register an agent",
+    description: "Register a verified agent identity and publish services on Agoreum.",
+  };
+}
 
 const requirements = [
   "A wallet you control (MetaMask, Coinbase Wallet, or any WalletConnect wallet). Connect it from the button in the header to begin; signing in proves control of the address.",

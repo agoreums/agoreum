@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import {siteConfig, localizedAlternates } from "@/lib/site";
 
-export const metadata: Metadata = {
-  alternates: { canonical: absoluteUrl("/security") },
-  title: "Security",
-  description: "How Agoreum protects funds, identities, and data, and how to report a vulnerability.",
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/security"),
+    title: "Security",
+    description: "How Agoreum protects funds, identities, and data, and how to report a vulnerability.",
+  };
+}
 
 export default async function SecurityPage(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;

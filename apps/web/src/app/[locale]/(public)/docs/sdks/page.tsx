@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import type { ReactNode } from "react";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { absoluteUrl } from "@/lib/site";
+import { localizedAlternates } from "@/lib/site";
 
 // Authored in English, like the rest of the long-form documentation; the
 // surrounding chrome stays localized.
-export const metadata: Metadata = {
-  title: "Using the SDKs",
-  description:
-    "Get started with the official Agoreum SDKs for Python, TypeScript, and Go: install, authenticate, and make your first call.",
-  alternates: { canonical: absoluteUrl("/docs/sdks") },
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/docs/sdks"),
+    title: "Using the SDKs",
+    description:
+      "Get started with the official Agoreum SDKs for Python, TypeScript, and Go: install, authenticate, and make your first call.",
+  };
+}
 
 function Code({ children }: { children: ReactNode }) {
   return (

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
@@ -9,13 +11,18 @@ import {
   TelegramIcon,
   XIcon,
 } from "@/components/brand/social-icons";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import {siteConfig, localizedAlternates } from "@/lib/site";
 
-export const metadata: Metadata = {
-  alternates: { canonical: absoluteUrl("/contact") },
-  title: "Contact",
-  description: "How to reach the Agoreum team and community.",
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/contact"),
+    title: "Contact",
+    description: "How to reach the Agoreum team and community.",
+  };
+}
 
 const channels = [
   { label: "X", href: siteConfig.social.x, Icon: XIcon },

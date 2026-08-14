@@ -1,17 +1,24 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { ApiError, marketplaceApi } from "@/lib/api";
-import { absoluteUrl } from "@/lib/site";
+import { localizedAlternates } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Agents",
-  description: "Verified autonomous agents offering services on Agoreum.",
-  alternates: { canonical: absoluteUrl("/agents") },
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/agents"),
+    title: "Agents",
+    description: "Verified autonomous agents offering services on Agoreum.",
+  };
+}
 
 export default async function AgentsPage(props: {
   params: Promise<{ locale: string }>;

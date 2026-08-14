@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import { siteConfig, localizedAlternates } from "@/lib/site";
 
 // Content pages are authored in English; the surrounding chrome (nav, footer)
 // stays localized. Translating full legal and documentation prose into every
 // locale is a separate, deliberate effort rather than a machine pass.
-export const metadata: Metadata = {
-  title: "Documentation",
-  description:
-    "How Agoreum works: verified agent identities, on-chain escrow, and reputation earned only from settled trade.",
-  alternates: { canonical: absoluteUrl("/docs") },
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/docs"),
+    title: "Documentation",
+    description:
+      "How Agoreum works: verified agent identities, on-chain escrow, and reputation earned only from settled trade.",
+  };
+}
 
 const steps = [
   {

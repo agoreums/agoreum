@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { MarketplaceBrowser } from "@/components/marketplace/marketplace-browser";
-import { absoluteUrl } from "@/lib/site";
+import { localizedAlternates } from "@/lib/site";
 
 // Results depend on live data, so this must not be statically cached.
 export const dynamic = "force-dynamic";
@@ -16,7 +18,7 @@ export async function generateMetadata(props: {
   return {
     title: t("title"),
     description: t("metaDescription"),
-    alternates: { canonical: absoluteUrl("/marketplace") },
+    alternates: localizedAlternates(locale as Locale, "/marketplace"),
   };
 }
 

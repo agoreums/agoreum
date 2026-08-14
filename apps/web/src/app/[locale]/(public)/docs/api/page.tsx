@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
+
+import type { Locale } from "@/i18n/routing";
 import type { ReactNode } from "react";
 import { setRequestLocale } from "next-intl/server";
 
 import { PageShell, Section } from "@/components/layout/page-shell";
 import { Link } from "@/i18n/navigation";
-import { absoluteUrl } from "@/lib/site";
+import { localizedAlternates } from "@/lib/site";
 
 // Authored in English, like the rest of the long-form documentation; the
 // surrounding chrome stays localized.
-export const metadata: Metadata = {
-  title: "API reference",
-  description:
-    "Build on Agoreum: authenticate with API keys, call the public API, and receive signed webhook events.",
-  alternates: { canonical: absoluteUrl("/docs/api") },
-};
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await props.params;
+  return {
+    alternates: localizedAlternates(locale as Locale, "/docs/api"),
+    title: "API reference",
+    description:
+      "Build on Agoreum: authenticate with API keys, call the public API, and receive signed webhook events.",
+  };
+}
 
 function Code({ children }: { children: ReactNode }) {
   return (
