@@ -191,10 +191,21 @@ comparison, because it was made by something with no interest in the answer.
 
 ```bash
 cd contracts
-forge test                 # 138 pass, 6 skip without a fork URL
+forge test                 # 144 with a fork URL; 138 pass, 6 skip without
 forge test --match-path 'test/*invariant*'
+forge test --match-path 'test/*fork*'   # needs ALCHEMY_BASE_URL_MAINNET
 forge coverage
 ```
 
-Fork tests skip unless a Base RPC URL is configured. `forge test --gas-report`
-gives the gas profile we work against.
+The six fork tests exercise the escrow against the **real USDC contract** on a
+Base mainnet fork rather than a mock: the blacklist cases for provider, buyer
+and fee recipient, a USDC global pause, and a full escrow flow. They skip
+without an RPC URL, so they are the six absent from a plain local run.
+
+**They run in CI on every push to main**, in a job that asserts six passed and
+zero skipped rather than trusting the exit code, because a suite that skips
+itself and exits zero is indistinguishable from one that passed. Worth knowing
+if you are weighing how much of the blacklist analysis in
+[incident-runbook.md](incident-runbook.md) is executed rather than reasoned.
+
+`forge test --gas-report` gives the gas profile we work against.

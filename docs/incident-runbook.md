@@ -52,6 +52,13 @@ Real USDC on Base is an upgradeable proxy with an issuer-controlled blacklist.
 All four cases below are covered by `test/AgoreumEscrow.fork.t.sol`, which runs
 against the live token on a mainnet fork rather than a mock.
 
+Those tests **run in CI on every push to main**, so the remedies in this table
+are executed rather than reasoned about. That was not true until 2026-08-14:
+they skip themselves without an RPC URL, so they had only ever run when somebody
+remembered to run them locally, and this page was citing them as its evidence
+throughout. The CI job asserts six passed and zero skipped, because a suite that
+skips itself still exits zero.
+
 | Who is blacklisted | Effect | Remedy |
 | --- | --- | --- |
 | **Provider** | `release()` reverts. No governance action helps, because the failing leg is the provider's. | Buyer calls `refund()` after the delivery deadline and recovers the full principal. Covered by `test_buyerStillRecoversFromABlacklistedProvider`. |
