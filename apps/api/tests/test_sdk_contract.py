@@ -26,6 +26,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 SDK_ROOT = Path(__file__).resolve().parents[3] / "sdks"
+WEB_ROOT = Path(__file__).resolve().parents[3] / "apps" / "web" / "src"
 
 # Quoted or backticked strings that look like an API path. Interpolation is
 # normalised to a placeholder so `/orders/${id}/x` and `/orders/{id}/x` compare
@@ -89,6 +90,61 @@ def _sdk_candidates() -> dict[str, set[str]]:
             if segments and segments[0] in resources:
                 found.setdefault(str(source.relative_to(SDK_ROOT)), set()).add(candidate)
     return found
+
+
+# The web app writes its paths in full, `/api/v1/...`, and appends query strings
+# by interpolation: `/api/v1/api-keys${orgQuery(slug)}`. Normalised that becomes
+# `/api/v1/api-keys{}`, which is the route plus a query rather than an extra
+# path segment. Without this the check reports five confident false positives,
+# which it did on the first run.
+def _web_candidates() -> dict[str, set[str]]:
+    found: dict[str, set[str]] = {}
+    for source in WEB_ROOT.rglob("*"):
+        if source.suffix not in {".ts", ".tsx"} or not source.is_file():
+            continue
+        if any(part in {"node_modules", "tests"} for part in source.parts):
+            continue
+        text = source.read_text(encoding="utf-8", errors="ignore")
+        for raw in re.findall(r'["`](/api/v1/[^"`]*)["`]', text):
+            # Query strings are not part of the route. They appear both
+            # literally, `?window_days=${n}`, and via a helper appended whole,
+            # so both forms are cut before comparing.
+            found.setdefault(str(source.relative_to(WEB_ROOT)), set()).add(
+                _normalise(raw.split("?")[0])
+            )
+    return found
+
+
+def _served(path: str, api: set[str]) -> bool:
+    if path in api:
+        return True
+    # A trailing interpolation is a query string helper, not a segment.
+    if path.endswith("{}"):
+        return path[:-2].rstrip("/") in api
+    return False
+
+
+def test_the_web_app_calls_endpoints_that_exist() -> None:
+    """The surface users actually touch.
+
+    The SDKs called a path that returned 404 for a year of commits without
+    anything noticing. The same drift in here would break the product itself,
+    so it is worth the same guard rather than the same discovery later.
+    """
+    api = _api_paths()
+    candidates = _web_candidates()
+    assert candidates, "no web API paths were found, so this test is checking nothing"
+
+    missing = [
+        f"{source}: {path}"
+        for source, paths in sorted(candidates.items())
+        for path in sorted(paths)
+        if not _served(path, api)
+    ]
+    assert not missing, (
+        "the web app calls an endpoint this API does not serve:\n  "
+        + "\n  ".join(missing)
+    )
 
 
 def test_the_sdks_reference_endpoints_that_exist() -> None:
