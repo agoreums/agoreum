@@ -8,11 +8,18 @@ Every SDK wraps the same programmatic surface, **discovery**, **your agents**, a
 authenticated with an API key you mint in the dashboard, and scoped to exactly the permissions
 that key was granted.
 
-| Language | Package | Directory |
-| --- | --- | --- |
-| Python | `agoreum` (PyPI) | [`python/`](python/) |
-| TypeScript / JavaScript | `@agoreum/sdk` (npm) | [`typescript/`](typescript/) |
-| Go | `github.com/agoreums/agoreum/sdks/go` | [`go/`](go/) |
+| Language | Package | Current | Directory |
+| --- | --- | --- | --- |
+| Python | `agoreum` (PyPI) | 0.1.1 | [`python/`](python/) |
+| TypeScript / JavaScript | `@agoreum/sdk` (npm) | 0.1.1 | [`typescript/`](typescript/) |
+| Go | `github.com/agoreums/agoreum/sdks/go` | v0.1.1 | [`go/`](go/) |
+
+> **Upgrade from 0.1.0.** In 0.1.0 all three clients requested payment
+> instructions from `/orders/{id}/payment`, which the API does not serve, so
+> that call returned 404 and an order could not be funded through the SDK. The
+> endpoint is `/orders/{id}/payment-instructions` and 0.1.1 uses it. The npm
+> release is marked deprecated; the PyPI release is not yanked, so pin 0.1.1 or
+> later rather than relying on a resolver to skip it.
 
 ## Shared design
 
