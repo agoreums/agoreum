@@ -191,6 +191,51 @@ jobs:
           git diff --exit-code -- packages/contracts apps/web/src/lib/escrow-abi.ts \
             || (echo "::error::Exported ABI is stale. Run scripts/sync_abi.py and commit." && exit 1)
 
+  # The fork suite runs the escrow against the real USDC contract on a Base
+  # mainnet fork: blacklist scenarios, the global pause, and a full flow. The
+  # incident runbook cites these tests by name as its coverage, and until this
+  # job existed they only ran when somebody remembered to run them locally with
+  # an RPC URL, which is a test that skips wearing the label of one that passes.
+  # Read-only: a fork test fetches state, it never sends a transaction.
+  #
+  # Deliberately not in the deploy job's needs. It depends on a third party, and
+  # an Alchemy outage must not block a release. It is in the notifier's needs,
+  # so a real failure still reaches the operator channel.
+  fork:
+    name: Fork tests
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Run the fork suite against real USDC
+        working-directory: contracts
+        env:
+          ALCHEMY_BASE_URL_MAINNET: ${{ secrets.ALCHEMY_BASE_URL_MAINNET }}
+        run: |
+          forge test --match-path "test/AgoreumEscrow.fork.t.sol" -vv
+          # Six tests exist. Guard against the silent-skip failure mode this job
+          # was created to close: if the secret stops resolving, forge reports
+          # skips and exits zero, and this job would go green while checking
+          # nothing.
+          forge test --match-path "test/AgoreumEscrow.fork.t.sol" --json 2>/dev/null \
+            | python3 -c "
+          import json,sys
+          data = json.load(sys.stdin)
+          results = [t for f in data.values() for t in f.get('test_results', {}).values()]
+          passed = sum(1 for t in results if t.get('status') == 'Success')
+          skipped = sum(1 for t in results if t.get('status') == 'Skipped')
+          print(f'{passed} passed, {skipped} skipped of {len(results)}')
+          sys.exit(0 if passed == 6 and skipped == 0 else 1)
+          "
+
   # The official client SDKs. They are independent artifacts, so they gate pull
   # requests and keep main green, but deliberately do not gate the deploy job
   # below: an SDK regression must never hold back an application release.
@@ -506,7 +551,7 @@ jobs:
     name: Notify
     runs-on: ubuntu-24.04
     needs:
-      [backend, frontend, contracts, sdk-python, sdk-typescript, sdk-go,
+      [backend, frontend, contracts, fork, sdk-python, sdk-typescript, sdk-go,
        secrets, audit, nginx, compose, docker, deploy]
     # always(), so it reports whatever the other jobs did rather than being
     # skipped by their failure. Restricted to pushes on main because a fork pull
