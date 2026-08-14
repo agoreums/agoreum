@@ -63,7 +63,7 @@ func (o *Orders) Place(ctx context.Context, p PlaceOrderParams) (Order, error) {
 // base-unit amount fields, is preserved on the returned value's Raw map.
 func (o *Orders) PaymentInstructions(ctx context.Context, orderID string) (PaymentInstructions, error) {
 	var pi PaymentInstructions
-	raw, err := o.client.request(ctx, http.MethodGet, "/orders/"+url.PathEscape(orderID)+"/payment", nil, nil)
+	raw, err := o.client.request(ctx, http.MethodGet, "/orders/"+url.PathEscape(orderID)+"/payment-instructions", nil, nil)
 	if err != nil {
 		return pi, err
 	}

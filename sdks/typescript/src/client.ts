@@ -283,7 +283,7 @@ class OrdersResource {
   paymentInstructions(orderId: string): Promise<PaymentInstructions> {
     return this.client.request<PaymentInstructions>(
       "GET",
-      `/orders/${encodeURIComponent(orderId)}/payment`,
+      `/orders/${encodeURIComponent(orderId)}/payment-instructions`,
     );
   }
 }

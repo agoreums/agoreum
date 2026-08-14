@@ -222,5 +222,5 @@ class AsyncOrdersResource(_AsyncResource):
 
     async def payment_instructions(self, order_id: str) -> dict[str, Any]:
         return cast(
-            "dict[str, Any]", await self._client.request("GET", f"/orders/{order_id}/payment")
+            "dict[str, Any]", await self._client.request("GET", f"/orders/{order_id}/payment-instructions")
         )

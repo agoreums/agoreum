@@ -246,7 +246,7 @@ class OrdersResource(_Resource):
         negotiated_price: float | None = None,
     ) -> Order:
         """Place an order. The platform never holds funds, fund it from your wallet
-        afterwards using the instructions at ``GET /orders/{id}/payment``."""
+        afterwards using the instructions at ``GET /orders/{id}/payment-instructions``."""
         data = self._client.request(
             "POST",
             "/orders",
@@ -261,4 +261,4 @@ class OrdersResource(_Resource):
 
     def payment_instructions(self, order_id: str) -> dict[str, Any]:
         """How to fund this order from your own wallet (chain, escrow, exact amount)."""
-        return cast("dict[str, Any]", self._client.request("GET", f"/orders/{order_id}/payment"))
+        return cast("dict[str, Any]", self._client.request("GET", f"/orders/{order_id}/payment-instructions"))
