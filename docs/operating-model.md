@@ -129,6 +129,14 @@ Earned by getting each of these wrong at least once.
    installed versions. Treat each environment as evidence about itself only.
 2. **A test that skips is not a test that passes.** A suite reporting hundreds of
    skips is reporting that it did not check.
+
+   Acted on rather than repeated: as of 2026-08-14 the API suite runs in CI with
+   **zero** skips, 649 of 649, and the contract fork suite runs there too. Both
+   needed something CI did not have, a local chain node and a mainnet RPC URL,
+   and both had been skipping in silence while documents cited them as evidence.
+   Where a suite can skip itself, the job now asserts it did not, because a
+   skipped test still exits zero and that is indistinguishable from success in
+   every summary anybody reads.
 3. **Verify the deployed artifact, not the repository.** Read the running
    container's configuration and the explorer's verification metadata.
 4. **Follow the whole path a person takes.** An endpoint that works and a link

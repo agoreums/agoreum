@@ -277,7 +277,10 @@ python scripts/anvil_fixture.py
 
 Deploys the escrow and a mock USDC, then runs a full create → release cycle,
 producing real logs for the chain client and indexer tests. They skip cleanly
-when it is not running.
+when it is not running, which is convenient locally and was a problem in CI:
+those skips were invisible, so the chain client went unverified there until
+2026-08-14. **CI now starts Anvil and builds this fixture itself**, and asserts
+the tests ran rather than skipped.
 
 A mocked chain would prove nothing about whether the platform can read the one
 it settles on.
