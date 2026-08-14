@@ -110,6 +110,19 @@ Verified end to end on 2026-08-07: a real message from Gmail reached the inbox a
 23:49:45Z and the alert was delivered at 23:49:46Z, confirmed in the API log
 rather than inferred, one and a half seconds later.
 
+**Machine reports are recorded but do not page.** `dmarc@agoreum.xyz` exists only
+as the `rua=` destination in the DMARC record, and every major receiver sends an
+aggregate report there daily. Checked against the live account on 2026-08-14:
+seven of the twelve messages this domain has ever received were automated DMARC
+reports from Google, and each one had raised an operator alert.
+
+That is the same failure this alert was written to prevent, arriving from the
+other direction. The channel also carries governance events, uptime failures and
+red builds, and one where most messages need no action stops being read, so the
+disclosure that matters is the one skimmed past. Mail to a report-only address is
+logged and not alerted; mail to any other address, including anything
+unrecognised, still pages. A message addressed to both is treated as human.
+
 Cloudflare Email Routing was the alternative, forwarding to a real mailbox, and
 was rejected. It cannot run alongside this: both want the apex MX, so adopting it
 would take receiving away from Resend and leave two systems to reason about

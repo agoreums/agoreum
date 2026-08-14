@@ -41,6 +41,39 @@ COMPLAINT_EVENTS = frozenset({"email.complained"})
 # it was found by accident. This is the announcement.
 RECEIVED_EVENTS = frozenset({"email.received"})
 
+# Addresses that only ever receive machine reports. Mail to these is recorded
+# but does not page anybody.
+#
+# `dmarc@` exists solely as the `rua=` destination in the DMARC record. Every
+# major receiver sends an aggregate report there daily, and Google alone had
+# accounted for seven of the twelve messages this domain had ever received. Each
+# one raised an operator alert saying mail had arrived, on the same channel that
+# carries governance events, uptime failures and red builds.
+#
+# That is the failure the alert above was written to prevent, arriving from the
+# other direction. A channel where most messages need no action stops being read,
+# and the one report that matters is the one that gets skimmed past. The address
+# is not published anywhere as a contact, so nothing human is expected here.
+#
+# Matched on the local part so it holds if the domain ever changes.
+REPORT_ONLY_LOCAL_PARTS = frozenset({"dmarc"})
+
+
+def _is_report_only(recipients: list) -> bool:
+    """Whether every recipient is a machine-report address.
+
+    Every recipient, not any: a message addressed to both a report address and a
+    human one is still for a human. Anything unparseable counts as human, so an
+    odd address errs toward paging rather than silence.
+    """
+    if not recipients:
+        return False
+    for address in recipients:
+        local = str(address).split("@", 1)[0].strip().lower()
+        if local not in REPORT_ONLY_LOCAL_PARTS:
+            return False
+    return True
+
 
 class WebhookRejected(Exception):
     """The request did not come from Resend, or is too old to trust."""
@@ -108,6 +141,18 @@ async def _announce_received(data: dict, *, recipients: list) -> str:
     caller answers a provider that retries on anything except a 2xx, and retrying
     the whole webhook to fix a Telegram outage would replay it indefinitely.
     """
+    if _is_report_only(recipients):
+        # Recorded, not paged. The log line keeps it discoverable when somebody
+        # goes looking, without spending an operator's attention on it.
+        logger.info(
+            "inbound_report_mail",
+            extra={
+                "to": alerts.sanitise(", ".join(str(r) for r in recipients), limit=120),
+                "from": alerts.sanitise(str(data.get("from") or ""), limit=120),
+            },
+        )
+        return "received: report address, not alerted"
+
     sender = alerts.sanitise(str(data.get("from") or ""), limit=120)
     subject = alerts.sanitise(str(data.get("subject") or ""), limit=200)
     to = alerts.sanitise(", ".join(str(r) for r in recipients), limit=120)

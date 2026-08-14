@@ -473,3 +473,65 @@ class TestTheFallbackChannel:
 
         monkeypatch.setattr(alerts, "_send_telegram", telegram_down)
         assert await alerts.notify_operator("hello") is False
+
+
+class TestMachineReportsDoNotPageAnybody:
+    """DMARC aggregate reports arrive daily and need no action.
+
+    The inbound alert exists because a real security report once sat unread.
+    Left unfiltered it produced the same failure from the other direction: seven
+    of the twelve messages this domain had ever received were automated DMARC
+    reports, each raising an alert on the channel that also carries governance
+    events, uptime failures and red builds. A channel where most messages need
+    no action stops being read.
+    """
+
+    async def _handle(self, monkeypatch, recipients: list[str]) -> tuple[str, list[str]]:
+        captured: list[str] = []
+
+        async def fake(text: str) -> bool:
+            captured.append(text)
+            return True
+
+        monkeypatch.setattr(resend_webhook.alerts, "notify_operator", fake)
+        result = await resend_webhook.handle(
+            None,
+            payload={
+                "type": "email.received",
+                "data": {
+                    "from": "noreply-dmarc-support@google.com",
+                    "to": recipients,
+                    "subject": "Report domain: agoreum.xyz",
+                    "created_at": "2026-08-14T10:24:42Z",
+                },
+            },
+        )
+        return result, captured
+
+    async def test_a_dmarc_report_is_recorded_but_does_not_alert(self, monkeypatch) -> None:
+        result, captured = await self._handle(monkeypatch, ["dmarc@agoreum.xyz"])
+        assert captured == [], "a daily machine report paged an operator"
+        assert "not alerted" in result
+
+    async def test_mail_to_a_human_address_still_alerts(self, monkeypatch) -> None:
+        """The filter must not silence the case the alert was built for."""
+        _, captured = await self._handle(monkeypatch, ["support@agoreum.xyz"])
+        assert len(captured) == 1
+
+    async def test_a_message_to_both_still_alerts(self, monkeypatch) -> None:
+        """Addressed to a human as well, so it is for a human."""
+        _, captured = await self._handle(
+            monkeypatch, ["dmarc@agoreum.xyz", "support@agoreum.xyz"]
+        )
+        assert len(captured) == 1
+
+    async def test_the_match_ignores_case_and_domain(self, monkeypatch) -> None:
+        """It is the mailbox that is machine-only, not one spelling of it."""
+        _, captured = await self._handle(monkeypatch, ["DMARC@Agoreum.XYZ"])
+        assert captured == []
+
+    async def test_an_unrecognised_address_errs_toward_alerting(self, monkeypatch) -> None:
+        """Silence is the expensive mistake here, so anything unknown pages."""
+        for recipients in (["security@agoreum.xyz"], ["not-an-address"], []):
+            _, captured = await self._handle(monkeypatch, recipients)
+            assert len(captured) == 1, f"{recipients} was silently dropped"
