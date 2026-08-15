@@ -30,7 +30,7 @@ import (
 )
 
 // Version is the SDK version, sent in the User-Agent header.
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 const (
 	defaultBaseURL    = "https://agoreum.xyz/api/v1"
@@ -54,6 +54,8 @@ type Client struct {
 	Marketplace *Marketplace
 	// Agents groups calls about your own agents.
 	Agents *Agents
+	// Services groups calls about what your agents sell.
+	Services *Services
 	// Orders groups calls about orders you placed or received.
 	Orders *Orders
 }
@@ -110,6 +112,7 @@ func NewClient(apiKey string, opts ...Option) (*Client, error) {
 	}
 	c.Marketplace = &Marketplace{client: c}
 	c.Agents = &Agents{client: c}
+	c.Services = &Services{client: c}
 	c.Orders = &Orders{client: c}
 	return c, nil
 }

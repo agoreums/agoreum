@@ -226,3 +226,296 @@ def test_the_documented_scopes_are_the_real_ones() -> None:
         if documented[scope] != SCOPES[scope]
     ]
     assert not differing, "scope descriptions have drifted:\n  " + "\n  ".join(differing)
+
+
+# --- What the SDKs can actually do -------------------------------------------
+#
+# Enforcing the three write scopes made 18 endpoints reachable by API key, and
+# the published SDKs exposed exactly one of them, `place`. A developer who read
+# the scope catalogue, saw "Create, update, and change the status of your
+# agents", granted `agents:write` and reached for the client found nothing
+# there. Fifteen are covered now.
+#
+# The gap itself was a judgement call about SDK scope. Its invisibility was not.
+# Nothing in this repository stated which write endpoints the clients cover, so
+# the answer was only discoverable by reading three SDKs and comparing them to a
+# router by hand. This table states it, and the test below makes the app and the
+# table agree, so a new write endpoint cannot be added without someone deciding
+# what the SDKs do about it.
+#
+# Value is the canonical method name the clients expose, or None with the reason
+# it is deliberately absent.
+SDK_WRITE_COVERAGE: dict[tuple[str, str], str | None] = {
+    # Orders: the buyer and seller lifecycle.
+    ("POST", "/orders"): "place",
+    ("POST", "/orders/{order_id}/start"): "start",
+    ("POST", "/orders/{order_id}/deliver"): "deliver",
+    ("POST", "/orders/{order_id}/dispute-intent"): "raise_dispute",
+    ("POST", "/orders/{order_id}/dispute-statements"): "submit_dispute_statement",
+    # Arbiter only. Settling a dispute requires ARBITER_ROLE on chain, which an
+    # ordinary integrator's key cannot have, so a client method would fail for
+    # everyone who could call it.
+    ("POST", "/orders/{order_id}/dispute-decision"): None,
+    # Agents: registering and running an identity.
+    ("POST", "/agents"): "create",
+    ("PATCH", "/agents/{slug}"): "update",
+    ("POST", "/agents/{slug}/publish"): "publish",
+    ("POST", "/agents/{slug}/pause"): "pause",
+    ("PUT", "/agents/{slug}/payout-wallet"): "set_payout_wallet",
+    # Identity verification. Both require serving a challenge from a domain or a
+    # GitHub account, which is a human step in the middle, so the API call is
+    # only the last third of the flow.
+    ("POST", "/agents/{slug}/domain-challenges/{challenge_id}/verify"): None,
+    ("POST", "/agents/{slug}/github-challenges/{challenge_id}/verify"): None,
+    # Services: publishing what an agent sells.
+    ("POST", "/agents/{agent_slug}/services"): "create",
+    ("PATCH", "/agents/{agent_slug}/services/{service_slug}"): "update",
+    ("POST", "/agents/{agent_slug}/services/{service_slug}/publish"): "publish",
+    ("POST", "/agents/{agent_slug}/services/{service_slug}/availability"): "set_availability",
+    ("DELETE", "/agents/{agent_slug}/services/{service_slug}"): "archive",
+}
+
+
+def _api_routes(router):
+    """Every APIRoute reachable from an app or router.
+
+    Walks FastAPI's `_IncludedRouter` wrappers, which hold the real router on
+    `original_router`. Without this, `app.routes` reports five entries and none
+    of them are endpoints, which reads like an empty application.
+    """
+    out = []
+    for route in getattr(router, "routes", []) or []:
+        if type(route).__name__ == "_IncludedRouter":
+            out.extend(_api_routes(route.original_router))
+        elif hasattr(route, "dependant") and getattr(route, "methods", None):
+            out.append(route)
+    return out
+
+
+def _required_scopes(route) -> set[str]:
+    """The scopes a route enforces, read from the dependency tree.
+
+    Taken from the built application rather than by reading the routers,
+    because the question is what the served app requires. A decorator that was
+    edited but never wired would still look right in the source.
+    """
+    found: set[str] = set()
+    stack = list(route.dependant.dependencies)
+    while stack:
+        dep = stack.pop()
+        for cell in getattr(getattr(dep, "call", None), "__closure__", None) or ():
+            try:
+                value = cell.cell_contents
+            except ValueError:  # pragma: no cover - an empty cell
+                continue
+            if isinstance(value, frozenset) and value and all(
+                isinstance(item, str) and ":" in item for item in value
+            ):
+                found |= value
+        stack.extend(dep.dependencies)
+    return found
+
+
+def _write_endpoints() -> set[tuple[str, str]]:
+    prefix = "/api/v1"
+    out = set()
+    for route in _api_routes(app):
+        if any(s.endswith(":write") for s in _required_scopes(route)):
+            path = route.path
+            out.add((sorted(route.methods)[0], path[len(prefix):] if path.startswith(prefix) else path))
+    return out
+
+
+def test_every_write_endpoint_has_a_recorded_sdk_position() -> None:
+    """A new write endpoint must not quietly land outside every client.
+
+    This is the check that would have caught the original gap the day it
+    appeared rather than after the scopes shipped.
+    """
+    actual = _write_endpoints()
+    assert actual, "no write-scoped endpoints were found, so this test is checking nothing"
+
+    recorded = set(SDK_WRITE_COVERAGE)
+    assert actual == recorded, (
+        "the write endpoints and their recorded SDK position disagree.\n"
+        f"  enforced but unrecorded: {sorted(actual - recorded)}\n"
+        f"  recorded but not enforced: {sorted(recorded - actual)}\n"
+        "Add the endpoint to SDK_WRITE_COVERAGE with either the client method "
+        "that covers it or None and the reason it is deliberately absent."
+    )
+
+
+# Each language spells the same operation differently. The canonical name is
+# snake_case, and these turn it into what the source of each client should
+# contain. Checked as source text rather than by importing, because the Go and
+# TypeScript clients cannot be imported from a Python test.
+def _spellings(canonical: str) -> dict[str, str]:
+    parts = canonical.split("_")
+    camel = parts[0] + "".join(p.title() for p in parts[1:])
+    pascal = "".join(p.title() for p in parts)
+    return {
+        "python": rf"\bdef {canonical}\(",
+        "typescript": rf"\b{camel}\(",
+        "go": rf"\)\s+{pascal}\(",
+    }
+
+
+_SDK_SOURCES = {
+    "python": SDK_ROOT / "python" / "src" / "agoreum" / "async_client.py",
+    "typescript": SDK_ROOT / "typescript" / "src" / "client.ts",
+    "go": SDK_ROOT / "go",
+}
+
+
+def _source_text(language: str) -> str:
+    target = _SDK_SOURCES[language]
+    if target.is_dir():
+        return "\n".join(
+            f.read_text(encoding="utf-8") for f in sorted(target.glob("*.go"))
+            if not f.name.endswith("_test.go")
+        )
+    return target.read_text(encoding="utf-8")
+
+
+def test_covered_endpoints_really_exist_in_every_sdk() -> None:
+    """The three clients are documented as mirroring each other.
+
+    A method present in one and missing from another is the divergence that
+    claim rules out, and it would otherwise only surface for whichever language
+    a user happened to pick.
+    """
+    covered = sorted({m for m in SDK_WRITE_COVERAGE.values() if m})
+    assert covered, "no endpoint is recorded as covered, so this test is checking nothing"
+
+    missing = []
+    for language in _SDK_SOURCES:
+        text = _source_text(language)
+        for method in covered:
+            if not re.search(_spellings(method)[language], text):
+                missing.append(f"{language}: {method}")
+
+    assert not missing, (
+        "an endpoint recorded as covered has no method in that client:\n  "
+        + "\n  ".join(missing)
+    )
+
+
+# --- Method as well as path ---------------------------------------------------
+#
+# The checks above compare paths only, and that is how a second SDK defect of
+# the original shape reached production. All three clients called
+# `GET /agents` for "list the agents I own". The API serves `POST /agents` and
+# `GET /agents/mine`, so every call returned 405 Method Not Allowed. The path
+# check passed because `/agents` is a real path, just not for that verb.
+#
+# One near miss is a bug. The same shape twice is the guard being aimed slightly
+# short, so this compares the pair.
+#
+# Only calls where the verb sits next to the path are read, which is every call
+# in all three clients: they route through one request helper that takes the
+# method first.
+_CALLS = {
+    # request("GET", "/agents/mine")
+    "python": re.compile(r'request\(\s*"(GET|POST|PUT|PATCH|DELETE)"\s*,\s*f?"([^"]+)"'),
+    # request<T>("GET", "/agents/mine")
+    "typescript": re.compile(
+        r'request(?:<[^>]*>)?\(\s*"(GET|POST|PUT|PATCH|DELETE)"\s*,\s*[`"]([^`"]+)[`"]'
+    ),
+    # doJSON[T](ctx, c, http.MethodGet, "/agents/mine", ...)
+    "go": re.compile(r'http\.Method(Get|Post|Put|Patch|Delete)\s*,\s*"([^"]+)"'),
+}
+
+
+# `_join_concatenations` only collapses a parameter with a literal on both sides.
+# Go ends several paths with one: `"/agents/" + url.PathEscape(slug)`. Left
+# alone that reads as the literal `/agents/`, which normalises to `/agents`, and
+# this check then reports `GET /agents` as wrong when the client is correct.
+#
+# It did exactly that on its first run. The finding was a defect in the
+# measurement, not in the client, and reporting it would have sent someone to
+# fix working code.
+_TRAILING_CONCAT = re.compile(r'"([^"]*)"\s*\+\s*[A-Za-z_][\w.]*\(')
+
+
+def _join_trailing(text: str) -> str:
+    """Turn `"/agents/" + escape(x)` into the literal `"/agents/{}"`."""
+    return _TRAILING_CONCAT.sub(lambda m: f'"{m.group(1)}{{}}" (', text)
+
+
+def _served_pairs() -> set[tuple[str, str]]:
+    prefix = "/api/v1"
+    out = set()
+    for route in _api_routes(app):
+        path = route.path
+        path = path[len(prefix):] if path.startswith(prefix) else path
+        for method in route.methods:
+            if method in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+                out.add((method, _normalise(path)))
+    return out
+
+
+@pytest.mark.parametrize("language", ["python", "typescript", "go"])
+def test_every_sdk_call_matches_a_real_method_and_path(language: str) -> None:
+    served = _served_pairs()
+    assert served, "no routes were found, so this test is checking nothing"
+
+    text = _source_text(language)
+    calls = {
+        (m.group(1).upper(), _normalise(m.group(2)))
+        for m in _CALLS[language].finditer(_join_trailing(_join_concatenations(text)))
+    }
+    assert calls, f"no {language} calls were parsed, so this test is checking nothing"
+
+    wrong = []
+    for method, path in sorted(calls):
+        if (method, path) in served:
+            continue
+        others = sorted(m for m, p in served if p == path)
+        wrong.append(
+            f"{method} {path}"
+            + (f"  (served for {', '.join(others)})" if others else "  (no such path)")
+        )
+
+    assert not wrong, (
+        f"the {language} client calls something this API does not serve:\n  "
+        + "\n  ".join(wrong)
+    )
+
+
+# --- Version strings ----------------------------------------------------------
+#
+# Each client sends its version in the User-Agent. The TypeScript constant said
+# 0.1.0 while its package.json said 0.1.1, and the Go constant said 0.1.0 while
+# the module was tagged 0.1.1, so both published clients reported themselves as
+# a version that had a known broken endpoint path.
+#
+# That is worse than untidy. The one moment this field earns its keep is asking
+# "which version is that broken call coming from", and both would have answered
+# with the wrong one.
+#
+# The comment above the TypeScript constant said "kept in sync with
+# package.json". Nothing kept it in sync. That is the same shape as the docs
+# page and the scope catalogue: a stated invariant with no check under it.
+_VERSION_SOURCES = {
+    "python": (SDK_ROOT / "python" / "src" / "agoreum" / "_version.py",
+               re.compile(r'__version__ = "([^"]+)"')),
+    "typescript": (SDK_ROOT / "typescript" / "src" / "version.ts",
+                   re.compile(r'export const VERSION = "([^"]+)"')),
+    "typescript-package": (SDK_ROOT / "typescript" / "package.json",
+                           re.compile(r'"version":\s*"([^"]+)"')),
+    "go": (SDK_ROOT / "go" / "agoreum.go", re.compile(r'const Version = "([^"]+)"')),
+}
+
+
+def test_the_sdks_all_declare_the_same_version() -> None:
+    """They are released in lockstep, so a difference is a mistake, not a choice."""
+    found = {}
+    for name, (path, pattern) in _VERSION_SOURCES.items():
+        match = pattern.search(path.read_text(encoding="utf-8"))
+        assert match, f"no version found in {path.name}, so this test is checking nothing"
+        found[name] = match.group(1)
+
+    assert len(set(found.values())) == 1, (
+        "the SDK version strings disagree, so at least one client reports a "
+        f"version it is not: {found}"
+    )

@@ -1,6 +1,6 @@
 {
   "name": "@agoreum/sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Official TypeScript SDK for the Agoreum autonomous-agent commerce API.",
   "license": "MIT",
   "author": "Agoreum",

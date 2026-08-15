@@ -63,7 +63,7 @@ async def _fresh_app_engine():
 @pytest_asyncio.fixture
 async def engine():
     eng = create_async_engine(
-        settings.DATABASE_URL, poolclass=NullPool, connect_args={"timeout": 5}
+        settings.DATABASE_URL, poolclass=NullPool, connect_args={"timeout": 30}
     )
     try:
         async with eng.connect() as conn:
@@ -85,6 +85,7 @@ async def mint_key(engine):
     """
     sm = async_sessionmaker(bind=engine, expire_on_commit=False)
     created: list[tuple[uuid.UUID, uuid.UUID]] = []
+    wallets: dict[str, str] = {}
 
     async def factory(*scopes: str) -> str:
         address = "0x" + uuid.uuid4().hex[:40].ljust(40, "0")
@@ -101,14 +102,42 @@ async def mint_key(engine):
                 scopes=list(scopes),
                 expires_in_days=None,
             )
+            # A verified wallet, because publishing an agent is refused without
+            # one. Inserted directly rather than through the API on purpose:
+            # verifying a wallet means signing a challenge with its private key,
+            # which an API key cannot do and the SDK deliberately cannot either.
+            # This is the state the dashboard's signing flow leaves behind.
+            wallet_id = uuid.uuid4()
+            await session.execute(
+                sa.text(
+                    "INSERT INTO wallets (id, user_id, address, chain_id, provider,"
+                    " verification_status, verified_at, created_at, updated_at)"
+                    " VALUES (:i, :u, :a, :c, 'other', 'verified', now(), now(), now())"
+                ),
+                {"i": wallet_id, "u": user.id, "a": address, "c": settings.CHAIN_ID},
+            )
             await session.commit()
             created.append((user.id, org.id))
+            wallets[token] = str(wallet_id)
         return token
 
+    factory.wallet_for = wallets.__getitem__  # type: ignore[attr-defined]
     yield factory
 
     async with sm() as session:
         for user_id, org_id in created:
+            # Agents and their services are removed first and explicitly. These
+            # tests now register agents through the client, and the foreign keys
+            # from agents to organizations are not cascading, so deleting the
+            # org first fails and leaves every later delete unrun.
+            await session.execute(
+                sa.text(
+                    "DELETE FROM services WHERE agent_id IN "
+                    "(SELECT id FROM agents WHERE org_id = :o)"
+                ),
+                {"o": org_id},
+            )
+            await session.execute(sa.text("DELETE FROM agents WHERE org_id = :o"), {"o": org_id})
             await session.execute(
                 sa.text("DELETE FROM api_keys WHERE org_id = :o"), {"o": org_id}
             )
@@ -253,3 +282,99 @@ class TestTheSdkAndApiAgree:
             absent = await raw.get(f"/api/v1/orders/{uuid.uuid4()}/payment")
         assert served.status_code != 404 or "detail" not in absent.text
         assert absent.status_code == 404
+
+
+class TestTheProviderLoopThroughTheSdk:
+    """Registering an agent and publishing a service, entirely through the client.
+
+    This is the product's headline claim, that an AI agent registers a verified
+    identity and publishes services. Until the write scopes were enforced it
+    could not be done with the only credential the SDK accepts, and after they
+    were enforced the SDK still had no method for it. This walks the whole path
+    with a key scoped exactly as a real integrator's would be.
+    """
+
+    @pytest_asyncio.fixture
+    async def provider(self, mint_key):
+        """A key that can register agents and publish services, and nothing else."""
+        token = await mint_key(
+            "marketplace:read", "agents:read", "agents:write", "services:write"
+        )
+        async with _client(token) as client:
+            client.test_wallet_id = mint_key.wallet_for(token)
+            yield client
+
+    async def test_an_agent_can_register_and_publish_a_service(self, provider) -> None:
+        unique = uuid.uuid4().hex[:10]
+
+        agent = await provider.agents.create(
+            slug=f"sdk-agent-{unique}",
+            name="SDK integration agent",
+            tagline="Registered through the published client",
+            # The real shape, not a list of tags. The SDK's own mock suite would
+            # have accepted anything here; only the live schema refuses it.
+            capabilities={"skills": ["testing"], "languages": ["en"]},
+        )
+        assert agent.slug == f"sdk-agent-{unique}"
+        # A new agent is a draft. If this ever came back published, an
+        # unfinished profile would be discoverable the moment it was created.
+        assert agent.raw.get("published_at") is None
+
+        # Publishing is refused until the agent can be paid. Asserted rather
+        # than worked around, because it is the rule that stops an agent taking
+        # orders it has no way to be paid for, and a client that quietly skipped
+        # it would be hiding the reason the next call fails.
+        with pytest.raises(agoreum_sdk.AgoreumError) as unpayable:
+            await provider.agents.publish(agent.slug)
+        assert unpayable.value.status_code == 409
+        assert "payout" in str(unpayable.value).lower()
+
+        await provider.agents.set_payout_wallet(
+            agent.slug, wallet_id=provider.test_wallet_id
+        )
+
+        published = await provider.agents.publish(agent.slug)
+        assert published.raw.get("published_at") is not None
+
+        service = await provider.services.create(
+            agent.slug,
+            slug=f"sdk-service-{unique}",
+            title="SDK integration service",
+            summary="Created through the published client",
+            pricing_model="fixed",
+            price=10,
+            delivery_time_hours=24,
+        )
+        assert service.slug == f"sdk-service-{unique}"
+
+        live = await provider.services.publish(agent.slug, service.slug)
+        assert live.raw.get("published_at") is not None
+
+        # The agent now appears in its owner's own listing, which is the read
+        # side agreeing with the writes rather than the write echoing itself.
+        assert any(a.slug == agent.slug for a in await provider.agents.list())
+
+    async def test_the_same_key_cannot_place_an_order(self, provider) -> None:
+        """Scopes stay narrow across the resources the client now exposes.
+
+        This key holds both write scopes a provider needs. Selling and buying
+        are different authorities, and a provider key that leaked must not be
+        able to spend as its owner.
+        """
+        with pytest.raises(agoreum_sdk.AgoreumError) as refused:
+            await provider.orders.place(service_id=str(uuid.uuid4()), quantity=1)
+        assert refused.value.status_code == 403
+        assert "orders:write" in str(refused.value)
+
+    async def test_publishing_is_refused_without_the_scope(self, mint_key) -> None:
+        """The new methods are subject to the same gate as everything else.
+
+        Worth asserting through the client rather than over raw HTTP: a method
+        that silently used a different path or header would pass every unit test
+        in the SDK's own suite and fail here.
+        """
+        async with _client(await mint_key("marketplace:read", "agents:read")) as reader:
+            with pytest.raises(agoreum_sdk.AgoreumError) as refused:
+                await reader.agents.create(slug=f"nope-{uuid.uuid4().hex[:8]}", name="No")
+            assert refused.value.status_code == 403
+            assert "agents:write" in str(refused.value)

@@ -73,3 +73,48 @@ func (o *Orders) PaymentInstructions(ctx context.Context, orderID string) (Payme
 	_ = json.Unmarshal(raw, &pi.Raw)
 	return pi, nil
 }
+
+// DeliverParams describes a delivery. Both fields are optional.
+type DeliverParams struct {
+	DeliveryNote  string
+	OutputPayload map[string]any
+}
+
+// Start accepts a funded order and begins work. Provider side, needs orders:write.
+func (o *Orders) Start(ctx context.Context, orderID string) (Order, error) {
+	return doJSON[Order](ctx, o.client, http.MethodPost, "/orders/"+url.PathEscape(orderID)+"/start", nil, nil)
+}
+
+// Deliver marks an order delivered. Provider side, needs orders:write.
+//
+// This starts the auto release window frozen onto the order at purchase, after
+// which escrow releases without the buyer acting. Delivering does not itself
+// move money: the release is an on-chain transaction, and no API call can sign
+// one.
+func (o *Orders) Deliver(ctx context.Context, orderID string, p DeliverParams) (Order, error) {
+	body := map[string]any{}
+	if p.DeliveryNote != "" {
+		body["delivery_note"] = p.DeliveryNote
+	}
+	if p.OutputPayload != nil {
+		body["output_payload"] = p.OutputPayload
+	}
+	return doJSON[Order](ctx, o.client, http.MethodPost, "/orders/"+url.PathEscape(orderID)+"/deliver", nil, body)
+}
+
+// RaiseDispute records an intent to dispute. Needs the orders:write scope.
+//
+// The off-chain half only. The authoritative dispute is raised on chain by a
+// party's own wallet, so recording an intent here does not by itself stop a
+// release.
+func (o *Orders) RaiseDispute(ctx context.Context, orderID, reason string) (map[string]any, error) {
+	return doJSON[map[string]any](ctx, o.client, http.MethodPost,
+		"/orders/"+url.PathEscape(orderID)+"/dispute-intent", nil, map[string]any{"reason": reason})
+}
+
+// SubmitDisputeStatement puts your side of a dispute on the record. Needs
+// the orders:write scope.
+func (o *Orders) SubmitDisputeStatement(ctx context.Context, orderID, statement string) (map[string]any, error) {
+	return doJSON[map[string]any](ctx, o.client, http.MethodPost,
+		"/orders/"+url.PathEscape(orderID)+"/dispute-statements", nil, map[string]any{"statement": statement})
+}

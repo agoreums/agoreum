@@ -310,9 +310,9 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 667 tests, 667 passed, 0 skipped, and the same 667 again on the second run against the same database, which CI now enforces. API keys can now write, gated per scope, see below |
+| Backend and API | 677 tests, 677 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
-| SDKs | Python, TypeScript and Go published at 0.1.1. The 0.1.0 payment-endpoint defect is fixed and released |
+| SDKs | Python, TypeScript and Go at 0.1.1 on the registries. 0.2.0 is built, tested and merged but **not published**, see below |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
 | Local environment | Postgres, Redis and Anvil run as plain processes. `scripts/local-dev.ps1` brings them up, `-Status` says which are answering. Restored on 2026-08-15 after a cleanup removed the Docker Desktop that had been providing them. The GitHub CLI went in the same cleanup and has not been reinstalled: CI is queried through the REST API with the token from the env file, which needs no install and no separate login |
 | Community | Support inbox answered to zero as of 2026-08-15. Discord readable and answered as of the same day |
@@ -367,6 +367,7 @@ with the missing scope named points at the actual fix.
 
 | Item | Blocked on | What unblocks it |
 | --- | --- | --- |
+| Publishing SDK 0.2.0 to PyPI, npm and the Go proxy | Owner | Built, tested and merged. Publishing a version cannot be undone, and 0.1.1 is not broken, so the release itself is a decision rather than a fix |
 | Three Safe multisigs on Base | Owner | Owner action. Escrow admin, subscriptions admin, arbiter, distinct signers and a real threshold |
 | Security audit engagement | Owner | Owner action |
 | Mainnet deployment | The two rows above | Both, plus an explicit written instruction naming mainnet |
@@ -529,6 +530,64 @@ Now compared in `test_sdk_contract.py`, names and descriptions both, since a
 description that quietly narrowed would understate what a leaked key can do.
 Mutation tested twice: a drifted description and a scope that does not exist are
 each caught, and the test refuses to pass when it parses nothing.
+
+### 8. The SDKs could not use the scopes they asked for (done)
+
+Enforcing the three write scopes made 18 endpoints reachable by API key. The
+published clients exposed exactly one of them, `place`. So a developer could
+read the scope catalogue, see "Create, update, and change the status of your
+agents", grant `agents:write`, and find no method for it. The product's headline
+claim, that an agent registers a verified identity and publishes services, could
+not be done through the client built for agents.
+
+Fifteen of the eighteen are covered now, across Python, TypeScript and Go, with
+the sync and async Python clients kept identical. Three are deliberately absent
+and say why in `SDK_WRITE_COVERAGE`: settling a dispute needs `ARBITER_ROLE` on
+chain, which no ordinary integrator's key can have, and the two identity
+challenge verifications are the last third of a flow whose middle is a human
+serving a file from a domain or a GitHub account.
+
+The gap was a judgement call. Its invisibility was not: nothing stated which
+write endpoints the clients covered, so the answer took reading three SDKs
+against a router by hand. A test now makes the app and that table agree, so a
+new write endpoint cannot land without someone deciding what the clients do
+about it.
+
+**Two defects found by building it**, both only visible against the real API:
+
+`agents.list()` called `GET /agents` in all three clients. The API serves
+`POST /agents` and `GET /agents/mine`, so listing your own agents returned 405
+in every published SDK. This is the second shipped instance of the original
+defect shape, and the existing guard missed it because it compared paths and not
+methods: `/agents` is a real path, just not for that verb. One near miss is a
+bug; the same shape twice is a guard aimed slightly short. It now compares the
+pair, and says which verb *is* served when it fails.
+
+The TypeScript and Go version constants said `0.1.0` while both shipped as
+`0.1.1`. That string goes out in the User-Agent, so the one moment it earns its
+keep, asking which version a broken call came from, both would have answered
+wrongly. The comment above the TypeScript constant said "kept in sync with
+package.json" and nothing kept it in sync, which is the same shape as the docs
+page and the scope catalogue: a stated invariant with no check under it. All
+three are now compared.
+
+### 9. A five second database timeout was skipping tests (done)
+
+The test fixtures connected with `timeout=5`, to "fail fast when nothing is
+listening". On a loaded workstation a full run takes about eleven minutes rather
+than CI's sixty five seconds, and that timeout produced an error in one run and
+a **silently skipped test** in the next.
+
+The stated reason did not survive being measured. With nothing listening on
+loopback the connection is refused in about two seconds whatever the timeout,
+tested at both 5 and 30. The short value never made the no-database case fast;
+the refusal did. It only ever bit when a database was present and slow, which is
+the one case it should not have failed.
+
+Raised to 30 seconds across eighteen test files. Worth recording as more than a
+tuning change: a setting justified by a plausible story nobody had measured was
+quietly reducing how many tests ran, which is the failure this project treats as
+most serious.
 
 ### Standing, not scheduled
 
