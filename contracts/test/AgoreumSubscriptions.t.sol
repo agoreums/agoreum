@@ -246,6 +246,7 @@ contract AgoreumSubscriptionsTest is Test {
         assertFalse(subs.isActive(alice, MONTHLY));
         assertEq(subs.timeRemaining(alice, MONTHLY), 0);
     }
+
     /// @notice The treasury cannot subscribe to its own plan.
     /// @dev `docs/incident-runbook.md` lists this as "one untested live-only
     ///      revert", which is an accurate description of a claim nobody had
@@ -276,5 +277,4 @@ contract AgoreumSubscriptionsTest is Test {
         // would be the failure worth catching.
         assertFalse(subs.isActive(treasury, MONTHLY), "treasury gained a subscription");
     }
-
 }
