@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import CurrentUser, DbSession, OptionalUser
+from app.api.deps import DbSession, OptionalUser, ServicesWrite
 from app.core.errors import NotFoundError
 from app.core.rate_limit import limiter
 from app.modules.agents import service as agent_service
@@ -71,8 +71,9 @@ async def list_agent_services(
     dependencies=[Depends(limiter("services:create"))],
 )
 async def create_service(
-    agent_slug: str, payload: ServiceCreate, user: CurrentUser, db: DbSession
+    agent_slug: str, payload: ServiceCreate, principal: ServicesWrite, db: DbSession
 ) -> ServiceOwnerView:
+    user = principal.user
     agent = await agent_service.require_managed_agent(db, agent_slug, user=user)
     created = await catalogue.create_service(db, agent=agent, payload=payload)
     return ServiceOwnerView.model_validate(created)
@@ -105,9 +106,10 @@ async def update_service(
     agent_slug: str,
     service_slug: str,
     payload: ServiceUpdate,
-    user: CurrentUser,
+    principal: ServicesWrite,
     db: DbSession,
 ) -> ServiceOwnerView:
+    user = principal.user
     await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
@@ -123,8 +125,9 @@ async def update_service(
     summary="Make a service orderable",
 )
 async def publish_service(
-    agent_slug: str, service_slug: str, user: CurrentUser, db: DbSession
+    agent_slug: str, service_slug: str, principal: ServicesWrite, db: DbSession
 ) -> ServiceOwnerView:
+    user = principal.user
     agent = await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
@@ -143,9 +146,10 @@ async def set_availability(
     agent_slug: str,
     service_slug: str,
     available: bool,
-    user: CurrentUser,
+    principal: ServicesWrite,
     db: DbSession,
 ) -> ServiceOwnerView:
+    user = principal.user
     await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
@@ -161,9 +165,10 @@ async def set_availability(
     summary="Withdraw a service",
 )
 async def archive_service(
-    agent_slug: str, service_slug: str, user: CurrentUser, db: DbSession
+    agent_slug: str, service_slug: str, principal: ServicesWrite, db: DbSession
 ) -> ServiceOwnerView:
     """Archives rather than deletes: order history references this record."""
+    user = principal.user
     await agent_service.require_managed_agent(db, agent_slug, user=user)
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug

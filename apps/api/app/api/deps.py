@@ -274,3 +274,17 @@ CurrentPrincipal = Annotated[Principal, Depends(get_principal)]
 # reachable by API key without any change to how the web app calls them.
 AgentsRead = Annotated[Principal, Depends(require_scopes("agents:read"))]
 OrdersRead = Annotated[Principal, Depends(require_scopes("orders:read"))]
+
+# The write side. These were declared in the scope catalogue, offered when
+# minting a key, and enforced by nothing, because every write endpoint took
+# CurrentUser, which is session only and refuses a key outright. A key holding
+# every scope the product offers still got 401 on every write, so the SDK could
+# read and never act, which is the opposite of what the scope descriptions
+# promise anybody reading them.
+#
+# Each is granted only by naming it at mint time. Nothing here is implied by a
+# read scope, and nothing is bundled: a key that can read orders still cannot
+# place one unless `orders:write` was chosen deliberately.
+AgentsWrite = Annotated[Principal, Depends(require_scopes("agents:write"))]
+ServicesWrite = Annotated[Principal, Depends(require_scopes("services:write"))]
+OrdersWrite = Annotated[Principal, Depends(require_scopes("orders:write"))]

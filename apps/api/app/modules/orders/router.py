@@ -11,7 +11,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import CurrentUser, DbSession, OrdersRead
+from app.api.deps import DbSession, OrdersRead, OrdersWrite
 from app.chain import escrow as contract
 from app.chain.client import ChainClient
 from app.chain.indexer import reconcile_order
@@ -129,9 +129,10 @@ async def chain_status() -> ChainStatus:
     dependencies=[Depends(limiter("orders:create"))],
 )
 async def create_order(
-    payload: OrderCreate, user: CurrentUser, db: DbSession
+    payload: OrderCreate, principal: OrdersWrite, db: DbSession
 ) -> OrderDetail:
     """Creates an unfunded order with prices frozen as they stand now."""
+    user = principal.user
     order = await service.create_order(db, buyer=user, payload=payload)
     return _to_detail(order)
 
@@ -170,12 +171,13 @@ async def get_order(
     summary="How to fund this order from your own wallet",
 )
 async def payment_instructions(
-    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+    order_id: uuid.UUID, principal: OrdersRead, db: DbSession
 ) -> PaymentInstructions:
     """Describes the approve + createEscrow calls the buyer's wallet must make.
 
     The platform neither signs nor broadcasts; it only says what to send.
     """
+    user = principal.user
     order = await service.require_visible_order(db, order_id, user=user)
     if order.buyer_id != user.id:
         raise NotFoundError("No such order.")
@@ -188,8 +190,9 @@ async def payment_instructions(
     summary="Provider: begin work",
 )
 async def start_work(
-    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+    order_id: uuid.UUID, principal: OrdersWrite, db: DbSession
 ) -> OrderDetail:
+    user = principal.user
     order = await service.require_visible_order(db, order_id, user=user)
     await _require_provider(db, order, user)
     await service.start_work(db, order=order, actor=user)
@@ -204,11 +207,12 @@ async def start_work(
 async def deliver(
     order_id: uuid.UUID,
     payload: DeliverRequest,
-    user: CurrentUser,
+    principal: OrdersWrite,
     db: DbSession,
 ) -> OrderDetail:
     """Starts the acceptance window. Moves no money, release happens on-chain,
     either when the buyer accepts or when the auto-release deadline passes."""
+    user = principal.user
     order = await service.require_visible_order(db, order_id, user=user)
     await _require_provider(db, order, user)
     await service.mark_delivered(
@@ -229,7 +233,7 @@ async def deliver(
 async def dispute_intent(
     order_id: uuid.UUID,
     payload: DisputeRequest,
-    user: CurrentUser,
+    principal: OrdersWrite,
     db: DbSession,
 ) -> OrderDetail:
     """Records the reason and alerts support.
@@ -237,6 +241,7 @@ async def dispute_intent(
     The authoritative dispute is raised on-chain by the party's own wallet; the
     order only becomes disputed when the chain says so.
     """
+    user = principal.user
     order = await service.require_visible_order(db, order_id, user=user)
     await service.record_dispute_intent(
         db, order=order, actor=user, reason=payload.reason
@@ -250,13 +255,14 @@ async def dispute_intent(
     summary="Compare this order against the chain",
 )
 async def reconcile(
-    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+    order_id: uuid.UUID, principal: OrdersRead, db: DbSession
 ) -> ReconciliationReport:
     """Reads the contract's own view and reports any divergence.
 
     Exists so a disagreement between the database and the chain is discoverable
     rather than silent. The chain is authoritative.
     """
+    user = principal.user
     order = await service.require_visible_order(db, order_id, user=user)
     async with ChainClient() as client:
         report = await reconcile_order(db, client, order)
@@ -285,11 +291,12 @@ async def _dispute_context(db, order_id, user):
     summary="The dispute on this order",
 )
 async def get_dispute(
-    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+    order_id: uuid.UUID, principal: OrdersRead, db: DbSession
 ) -> DisputeView:
     """Both parties and the arbiter see the same thing, including each other's
     statements and, once decided, the reasoning. A decision made on evidence one
     side never saw is not defensible."""
+    user = principal.user
     order, escrow = await _dispute_context(db, order_id, user)
     return await service.build_dispute_view(db, order=order, escrow=escrow)
 
@@ -303,10 +310,11 @@ async def get_dispute(
 async def submit_dispute_statement(
     order_id: uuid.UUID,
     payload: DisputeStatementRequest,
-    user: CurrentUser,
+    principal: OrdersWrite,
     db: DbSession,
 ) -> DisputeView:
     """Only the two parties. The arbiter reads; it does not testify."""
+    user = principal.user
     order = await service.require_visible_order(db, order_id, user=user)
     await service.submit_dispute_statement(
         db, order=order, actor=user, text=payload.text, escrow=order.escrow
@@ -322,7 +330,7 @@ async def submit_dispute_statement(
 async def decide_dispute(
     order_id: uuid.UUID,
     payload: DisputeDecisionRequest,
-    user: CurrentUser,
+    principal: OrdersWrite,
     db: DbSession,
 ) -> SettlementInstructions:
     """Records the decision and returns the call to make.
@@ -331,6 +339,7 @@ async def decide_dispute(
     sends the transaction and the indexer confirms the result. Recording first is
     what lets an unexpected settlement be noticed at all.
     """
+    user = principal.user
     if not service.is_arbiter(user):
         raise PermissionDeniedError(
             "Only the arbiter can decide a dispute.", code="not_arbiter"

@@ -76,45 +76,73 @@ async def engine():
 
 
 @pytest_asyncio.fixture
-async def api_key(engine):
-    """A real key, minted the way the product mints one, then cleaned up."""
+async def mint_key(engine):
+    """Mint real keys the way the product mints them, then clean them up.
+
+    Returns a factory rather than a single key, because the interesting question
+    is no longer "does a key work" but "does this key's scope set decide what it
+    can do". That needs at least two keys in the same test run.
+    """
     sm = async_sessionmaker(bind=engine, expire_on_commit=False)
-    address = "0x" + uuid.uuid4().hex[:40].ljust(40, "0")
+    created: list[tuple[uuid.UUID, uuid.UUID]] = []
+
+    async def factory(*scopes: str) -> str:
+        address = "0x" + uuid.uuid4().hex[:40].ljust(40, "0")
+        async with sm() as session:
+            user = User(primary_address=address, display_name="sdk integration")
+            session.add(user)
+            await session.flush()
+            org = await orgs.ensure_personal_org(session, user=user)
+            _, token = await apikeys.create_api_key(
+                session,
+                org=org,
+                creator=user,
+                name="sdk integration",
+                scopes=list(scopes),
+                expires_in_days=None,
+            )
+            await session.commit()
+            created.append((user.id, org.id))
+        return token
+
+    yield factory
+
     async with sm() as session:
-        user = User(primary_address=address, display_name="sdk integration")
-        session.add(user)
-        await session.flush()
-        org = await orgs.ensure_personal_org(session, user=user)
-        _, token = await apikeys.create_api_key(
-            session,
-            org=org,
-            creator=user,
-            name="sdk integration",
-            scopes=["marketplace:read", "orders:read"],
-            expires_in_days=None,
-        )
-        await session.commit()
-        user_id, org_id = user.id, org.id
-
-    yield token
-
-    async with sm() as session:
-        await session.execute(sa.text("DELETE FROM api_keys WHERE org_id = :o"), {"o": org_id})
-        await session.execute(
-            sa.text("DELETE FROM organization_memberships WHERE org_id = :o"), {"o": org_id}
-        )
-        await session.execute(sa.text("DELETE FROM organizations WHERE id = :o"), {"o": org_id})
-        await session.execute(sa.text("DELETE FROM users WHERE id = :u"), {"u": user_id})
+        for user_id, org_id in created:
+            await session.execute(
+                sa.text("DELETE FROM api_keys WHERE org_id = :o"), {"o": org_id}
+            )
+            await session.execute(
+                sa.text("DELETE FROM organization_memberships WHERE org_id = :o"), {"o": org_id}
+            )
+            await session.execute(
+                sa.text("DELETE FROM organizations WHERE id = :o"), {"o": org_id}
+            )
+            await session.execute(sa.text("DELETE FROM users WHERE id = :u"), {"u": user_id})
         await session.commit()
 
 
-@pytest_asyncio.fixture
-async def sdk(api_key):
+def _client(token: str):
     """The published client, wired to this app instead of the internet."""
     transport = httpx.ASGITransport(app=app)
     http = httpx.AsyncClient(transport=transport, base_url="http://testserver")
-    async with agoreum_sdk.AsyncAgoreumClient(
-        api_key=api_key, base_url="http://testserver/api/v1", http_client=http
+    return agoreum_sdk.AsyncAgoreumClient(
+        api_key=token, base_url="http://testserver/api/v1", http_client=http
+    )
+
+
+@pytest_asyncio.fixture
+async def sdk(mint_key):
+    """A read-only key: the scopes a cautious integrator would start with."""
+    async with _client(await mint_key("marketplace:read", "orders:read")) as client:
+        yield client
+
+
+@pytest_asyncio.fixture
+async def writer(mint_key):
+    """A key granted `orders:write` deliberately, and nothing else on the write side."""
+    async with _client(
+        await mint_key("marketplace:read", "orders:read", "orders:write")
     ) as client:
         yield client
 
@@ -148,28 +176,70 @@ class TestTheSdkAndApiAgree:
             await sdk.orders.get(str(uuid.uuid4()))
         assert caught.value.status_code == 404
 
-    async def test_writes_are_refused_for_a_key_holding_every_scope(self, sdk) -> None:
-        """Pins a real gap so a change to it has to be deliberate.
+    async def test_a_key_without_the_write_scope_cannot_place_an_order(self, sdk) -> None:
+        """The refusal half, which is the half worth getting right.
 
-        An API key cannot write, whatever scopes it holds. `orders:write`,
-        `agents:write` and `services:write` are offered when minting a key and
-        are enforced by no route, because every write endpoint takes
-        `CurrentUser`, which is session only and refuses a key outright.
-
-        The consequence is that the SDK's headline use, placing an order and
-        obtaining payment instructions to fund escrow, cannot be done with the
-        only credential the SDK accepts. This asserts today's behaviour rather
-        than the intended behaviour, because letting a bearer token move money
-        is a decision for the owner, not something to change quietly under a
-        passing test.
+        This key holds `orders:read`. Reading an order and placing one are not
+        the same authority, and nothing about holding the first should imply the
+        second. The refusal has to be 403 with `insufficient_scope`, not 401: a
+        caller who is told "unauthenticated" will go and check their key, which
+        is the wrong thing to check and exactly what this API used to make
+        everyone do.
         """
-        with pytest.raises(agoreum_sdk.AgoreumError) as created:
+        with pytest.raises(agoreum_sdk.AgoreumError) as refused:
             await sdk.orders.place(service_id=str(uuid.uuid4()), quantity=1)
-        assert created.value.status_code == 401
+        assert refused.value.status_code == 403
+        assert "orders:write" in str(refused.value)
 
-        with pytest.raises(agoreum_sdk.AgoreumError) as paid:
-            await sdk.orders.payment_instructions(str(uuid.uuid4()))
-        assert paid.value.status_code == 401
+    async def test_a_key_granted_the_write_scope_gets_past_authorisation(self, writer) -> None:
+        """The other half: the scope, once granted, actually opens the door.
+
+        The service id is random, so the correct outcome is the endpoint's own
+        "no such service" and not an authorisation refusal. That distinction is
+        the whole test. A 404 means the request reached the handler; a 401 or
+        403 would mean the scope was still decorative, which is the state this
+        replaced.
+        """
+        with pytest.raises(agoreum_sdk.AgoreumError) as reached:
+            await writer.orders.place(service_id=str(uuid.uuid4()), quantity=1)
+        assert reached.value.status_code not in {401, 403}, (
+            "a key holding orders:write was still refused by authorisation"
+        )
+        assert reached.value.status_code == 404
+
+    async def test_write_scopes_do_not_grant_each_other(self, mint_key) -> None:
+        """Nothing is bundled.
+
+        `orders:write` is the only write scope this key was granted. A leaked
+        key that can place orders must not also be able to publish services or
+        register agents under its owner's name, and the cheapest way for that to
+        become false is somebody reaching for a single "write" dependency later.
+        Asked over raw HTTP because the SDK does not expose these yet, and the
+        guarantee is the API's regardless of which client is asking.
+        """
+        token = await mint_key("marketplace:read", "orders:read", "orders:write")
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as raw:
+            headers = {"X-API-Key": token}
+            agent = await raw.post(
+                "/api/v1/agents", headers=headers, json={"slug": "x", "display_name": "x"}
+            )
+            # Services are nested under their agent, not top level. Asserting a
+            # 403 against a path that does not exist would have passed for the
+            # wrong reason forever, so the status is checked exactly rather than
+            # as "not 2xx": a 404 is what a wrong path looks like, and it is not
+            # evidence that a scope was enforced.
+            service = await raw.post(
+                "/api/v1/agents/no-such-agent/services",
+                headers=headers,
+                json={"title": "x"},
+            )
+
+        for response, scope in ((agent, "agents:write"), (service, "services:write")):
+            assert response.status_code == 403, (
+                f"a key without {scope} was not refused: {response.status_code}"
+            )
+            assert scope in response.text
 
     async def test_the_payment_route_exists_on_the_app(self, sdk) -> None:
         """Distinguishes a handled 404 from an unrouted one.

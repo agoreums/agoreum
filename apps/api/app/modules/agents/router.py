@@ -5,7 +5,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.deps import AgentsRead, CurrentUser, DbSession, OptionalUser
+from app.api.deps import AgentsRead, AgentsWrite, CurrentUser, DbSession, OptionalUser
 from app.core.errors import NotFoundError
 from app.core.rate_limit import limiter
 from app.db.enums import AgentStatus
@@ -82,8 +82,9 @@ async def my_agents(principal: AgentsRead, db: DbSession) -> list[AgentOwnerView
     dependencies=[Depends(limiter("agents:create"))],
 )
 async def create_agent(
-    payload: AgentCreate, user: CurrentUser, db: DbSession
+    payload: AgentCreate, principal: AgentsWrite, db: DbSession
 ) -> AgentOwnerView:
+    user = principal.user
     org = await org_service.resolve_org_for_action(
         db, user=user, slug=payload.org_slug, action=OrgAction.MANAGE_AGENTS
     )
@@ -118,8 +119,9 @@ async def get_agent(slug: str, db: DbSession, user: OptionalUser) -> AgentPublic
     "/{slug}", response_model=AgentOwnerView, summary="Update an agent"
 )
 async def update_agent(
-    slug: str, payload: AgentUpdate, user: CurrentUser, db: DbSession
+    slug: str, payload: AgentUpdate, principal: AgentsWrite, db: DbSession
 ) -> AgentOwnerView:
+    user = principal.user
     agent = await service.require_managed_agent(db, slug, user=user)
     updated = await service.update_agent(db, agent=agent, payload=payload)
     return AgentOwnerView.model_validate(updated)
@@ -131,8 +133,9 @@ async def update_agent(
     summary="Set where this agent is paid",
 )
 async def set_payout_wallet(
-    slug: str, payload: AgentPayoutUpdate, user: CurrentUser, db: DbSession
+    slug: str, payload: AgentPayoutUpdate, principal: AgentsWrite, db: DbSession
 ) -> AgentOwnerView:
+    user = principal.user
     agent = await service.require_managed_agent(
         db, slug, user=user, action=OrgAction.MANAGE_PAYOUT
     )
@@ -148,8 +151,9 @@ async def set_payout_wallet(
     summary="List an agent publicly",
 )
 async def publish_agent(
-    slug: str, user: CurrentUser, db: DbSession
+    slug: str, principal: AgentsWrite, db: DbSession
 ) -> AgentOwnerView:
+    user = principal.user
     agent = await service.require_managed_agent(db, slug, user=user)
     return AgentOwnerView.model_validate(
         await service.publish_agent(db, agent=agent)
@@ -161,7 +165,8 @@ async def publish_agent(
     response_model=AgentOwnerView,
     summary="Hide an agent from discovery",
 )
-async def pause_agent(slug: str, user: CurrentUser, db: DbSession) -> AgentOwnerView:
+async def pause_agent(slug: str, principal: AgentsWrite, db: DbSession) -> AgentOwnerView:
+    user = principal.user
     agent = await service.require_managed_agent(db, slug, user=user)
     return AgentOwnerView.model_validate(await service.pause_agent(db, agent=agent))
 
@@ -202,10 +207,11 @@ async def create_domain_challenge(
     dependencies=[Depends(limiter("agents:verify_domain"))],
 )
 async def verify_domain_challenge(
-    slug: str, challenge_id: uuid.UUID, user: CurrentUser, db: DbSession
+    slug: str, challenge_id: uuid.UUID, principal: AgentsWrite, db: DbSession
 ) -> DomainChallengeResponse:
     """Performs a real DNS lookup or HTTPS fetch. Never succeeds without
     observing the token."""
+    user = principal.user
     agent = await service.require_managed_agent(db, slug, user=user)
     challenge = await service.get_challenge(db, agent=agent, challenge_id=challenge_id)
     verified = await service.verify_domain_challenge(
@@ -240,10 +246,11 @@ async def create_github_challenge(
     dependencies=[Depends(limiter("agents:verify_github"))],
 )
 async def verify_github_challenge(
-    slug: str, challenge_id: uuid.UUID, user: CurrentUser, db: DbSession
+    slug: str, challenge_id: uuid.UUID, principal: AgentsWrite, db: DbSession
 ) -> GithubChallengeResponse:
     """Performs a real read of the account's public gists. Never succeeds without
     observing the token."""
+    user = principal.user
     agent = await service.require_managed_agent(db, slug, user=user)
     challenge = await service.get_github_challenge(
         db, agent=agent, challenge_id=challenge_id

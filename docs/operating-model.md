@@ -196,6 +196,24 @@ Earned by getting each of these wrong at least once.
    now a read-only deploy key on the one repository, which no future revocation
    can reach.
 
+   A second instance, 2026-08-15, worth recording because it combines this point
+   with point 2 and was self-inflicted. A workstation cleanup removed apps that
+   were not part of the project, and Docker Desktop looked like one: no source
+   file references it, nothing in `apps/` imports it, and the project deploys to
+   a droplet that runs its own. What it *created* was the local Postgres on port
+   55432 that the test suite connects to. Removing it did not fail anything
+   loudly. The suite kept exiting 0, because the fixtures skip when no database
+   is reachable, so a suite that had been running 649 tests silently became a
+   suite running none, reporting success either way.
+
+   This is exactly the failure point 2 exists to catch, arriving through the
+   door point 9 describes, and it survived a full suite run and a green exit
+   code before being noticed. The lesson is narrower than "be careful": the
+   question to ask before removing a tool is not only what references it, and
+   not only what it created, but **what silently degrades rather than fails when
+   it is gone.** A dependency that has a fallback path is more dangerous to
+   remove than one that does not, because the fallback hides the removal.
+
    The failure was legible for the right reason, which is the one consolation
    worth recording. Every test passed and only the deploy job failed, so nothing
    pointed at the code. A pipeline that fails in the shape of the actual fault is
@@ -210,6 +228,102 @@ still not true. Update the backlog. Repeat without waiting to be asked.
 
 Anything discovered mid-task that is broken but out of scope gets written to the
 backlog rather than silently fixed or silently ignored.
+
+### Running the areas in parallel
+
+The areas above were being worked one at a time, which is not how they actually
+interact. Most items touch several: a scope change is a Security decision, a
+Backend change, a Frontend copy change and a Community answer, and doing those in
+sequence means three of the four sit idle while the fourth blocks.
+
+They now run concurrently, with one coordinator. The rules that make that safe:
+
+1. **Parallelise on waiting, not on ambition.** The reason to start a second
+   strand is that the first is blocked on something slow that is already moving:
+   a suite running, a download, CI, a deploy. Starting a strand because there is
+   more to do produces half-finished work in several places.
+2. **One strand owns a file.** Two strands editing the same module is a merge
+   conflict with extra steps. Strands are separated by area, and where they must
+   touch the same file, they are serialised deliberately.
+3. **A strand reports its own evidence.** The coordinator does not summarise a
+   strand as done because it was started. Each strand ends with a command and its
+   output, or with a plain statement that it is unfinished and why.
+4. **Blocked strands are declared, not parked.** A strand waiting on the owner or
+   on a credential goes into "Open, blocked" below with what unblocks it. Silence
+   about a blocked strand reads as progress.
+
+The coordinator's job is the part that does not belong to any area: deciding what
+runs now, noticing when two strands have started to disagree about the same fact,
+and keeping the record below true while the work is happening rather than after.
+
+## Current state
+
+Maintained so a session starting cold can act from this section rather than
+re-reading the repository. It records what is true now and what is in flight,
+not the history, which is in the backlog and the git log. Anything here that has
+gone stale is a defect in this file.
+
+**Last updated:** 2026-08-15.
+
+### Where things stand
+
+| Area | State |
+| --- | --- |
+| Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
+| Backend and API | 667 tests, 667 passed, 0 skipped, on a clean database with every dependency present. API keys can now write, gated per scope, see below |
+| Frontend and web | Nine locales, each with its own canonical URL and social card |
+| SDKs | Python, TypeScript and Go published at 0.1.1. The 0.1.0 payment-endpoint defect is fixed and released |
+| Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
+| Local environment | Postgres, Redis and Anvil run as plain processes. `scripts/local-dev.ps1` brings them up, `-Status` says which are answering. Restored on 2026-08-15 after a cleanup removed the Docker Desktop that had been providing them |
+| Community | Support inbox answered to zero as of 2026-08-15. Discord blocked, see below |
+
+### In flight
+
+**API key write scopes.** `orders:write`, `agents:write` and `services:write`
+existed in the catalogue, were offered when minting a key, and were enforced by
+nothing: every write endpoint took `CurrentUser`, which is session-only and
+refuses a key outright. A key holding every scope the product offers got 401 on
+every write, so the SDK could read and never act.
+
+Now wired through `AgentsWrite`, `ServicesWrite` and `OrdersWrite` in
+`apps/api/app/api/deps.py`, covering 6 order, 7 agent and 5 service handlers.
+Each is granted only by naming it at mint time. Nothing is implied by a read
+scope and nothing is bundled. The key-minting UI marks write scopes and warns,
+in all nine locales, that a leaked key holding one can act as its owner, while
+being explicit that it still cannot move funds because every on-chain payment
+needs a wallet signature.
+
+Verified the way the gap was found, by driving the published SDK against the
+real app through ASGI: a key holding `orders:read` is refused with 403 and
+`insufficient_scope`, a key granted `orders:write` reaches the handler and gets
+the handler's own 404 for an unknown service, and that same key is still refused
+on agents and services. Then mutation tested: downgrading `create_order` back to
+`OrdersRead` turns the refusal test red, so the guard is doing the work rather
+than the test passing for an unrelated reason.
+
+One thing the 403 buys that is easy to undervalue. The old failure was a 401,
+which tells a developer their key is wrong, so they go and check the key. It is
+not wrong. Hours can go into checking a correct credential. `insufficient_scope`
+with the missing scope named points at the actual fix.
+
+### Open, blocked
+
+| Item | Blocked on | What unblocks it |
+| --- | --- | --- |
+| Reading and answering Discord | The bot cannot see message content | Owner enables MESSAGE CONTENT INTENT for application `1535454403161755748` in the Discord developer portal. Detail below |
+| Three Safe multisigs on Base | Owner | Owner action. Escrow admin, subscriptions admin, arbiter, distinct signers and a real threshold |
+| Security audit engagement | Owner | Owner action |
+| Mainnet deployment | The two rows above | Both, plus an explicit written instruction naming mainnet |
+| PyPI 0.1.0 yank | Owner | The publish token cannot yank; needs an account-level action |
+
+**Discord, in detail.** The bot authenticates and can list every channel, but
+`content` comes back as an empty string on every message, with zero embeds and
+zero attachments, which is the signature of Discord stripping content rather
+than the messages being empty. `GET /applications/@me` returns `flags: 0`, so
+neither `GATEWAY_MESSAGE_CONTENT` nor its limited variant is set. There are real
+conversations waiting behind this, in `#general` and `#introductions`, from
+members who joined on 2026-08-14. They are unread rather than unanswered, and
+the difference matters: nothing should be sent to them until they can be read.
 
 ## Backlog
 
