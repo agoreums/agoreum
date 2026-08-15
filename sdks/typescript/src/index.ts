@@ -9,7 +9,11 @@
  */
 export { AgoreumClient } from "./client.js";
 export type {
+  AgentCapabilities,
   AgoreumClientOptions,
+  CreateAgentParams,
+  CreateServiceParams,
+  DeliverParams,
   PlaceOrderParams,
   SearchAgentsParams,
   SearchServicesParams,

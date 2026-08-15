@@ -87,10 +87,15 @@ async def engine():
     eng = create_async_engine(
         settings.DATABASE_URL,
         poolclass=NullPool,
-        # Fail fast when nothing is listening. The default waits out a full
-        # TCP timeout per test, which turns a skipped suite on a machine with
-        # no database into an hour of nothing.
-        connect_args={"timeout": 5},
+        # Generous on purpose. The earlier value was 5 seconds, to "fail fast
+        # when nothing is listening", but that is not what makes it fast:
+        # a closed port on loopback refuses the connection in about two
+        # seconds whatever the timeout, measured both ways. The timeout only
+        # bites when a database *is* listening and slow, which on a loaded
+        # machine turned into an error in one full run and a silently skipped
+        # test in the next. A skipped test is the failure this project treats
+        # as serious, so the setting that caused it is the one that was wrong.
+        connect_args={"timeout": 30},
     )
     try:
         async with eng.connect() as conn:

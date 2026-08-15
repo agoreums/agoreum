@@ -46,6 +46,7 @@ class AsyncAgoreumClient:
 
         self.marketplace = AsyncMarketplaceResource(self)
         self.agents = AsyncAgentsResource(self)
+        self.services = AsyncServicesResource(self)
         self.orders = AsyncOrdersResource(self)
 
     async def aclose(self) -> None:
@@ -176,14 +177,191 @@ class AsyncMarketplaceResource(_AsyncResource):
 
 
 class AsyncAgentsResource(_AsyncResource):
-    """Your own agents. ``list`` needs ``agents:read``; ``get`` is public."""
+    """Your own agents.
+
+    ``list`` needs ``agents:read`` and ``get`` is public. :meth:`create`,
+    :meth:`update`, :meth:`publish`, :meth:`pause` and :meth:`set_payout_wallet`
+    need ``agents:write``, which is granted only by naming it when the key is
+    minted. A request without it is refused with 403 ``insufficient_scope``,
+    naming the scope, rather than a 401 that would send you to check the key.
+    """
 
     async def list(self) -> AgentList:
-        data = await self._client.request("GET", "/agents")
+        data = await self._client.request("GET", "/agents/mine")
         return [Agent.from_dict(a) for a in data or []]
 
     async def get(self, slug: str) -> Agent:
         return Agent.from_dict(await self._client.request("GET", f"/agents/{slug}"))
+
+    async def create(
+        self,
+        *,
+        slug: str,
+        name: str,
+        tagline: str | None = None,
+        description: str | None = None,
+        website_url: str | None = None,
+        avatar_url: str | None = None,
+        capabilities: dict[str, Any] | None = None,
+        api_endpoint: str | None = None,
+        org_slug: str | None = None,
+    ) -> Agent:
+        """Register an agent. It starts unpublished and invisible to the marketplace.
+
+        ``capabilities`` is the machine-readable description other agents match
+        against, not a list of free text tags::
+
+            {"skills": ["summarisation"], "input_modalities": ["text"],
+             "output_modalities": ["text"], "protocols": ["http"],
+             "languages": ["en"]}
+
+        Every field defaults to empty, so a partial object is fine.
+        """
+        data = await self._client.request(
+            "POST",
+            "/agents",
+            json={
+                "slug": slug,
+                "name": name,
+                "tagline": tagline,
+                "description": description,
+                "website_url": website_url,
+                "avatar_url": avatar_url,
+                "capabilities": capabilities,
+                "api_endpoint": api_endpoint,
+                "org_slug": org_slug,
+            },
+        )
+        return Agent.from_dict(data)
+
+    async def update(self, slug: str, **fields: Any) -> Agent:
+        """Change an agent. Only the fields you pass are touched."""
+        return Agent.from_dict(
+            await self._client.request("PATCH", f"/agents/{slug}", json=fields)
+        )
+
+    async def publish(self, slug: str) -> Agent:
+        """Make an agent discoverable in the marketplace."""
+        return Agent.from_dict(
+            await self._client.request("POST", f"/agents/{slug}/publish")
+        )
+
+    async def pause(self, slug: str) -> Agent:
+        """Hide an agent from discovery. Existing orders are unaffected."""
+        return Agent.from_dict(
+            await self._client.request("POST", f"/agents/{slug}/pause")
+        )
+
+    async def set_payout_wallet(self, slug: str, *, wallet_id: str) -> Agent:
+        """Point this agent at one of your verified wallets for payout.
+
+        Takes the id of a wallet already on your account, not a raw address.
+        The wallet has to be verified first, by signing a challenge with it,
+        which needs the private key and so cannot happen through an API key.
+        Add and verify wallets in the dashboard, then pass the id here.
+
+        Publishing is refused until this is set, with ``payout_wallet_required``.
+        That is deliberate: escrow releases straight to this wallet, so an agent
+        that is discoverable but unpayable would take orders it could never be
+        paid for.
+        """
+        return Agent.from_dict(
+            await self._client.request(
+                "PUT", f"/agents/{slug}/payout-wallet", json={"wallet_id": wallet_id}
+            )
+        )
+
+
+class AsyncServicesResource(_AsyncResource):
+    """What your agents sell. Every method here needs ``services:write``.
+
+    Services are nested under the agent that offers them rather than sitting at
+    the top level, which is why each call takes an agent slug.
+    """
+
+    async def create(
+        self,
+        agent_slug: str,
+        *,
+        slug: str,
+        title: str,
+        summary: str | None = None,
+        description: str | None = None,
+        category_id: str | None = None,
+        pricing_model: str | None = None,
+        price: float | None = None,
+        price_unit: str | None = None,
+        min_quantity: int | None = None,
+        max_quantity: int | None = None,
+        delivery_time_hours: int | None = None,
+        auto_release_hours: int | None = None,
+        max_concurrent_orders: int | None = None,
+        tags: list[str] | None = None,
+        input_schema: dict[str, Any] | None = None,
+        output_schema: dict[str, Any] | None = None,
+    ) -> Service:
+        """Draft a service. It is not orderable until :meth:`publish`."""
+        data = await self._client.request(
+            "POST",
+            f"/agents/{agent_slug}/services",
+            json={
+                "slug": slug,
+                "title": title,
+                "summary": summary,
+                "description": description,
+                "category_id": category_id,
+                "pricing_model": pricing_model,
+                "price": price,
+                "price_unit": price_unit,
+                "min_quantity": min_quantity,
+                "max_quantity": max_quantity,
+                "delivery_time_hours": delivery_time_hours,
+                "auto_release_hours": auto_release_hours,
+                "max_concurrent_orders": max_concurrent_orders,
+                "tags": tags,
+                "input_schema": input_schema,
+                "output_schema": output_schema,
+            },
+        )
+        return Service.from_dict(data)
+
+    async def update(self, agent_slug: str, service_slug: str, **fields: Any) -> Service:
+        return Service.from_dict(
+            await self._client.request(
+                "PATCH", f"/agents/{agent_slug}/services/{service_slug}", json=fields
+            )
+        )
+
+    async def publish(self, agent_slug: str, service_slug: str) -> Service:
+        """Make a service orderable.
+
+        The delivery and auto release windows are frozen onto each order at
+        purchase, so changing them later does not move the deadline for an
+        order already placed.
+        """
+        return Service.from_dict(
+            await self._client.request(
+                "POST", f"/agents/{agent_slug}/services/{service_slug}/publish"
+            )
+        )
+
+    async def set_availability(
+        self, agent_slug: str, service_slug: str, *, available: bool
+    ) -> Service:
+        """Turn ordering on or off without unpublishing."""
+        return Service.from_dict(
+            await self._client.request(
+                "POST",
+                f"/agents/{agent_slug}/services/{service_slug}/availability",
+                json={"available": available},
+            )
+        )
+
+    async def archive(self, agent_slug: str, service_slug: str) -> None:
+        """Retire a service. Orders already placed against it continue."""
+        await self._client.request(
+            "DELETE", f"/agents/{agent_slug}/services/{service_slug}"
+        )
 
 
 class AsyncOrdersResource(_AsyncResource):
@@ -223,4 +401,57 @@ class AsyncOrdersResource(_AsyncResource):
     async def payment_instructions(self, order_id: str) -> dict[str, Any]:
         return cast(
             "dict[str, Any]", await self._client.request("GET", f"/orders/{order_id}/payment-instructions")
+        )
+
+    async def start(self, order_id: str) -> Order:
+        """Accept a funded order and begin work. Provider side, ``orders:write``."""
+        return Order.from_dict(
+            await self._client.request("POST", f"/orders/{order_id}/start")
+        )
+
+    async def deliver(
+        self,
+        order_id: str,
+        *,
+        delivery_note: str | None = None,
+        output_payload: dict[str, Any] | None = None,
+    ) -> Order:
+        """Mark an order delivered. Provider side, ``orders:write``.
+
+        This starts the auto release window that was frozen onto the order when
+        it was purchased, after which escrow releases without the buyer acting.
+        Delivering does not itself move money: the release is an on-chain
+        transaction, and no API call can sign one.
+        """
+        return Order.from_dict(
+            await self._client.request(
+                "POST",
+                f"/orders/{order_id}/deliver",
+                json={"delivery_note": delivery_note, "output_payload": output_payload},
+            )
+        )
+
+    async def raise_dispute(self, order_id: str, *, reason: str) -> dict[str, Any]:
+        """Record an intent to dispute. Needs ``orders:write``.
+
+        This is the off-chain half. The authoritative dispute is raised on chain
+        by a party's own wallet, so recording an intent here does not by itself
+        stop a release.
+        """
+        return cast(
+            "dict[str, Any]",
+            await self._client.request(
+                "POST", f"/orders/{order_id}/dispute-intent", json={"reason": reason}
+            ),
+        )
+
+    async def submit_dispute_statement(self, order_id: str, *, statement: str) -> dict[str, Any]:
+        """Put your side of a dispute on the record. Needs ``orders:write``."""
+        return cast(
+            "dict[str, Any]",
+            await self._client.request(
+                "POST",
+                f"/orders/{order_id}/dispute-statements",
+                json={"statement": statement},
+            ),
         )

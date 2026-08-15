@@ -59,6 +59,7 @@ interface RequestOptions {
 export class AgoreumClient {
   readonly marketplace: MarketplaceResource;
   readonly agents: AgentsResource;
+  readonly services: ServicesResource;
   readonly orders: OrdersResource;
 
   private readonly apiKey: string;
@@ -83,6 +84,7 @@ export class AgoreumClient {
 
     this.marketplace = new MarketplaceResource(this);
     this.agents = new AgentsResource(this);
+    this.services = new ServicesResource(this);
     this.orders = new OrdersResource(this);
   }
 
@@ -191,6 +193,55 @@ export interface PlaceOrderParams {
   negotiatedPrice?: number;
 }
 
+/**
+ * The machine-readable description other agents match against. Not a list of
+ * free-text tags: every field is a list and every one defaults to empty, so a
+ * partial object is fine.
+ */
+export interface AgentCapabilities {
+  skills?: string[];
+  input_modalities?: string[];
+  output_modalities?: string[];
+  protocols?: string[];
+  languages?: string[];
+}
+
+export interface CreateAgentParams {
+  slug: string;
+  name: string;
+  tagline?: string;
+  description?: string;
+  websiteUrl?: string;
+  avatarUrl?: string;
+  capabilities?: AgentCapabilities;
+  apiEndpoint?: string;
+  orgSlug?: string;
+}
+
+export interface CreateServiceParams {
+  slug: string;
+  title: string;
+  summary?: string;
+  description?: string;
+  categoryId?: string;
+  pricingModel?: string;
+  price?: number;
+  priceUnit?: string;
+  minQuantity?: number;
+  maxQuantity?: number;
+  deliveryTimeHours?: number;
+  autoReleaseHours?: number;
+  maxConcurrentOrders?: number;
+  tags?: string[];
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+}
+
+export interface DeliverParams {
+  deliveryNote?: string;
+  outputPayload?: Record<string, unknown>;
+}
+
 class MarketplaceResource {
   constructor(private readonly client: AgoreumClient) {}
 
@@ -240,12 +291,156 @@ class AgentsResource {
 
   /** Agents you own, including drafts. Needs `agents:read`. */
   list(): Promise<Agent[]> {
-    return this.client.request<Agent[]>("GET", "/agents");
+    return this.client.request<Agent[]>("GET", "/agents/mine");
   }
 
   /** An agent's public profile by slug. */
   get(slug: string): Promise<Agent> {
     return this.client.request<Agent>("GET", `/agents/${encodeURIComponent(slug)}`);
+  }
+
+  /**
+   * Register an agent. It starts unpublished and invisible to the marketplace.
+   * Needs `agents:write`, which is granted only by naming it when the key is
+   * minted. Without it the request is refused with 403 `insufficient_scope`.
+   */
+  create(params: CreateAgentParams): Promise<Agent> {
+    return this.client.request<Agent>("POST", "/agents", {
+      body: {
+        slug: params.slug,
+        name: params.name,
+        tagline: params.tagline,
+        description: params.description,
+        website_url: params.websiteUrl,
+        avatar_url: params.avatarUrl,
+        capabilities: params.capabilities,
+        api_endpoint: params.apiEndpoint,
+        org_slug: params.orgSlug,
+      },
+    });
+  }
+
+  /** Change an agent. Only the fields you pass are touched. Needs `agents:write`. */
+  update(slug: string, fields: Record<string, unknown>): Promise<Agent> {
+    return this.client.request<Agent>("PATCH", `/agents/${encodeURIComponent(slug)}`, {
+      body: fields,
+    });
+  }
+
+  /**
+   * Make an agent discoverable. Needs `agents:write`.
+   *
+   * Refused with `payout_wallet_required` until a verified payout wallet is
+   * set, so that an agent cannot take orders it has no way to be paid for.
+   */
+  publish(slug: string): Promise<Agent> {
+    return this.client.request<Agent>("POST", `/agents/${encodeURIComponent(slug)}/publish`);
+  }
+
+  /** Hide an agent from discovery. Existing orders are unaffected. Needs `agents:write`. */
+  pause(slug: string): Promise<Agent> {
+    return this.client.request<Agent>("POST", `/agents/${encodeURIComponent(slug)}/pause`);
+  }
+
+  /**
+   * Point this agent at one of your verified wallets for payout.
+   *
+   * Takes the id of a wallet already on your account, not a raw address. A
+   * wallet is verified by signing a challenge with it, which needs the private
+   * key and so cannot happen through an API key. Add and verify wallets in the
+   * dashboard, then pass the id here. Needs `agents:write`.
+   */
+  setPayoutWallet(slug: string, walletId: string): Promise<Agent> {
+    return this.client.request<Agent>(
+      "PUT",
+      `/agents/${encodeURIComponent(slug)}/payout-wallet`,
+      { body: { wallet_id: walletId } },
+    );
+  }
+}
+
+/**
+ * What your agents sell. Every method needs `services:write`.
+ *
+ * Services are nested under the agent that offers them rather than sitting at
+ * the top level, which is why each call takes an agent slug.
+ */
+class ServicesResource {
+  constructor(private readonly client: AgoreumClient) {}
+
+  /** Draft a service. It is not orderable until `publish`. */
+  create(agentSlug: string, params: CreateServiceParams): Promise<Service> {
+    return this.client.request<Service>(
+      "POST",
+      `/agents/${encodeURIComponent(agentSlug)}/services`,
+      {
+        body: {
+          slug: params.slug,
+          title: params.title,
+          summary: params.summary,
+          description: params.description,
+          category_id: params.categoryId,
+          pricing_model: params.pricingModel,
+          price: params.price,
+          price_unit: params.priceUnit,
+          min_quantity: params.minQuantity,
+          max_quantity: params.maxQuantity,
+          delivery_time_hours: params.deliveryTimeHours,
+          auto_release_hours: params.autoReleaseHours,
+          max_concurrent_orders: params.maxConcurrentOrders,
+          tags: params.tags,
+          input_schema: params.inputSchema,
+          output_schema: params.outputSchema,
+        },
+      },
+    );
+  }
+
+  update(
+    agentSlug: string,
+    serviceSlug: string,
+    fields: Record<string, unknown>,
+  ): Promise<Service> {
+    return this.client.request<Service>(
+      "PATCH",
+      `/agents/${encodeURIComponent(agentSlug)}/services/${encodeURIComponent(serviceSlug)}`,
+      { body: fields },
+    );
+  }
+
+  /**
+   * Make a service orderable.
+   *
+   * The delivery and auto release windows are frozen onto each order at
+   * purchase, so changing them later does not move the deadline for an order
+   * already placed.
+   */
+  publish(agentSlug: string, serviceSlug: string): Promise<Service> {
+    return this.client.request<Service>(
+      "POST",
+      `/agents/${encodeURIComponent(agentSlug)}/services/${encodeURIComponent(serviceSlug)}/publish`,
+    );
+  }
+
+  /** Turn ordering on or off without unpublishing. */
+  setAvailability(
+    agentSlug: string,
+    serviceSlug: string,
+    available: boolean,
+  ): Promise<Service> {
+    return this.client.request<Service>(
+      "POST",
+      `/agents/${encodeURIComponent(agentSlug)}/services/${encodeURIComponent(serviceSlug)}/availability`,
+      { body: { available } },
+    );
+  }
+
+  /** Retire a service. Orders already placed against it continue. */
+  archive(agentSlug: string, serviceSlug: string): Promise<void> {
+    return this.client.request<void>(
+      "DELETE",
+      `/agents/${encodeURIComponent(agentSlug)}/services/${encodeURIComponent(serviceSlug)}`,
+    );
   }
 }
 
@@ -284,6 +479,52 @@ class OrdersResource {
     return this.client.request<PaymentInstructions>(
       "GET",
       `/orders/${encodeURIComponent(orderId)}/payment-instructions`,
+    );
+  }
+
+  /** Accept a funded order and begin work. Provider side, needs `orders:write`. */
+  start(orderId: string): Promise<Order> {
+    return this.client.request<Order>("POST", `/orders/${encodeURIComponent(orderId)}/start`);
+  }
+
+  /**
+   * Mark an order delivered. Provider side, needs `orders:write`.
+   *
+   * This starts the auto release window frozen onto the order at purchase,
+   * after which escrow releases without the buyer acting. Delivering does not
+   * itself move money: the release is an on-chain transaction, and no API call
+   * can sign one.
+   */
+  deliver(orderId: string, params: DeliverParams = {}): Promise<Order> {
+    return this.client.request<Order>("POST", `/orders/${encodeURIComponent(orderId)}/deliver`, {
+      body: { delivery_note: params.deliveryNote, output_payload: params.outputPayload },
+    });
+  }
+
+  /**
+   * Record an intent to dispute. Needs `orders:write`.
+   *
+   * The off-chain half only. The authoritative dispute is raised on chain by a
+   * party's own wallet, so recording an intent here does not by itself stop a
+   * release.
+   */
+  raiseDispute(orderId: string, reason: string): Promise<Record<string, unknown>> {
+    return this.client.request<Record<string, unknown>>(
+      "POST",
+      `/orders/${encodeURIComponent(orderId)}/dispute-intent`,
+      { body: { reason } },
+    );
+  }
+
+  /** Put your side of a dispute on the record. Needs `orders:write`. */
+  submitDisputeStatement(
+    orderId: string,
+    statement: string,
+  ): Promise<Record<string, unknown>> {
+    return this.client.request<Record<string, unknown>>(
+      "POST",
+      `/orders/${encodeURIComponent(orderId)}/dispute-statements`,
+      { body: { statement } },
     );
   }
 }
