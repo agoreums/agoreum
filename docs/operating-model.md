@@ -609,6 +609,20 @@ The User-Agent was checked separately, because it is the defect this release
 fixes rather than a side effect of it. All three now send their true version:
 `agoreum-python/0.2.0`, `agoreum-typescript/0.2.0`, `agoreum-go/0.2.0`.
 
+The three package READMEs documented only the read surface plus `place`, so the
+headline new capability was undocumented on the pages PyPI and npm render. All
+three now carry the provider walkthrough, and each example was checked against
+the **published** package rather than the source: the Go snippet compiled
+against the proxy copy, the TypeScript snippet type-checked with `--strict`
+against the installed types, and the Python calls bound to the real signatures.
+A documentation example that does not compile is a defect with a slower fuse
+than a broken method, because the reader assumes they mistyped it.
+
+Those README updates are in the repository but **not** on the package pages,
+which are frozen to whatever shipped with 0.2.0. They will appear with the next
+release; publishing a version purely for prose was not worth another
+irreversible tag.
+
 Two probes failed and both were the probe. Reading `@agoreum/sdk/package.json`
 is blocked by the package's own `exports`, which is correct packaging, and the
 Python check first sent a `/me` payload without an `id`. Neither was a fault in
