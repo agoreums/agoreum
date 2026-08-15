@@ -229,6 +229,7 @@ async def deliver(
     "/orders/{order_id}/dispute-intent",
     response_model=OrderDetail,
     summary="Record an intent to dispute",
+    dependencies=[Depends(limiter("orders:dispute_intent"))],
 )
 async def dispute_intent(
     order_id: uuid.UUID,
@@ -306,6 +307,7 @@ async def get_dispute(
     response_model=DisputeView,
     status_code=status.HTTP_201_CREATED,
     summary="State your case",
+    dependencies=[Depends(limiter("orders:dispute_statement"))],
 )
 async def submit_dispute_statement(
     order_id: uuid.UUID,

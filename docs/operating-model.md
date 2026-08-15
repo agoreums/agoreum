@@ -372,7 +372,7 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. 140 tests, 0 skipped, including an invariant that deadlines never move. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 698 tests, 698 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 701 tests, 701 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
@@ -457,6 +457,44 @@ One thing the 403 buys that is easy to undervalue. The old failure was a 401,
 which tells a developer their key is wrong, so they go and check the key. It is
 not wrong. Hours can go into checking a correct credential. `insufficient_scope`
 with the missing scope named points at the actual fix.
+
+### 18. Two dispute endpoints had no per-identity limit (done)
+
+Found by sweeping the sub-shape that produced item 17: a set that looks
+complete. The set this time is my own doing, the write endpoints made reachable
+by API key a few days earlier.
+
+Of 52 write routes, 11 carried a per-identity limit. Most of the rest are fine
+and the reason is worth stating rather than assuming: nginx already limits every
+request per address, and most write routes are state changes on a resource the
+caller already owns, creating no new rows, with the number of those resources
+already bounded by the create limits.
+
+Two were not fine. `dispute-intent` and `dispute-statements` each append a row
+to the order's timeline on every call, with no cap. That timeline is the record
+an arbiter reads to decide who gets the money, so flooding it is not storage
+abuse, it degrades the process the escrow depends on, and it does so against the
+other party rather than against us.
+
+They sat directly under a comment in the bucket table reading "writes that
+create durable records", which is precisely what they are. The category was
+named and the members were not checked against it.
+
+**Nginx is why this was a gap and not a hole.** Every request was already
+limited to 30 per second per address. The per-identity layer exists because an
+address is something a caller can change, which that module documents at length,
+and both endpoints became reachable by API key when the write scopes shipped.
+
+Fixed with two buckets at 10 per five minutes, generous because disputes are
+rare and deliberate and a party writing several accounts of what happened is
+normal.
+
+The durable half is `WRITE_ENDPOINT_LIMITS`: every write-scoped endpoint maps to
+its bucket, or to None with the reason a limit is not needed. Three tests, and
+three mutations each fail on their own: removing a limiter, pointing one at an
+unconfigured bucket, and deleting a bucket's configuration while leaving the
+limiter attached. A new write endpoint now forces a decision instead of relying
+on somebody noticing.
 
 ### 17. A worker ran in production with nothing watching it (done)
 
