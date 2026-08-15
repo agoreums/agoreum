@@ -197,7 +197,7 @@ _SCOPE_ENTRY = re.compile(r'\[\s*"([a-z]+:[a-z]+)"\s*,\s*"([^"]+)"\s*\]')
 def _documented_scopes() -> dict[str, str]:
     text = DOCS_PAGE.read_text(encoding="utf-8")
     block = text.split("const scopes", 1)[-1].split("];", 1)[0]
-    return {scope: desc for scope, desc in _SCOPE_ENTRY.findall(block)}
+    return dict(_SCOPE_ENTRY.findall(block))
 
 
 def test_the_documented_scopes_are_the_real_ones() -> None:
