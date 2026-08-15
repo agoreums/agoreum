@@ -128,6 +128,23 @@ anything offering giveaways, engagement campaigns, KOL or influencer reach. Both
 are answered with the real reason rather than a brush-off, because a person who
 took the time to write deserves to know where they actually stand.
 
+Support stays in channels that leave a record. A user asked to move the
+conversation to Discord direct messages on 2026-08-15 and was declined, with the
+real reason rather than a polite one.
+
+Two reasons, neither about the person asking. An answer given in private helps
+one person: that user's question is what produced the landing page status line,
+and in a direct message it would have been a pleasant exchange and nothing else.
+And "let us continue this in DMs" is the opening move of almost every scam in
+this space, so the way people learn to distrust it is by seeing a project refuse
+it consistently, including when the person asking is genuine. An exception
+teaches someone that an Agoreum representative sometimes moves to DMs, and the
+next person using that line may not be us.
+
+The same reply carries the standing warning: there is no token, no sale, no
+allocation, and anyone claiming otherwise is a scam. That is worth more to a
+user than the conversation they asked for.
+
 Nothing is sent to a channel that cannot be read. When the Discord bot lacked
 the message content intent it could see that conversations existed but not what
 they said, and the correct state was "unread", not "unanswered". Replying to
@@ -357,6 +374,9 @@ fourteen CI jobs green including Deploy and Fork tests:
 - `3820c39` (PR #14), the deadline invariant, the subscriptions self-transfer
   test, and the corrected security register row. Contracts 140 passed, 0
   skipped, and the fork suite ran on merge.
+- `d9e7d1d` (PR #16), the landing page testnet status line. Verified live in
+  English, German, Japanese, Arabic and Chinese, following redirects, which is
+  the check the first attempt at this got wrong.
 
 **What was not verified in production, and why.** Bucket separation needs two
 real keys, which means minting credentials against live data for a change that
