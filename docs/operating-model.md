@@ -431,6 +431,23 @@ Re-derived from the state of the code on 2026-08-08, after the previous list was
 finished. Ordered by what would hurt most if left, with the evidence that put each
 one where it is rather than an assertion that it matters.
 
+Items 1 to 12 are done. **Re-derived again on 2026-08-15**, and the method is
+worth recording because it worked better than reading code looking for problems:
+the documentation was searched for claims it made about itself and could not
+support. Two turned up immediately, both on the money path, both phrased as
+things somebody meant to check.
+
+`docs/audit-readiness.md` said permissionless auto-release was deliberate "but it
+is worth confirming the deadline cannot be brought forward", and
+`docs/incident-runbook.md` listed "one untested live-only revert". Both are now
+asserted, items 13 and 14 below. That is the same fingerprint as the API key
+bugs, one layer up: a document naming the right concern is not a check.
+
+**The sweep that produced them, worth repeating:** grep the docs for hedged
+language, `not tested`, `untested`, `worth confirming`, `should be`, `we assume`,
+`known limitation`. Every hit is either a real check nobody wrote, or a decision
+that should be stated without the hedge. Both outcomes are worth having.
+
 ### 1. Dispute resolution has no ending (done)
 
 `AgoreumEscrow.settleDispute(escrowId, providerAmount, buyerAmount)` exists and
@@ -655,6 +672,78 @@ is blocked by the package's own `exports`, which is correct packaging, and the
 Python check first sent a `/me` payload without an `id`. Neither was a fault in
 what was published, and both are worth noting only because a failing probe reads
 exactly like a failing package until you look.
+
+### 13. The auto-release deadline was assumed immutable, not asserted (done)
+
+`docs/audit-readiness.md` listed permissionless auto-release as deliberate and
+added that it was "worth confirming the deadline cannot be brought forward".
+Nobody had. That property is what makes the permissionless path safe: anyone may
+call `release` once `autoReleaseAt` has passed, so an actor who could move that
+timestamp earlier could pay a provider before the buyer's window to dispute had
+run. Nothing about the release path would look wrong. The deadline would simply
+have arrived early.
+
+It holds, and by construction: both deadlines are written once inside the struct
+literal at funding and no function reassigns either, and the windows are bounded
+by `MIN_WINDOW` and `MAX_WINDOW` so the additions cannot overflow into a small
+value under checked arithmetic.
+
+`invariant_deadlinesNeverMove` compares every escrow against values recorded at
+creation in handler state, outside the contract, so it cannot read the
+contract's own storage back and agree with itself. It held over 32,768 calls
+including warps, disputes, settlements, releases and refunds. Making `dispute`
+rewrite `autoReleaseAt` fails it, reporting the deadline having moved earlier,
+which is the direction that costs a buyer their dispute window.
+
+Existing tests covered behaviour *at* the deadline, which is a different
+question and is why this went unnoticed: `test_strangerCannotReleaseBefore...`
+and `test_anyoneCanReleaseAfter...` both hold a fixed deadline and vary the
+clock. Nothing varied the deadline.
+
+### 14. A documented revert had never been executed (done)
+
+`docs/incident-runbook.md` described "one untested live-only revert": with
+`treasury` equal to the subscriber, `subscribe()` reverts because the
+balance-delta guard sees no net change on a self-transfer. Accurate, and nobody
+had run it.
+
+Now tested, including that no subscription is left behind, since a revert that
+still granted a period is the failure worth catching. Weakening the guard to
+accept a zero delta turns the revert into a free subscription and fails the test.
+
+Worth doing despite being moot on mainnet, where the treasury is separated. The
+revert comes from a guard about token behaviour, not about identity, so a future
+change to how payment is measured could quietly turn it from a refusal into a
+free subscription, and the runbook would still describe it as a revert.
+
+### 15. The security document was wrong about its own premise (done)
+
+The same sweep found a third, and this one was a live inaccuracy in a public
+document rather than a missing test.
+
+`docs/security.md` listed unverified email recipients as a risk and dismissed it
+as "inert today, since nothing calls `notify()`", adding that it "must be fixed
+before sending is enabled". Every part of that was wrong by the time it was
+read. `notify()` is called from three modules. And the risk is not inert for the
+reason given; it is genuinely mitigated for a better one, by a verification check
+at delivery time that the document did not mention.
+
+Wrong in both directions at once, which is the interesting part. Reassuring on
+the premise, since a reader would conclude no code path reaches this. Pessimistic
+on the control, since a reader would conclude the protection is still to be
+built. Either way somebody deciding how much to trust the system was reading
+something false.
+
+The row now states the three conditions that must all hold before anything is
+sent, that the single caller permitted to skip the last is the verification
+message itself via an explicit argument, and that refusals are recorded rather
+than dropped.
+
+**The lesson is about how risk registers rot.** A mitigation written as "inert
+because nothing calls it" is a statement about the *rest of the codebase*, which
+changes without anybody revisiting the register. A mitigation written as "refused
+by this check" is a statement about a specific control, and stays true or fails a
+test. Prefer the second, and treat the first as a note that expires.
 
 ### 12. The assumption under both key bugs was never asserted (done)
 

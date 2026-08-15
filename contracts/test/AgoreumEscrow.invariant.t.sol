@@ -29,6 +29,12 @@ contract EscrowHandler is Test {
     uint256 public ghostTotalDeposited;
     uint256 public ghostTotalPaidOut;
 
+    // The auto-release deadline as it was at creation, recorded here so the
+    // invariant compares against an independent record rather than reading the
+    // contract's own storage back and agreeing with itself.
+    mapping(bytes32 => uint64) public ghostAutoReleaseAt;
+    mapping(bytes32 => uint64) public ghostDeliveryDeadline;
+
     uint256 public createCalls;
     uint256 public releaseCalls;
     uint256 public refundCalls;
@@ -87,6 +93,9 @@ contract EscrowHandler is Test {
             escrowIds.push(id);
             known[id] = true;
             ghostTotalDeposited += amount;
+            AgoreumEscrow.Escrow memory created = escrow.getEscrow(id);
+            ghostAutoReleaseAt[id] = created.autoReleaseAt;
+            ghostDeliveryDeadline[id] = created.deliveryDeadline;
             createCalls++;
         } catch {}
     }
@@ -244,6 +253,42 @@ contract AgoreumEscrowInvariantTest is StdInvariant, Test {
                 assertEq(e.released, 0, "active escrow already released funds");
                 assertEq(e.refunded, 0, "active escrow already refunded funds");
             }
+        }
+    }
+
+    /// @notice A deadline, once set, never moves.
+    /// @dev `docs/audit-readiness.md` lists permissionless auto-release as
+    ///      deliberate and then adds that it is "worth confirming the deadline
+    ///      cannot be brought forward". That was a stated intention with nothing
+    ///      asserting it, which is the shape this project has repeatedly found
+    ///      to be wrong, so it is asserted here.
+    ///
+    ///      This is the property that makes permissionless release safe. Anyone
+    ///      may call `release` once `autoReleaseAt` has passed, so if any actor
+    ///      could move that timestamp earlier they could pay a provider before
+    ///      the buyer's window to dispute had run. Nothing about the release
+    ///      path itself would look wrong; the deadline would simply have arrived
+    ///      early.
+    ///
+    ///      Compared against a value recorded at creation rather than against a
+    ///      recomputation, so a change to how the deadline is derived cannot
+    ///      move the expectation along with the behaviour.
+    function invariant_deadlinesNeverMove() public view {
+        uint256 count = handler.escrowCount();
+        for (uint256 i = 0; i < count; i++) {
+            bytes32 id = handler.escrowIds(i);
+            AgoreumEscrow.Escrow memory e = escrow.getEscrow(id);
+
+            assertEq(
+                e.autoReleaseAt,
+                handler.ghostAutoReleaseAt(id),
+                "auto-release deadline moved after creation"
+            );
+            assertEq(
+                e.deliveryDeadline,
+                handler.ghostDeliveryDeadline(id),
+                "delivery deadline moved after creation"
+            );
         }
     }
 

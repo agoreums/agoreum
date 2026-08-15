@@ -424,7 +424,10 @@ Stated plainly so nobody assumes otherwise:
   `settleDispute` pays only the escrow's own buyer and provider, but it decides
   how a disputed escrow is divided and there is no timelock and no appeal. Making
   it a multisig is a recorded mainnet blocker in `docs/contracts.md`.
-- **The subscriptions contract has one untested live-only revert:** if `treasury`
-  equals the subscriber, `subscribe()` reverts with `UnsupportedToken`, because
-  the balance-delta guard sees no net change on a self-transfer. Moot with a
-  separated treasury, which mainnet enforces, but worth knowing.
+- **If `treasury` equals the subscriber, `subscribe()` reverts** with
+  `UnsupportedToken`, because the balance-delta guard sees no net change on a
+  self-transfer. Moot with a separated treasury, which mainnet enforces, and
+  worth knowing. This was listed here as untested until 2026-08-15 and now has a
+  test, which also asserts that no subscription is left behind. Weakening the
+  guard to accept a zero delta turns the revert into a free subscription and
+  fails that test.

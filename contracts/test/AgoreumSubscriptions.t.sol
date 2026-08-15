@@ -246,4 +246,35 @@ contract AgoreumSubscriptionsTest is Test {
         assertFalse(subs.isActive(alice, MONTHLY));
         assertEq(subs.timeRemaining(alice, MONTHLY), 0);
     }
+    /// @notice The treasury cannot subscribe to its own plan.
+    /// @dev `docs/incident-runbook.md` lists this as "one untested live-only
+    ///      revert", which is an accurate description of a claim nobody had
+    ///      checked. It is asserted here rather than described.
+    ///
+    ///      `subscribe` measures the treasury's balance delta and refuses
+    ///      anything short of the full price, so a fee-on-transfer token cannot
+    ///      buy a period. A self-transfer nets to zero, so the same guard fires
+    ///      and the treasury cannot subscribe at all.
+    ///
+    ///      Moot on mainnet, where the treasury is a separated holding address,
+    ///      and worth pinning anyway: the reason it reverts is a guard about
+    ///      token behaviour, not about identity, so a future change to how the
+    ///      payment is measured could silently turn this into a free
+    ///      subscription rather than a revert.
+    function test_theTreasuryCannotSubscribeToItsOwnPlan() public {
+        usdc.mint(treasury, 1_000e6);
+        vm.prank(treasury);
+        usdc.approve(address(subs), type(uint256).max);
+
+        vm.prank(treasury);
+        vm.expectRevert(
+            abi.encodeWithSelector(AgoreumSubscriptions.UnsupportedToken.selector, MONTH_PRICE, 0)
+        );
+        subs.subscribe(MONTHLY, MONTH_PRICE);
+
+        // And it bought nothing: a revert that still left a subscription behind
+        // would be the failure worth catching.
+        assertFalse(subs.isActive(treasury, MONTHLY), "treasury gained a subscription");
+    }
+
 }

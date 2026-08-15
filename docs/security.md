@@ -352,7 +352,7 @@ Stated plainly rather than omitted.
 | Tokens in `sessionStorage` | XSS could exfiltrate a session | Mitigated by CSP; httpOnly cookies planned once API and site share a domain |
 | No 2FA | Wallet compromise is total account compromise | Inherent to wallet-based identity |
 | Single arbiter key | Compromise allows unfair dispute settlement | Multisig planned. The arbiter cannot raise a dispute, so it cannot act on a healthy escrow unilaterally. |
-| Email recipients unverified | Any address set on a profile becomes a delivery destination | Inert today, since nothing calls `notify()`. Must be fixed before sending is enabled, see [email.md](email.md). |
+| Email to an address nobody proved | An address typed into a profile could become a delivery destination, making the platform a way to mail a stranger | Three independent conditions must all hold before anything is sent: `EMAIL_SENDING_ENABLED`, a provider API key, and `email_verified_at` set on the recipient. The one caller permitted to skip the last is the verification message itself, which takes an explicit `allow_unverified_email` argument rather than a special case. Refusals are recorded on the delivery row rather than dropped. Covered by tests asserting an unproven address receives nothing. |
 | No admin role-granting path | No way to become admin | Deliberate, see [architecture.md](architecture.md) |
 
 Closed since this table was written:
