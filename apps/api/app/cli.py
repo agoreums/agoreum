@@ -268,10 +268,20 @@ async def _deliver_emails(args: argparse.Namespace) -> int:
     goes so a crash mid-batch loses at most the attempt in flight.
     """
     import contextlib
+    import time
 
+    from app.core.redis import create_client
+    from app.modules.health.service import EMAIL_HEARTBEAT_KEY
     from app.modules.notifications import service as notifications
 
     print(f"email delivery: enabled={settings.EMAIL_SENDING_ENABLED}")
+    # Like the webhooks worker, this has no chain cursor to trail, so it records a
+    # heartbeat each pass and /health/workers can tell a stalled loop from a
+    # healthy idle one. It had none until 2026-08-15: the container being up was
+    # the only evidence anyone had that sign-in alerts and verification links were
+    # still going out. A Redis blip must never stop delivery, so the write is
+    # best-effort, exactly as it is next door.
+    redis = create_client()
     try:
         while True:
             processed = 0
@@ -283,6 +293,10 @@ async def _deliver_emails(args: argparse.Namespace) -> int:
                     # repeated because of a later failure in the same batch.
                     await session.commit()
                     processed += 1
+            # Written after the work, not before, so the heartbeat means "a pass
+            # completed" rather than "a pass started".
+            with contextlib.suppress(Exception):
+                await redis.set(EMAIL_HEARTBEAT_KEY, str(int(time.time())))
             if processed:
                 print(f"attempted {processed} email deliver(y/ies)")
             if not args.follow:
@@ -291,6 +305,8 @@ async def _deliver_emails(args: argparse.Namespace) -> int:
     except KeyboardInterrupt:  # pragma: no cover - operator interrupt
         print("stopped")
     finally:
+        with contextlib.suppress(Exception):
+            await redis.aclose()
         with contextlib.suppress(Exception):
             await dispose_engine()
     return 0

@@ -23,10 +23,25 @@ Status = Literal["ok", "degraded", "down"]
 DEGRADED_THRESHOLD_MS = 500.0
 PROBE_TIMEOUT_SECONDS = 3.0
 
-# The webhooks delivery worker has no chain cursor to trail, so it records a
-# liveness heartbeat in Redis each loop. A heartbeat older than this means the
-# loop has stopped draining the outbox even though the container may be up.
+# Workers with no chain cursor to trail record a liveness heartbeat in Redis each
+# loop. A heartbeat older than this means the loop has stopped even though the
+# container may be up.
+#
+# The emails worker was missing from this list until 2026-08-15, and the shape of
+# the omission is worth keeping. The webhooks worker had the pattern, correct and
+# load-bearing, one service over. The health endpoint reported two workers and
+# looked complete. Production runs four besides the monitor, and the one that had
+# no heartbeat is the one that sends sign-in alerts and verification links, so a
+# wedged loop would have stopped security mail with nothing raising a hand.
+#
+# Keyed by name rather than as separate constants so adding a worker means adding
+# an entry here, and `check_worker` covers it without new code to forget.
 WEBHOOK_HEARTBEAT_KEY = "health:worker:webhooks"
+EMAIL_HEARTBEAT_KEY = "health:worker:emails"
+WORKER_HEARTBEAT_KEYS = {
+    "webhooks_worker": WEBHOOK_HEARTBEAT_KEY,
+    "emails_worker": EMAIL_HEARTBEAT_KEY,
+}
 WORKER_HEARTBEAT_STALE_SECONDS = 180
 
 # The chain probe is the only one on the readiness path that leaves our own
@@ -352,47 +367,44 @@ async def check_subscription_indexer(session: AsyncSession) -> ComponentHealth:
     )
 
 
-async def check_webhooks_worker() -> ComponentHealth:
-    """Whether the webhooks delivery loop is still running.
+async def check_worker(name: str) -> ComponentHealth:
+    """Whether a heartbeat-reporting worker loop is still running.
 
-    The worker records a heartbeat timestamp in Redis each loop. A missing
-    heartbeat means it has not run yet; a stale one means the loop has stopped
-    even if the container is nominally up, so deliveries would silently pile up.
+    The worker records a timestamp in Redis each pass. A missing heartbeat means
+    it has not run yet; a stale one means the loop has stopped even if the
+    container is nominally up, so its queue would silently pile up.
     """
+    key = WORKER_HEARTBEAT_KEYS.get(name)
+    if key is None:  # a wiring mistake, not a runtime condition
+        return ComponentHealth(name=name, status="down", error="no heartbeat key configured")
+
     try:
         from app.core.redis import create_client
     except ImportError:
-        return ComponentHealth(
-            name="webhooks_worker", status="down", error="redis client not installed"
-        )
+        return ComponentHealth(name=name, status="down", error="redis client not installed")
 
     client = None
     try:
         client = create_client(timeout=PROBE_TIMEOUT_SECONDS)
-        raw = await client.get(WEBHOOK_HEARTBEAT_KEY)
+        raw = await client.get(key)
     except Exception as exc:
         logger.warning(
-            "health_webhooks_worker_failed", extra={"error_type": type(exc).__name__}
+            "health_worker_probe_failed",
+            extra={"worker": name, "error_type": type(exc).__name__},
         )
-        return ComponentHealth(
-            name="webhooks_worker", status="down", error=type(exc).__name__
-        )
+        return ComponentHealth(name=name, status="down", error=type(exc).__name__)
     finally:
         if client is not None:
             try:
                 await client.aclose()
             except Exception as exc:
                 logger.debug(
-                    "health_webhooks_worker_close_failed",
-                    extra={"error_type": type(exc).__name__},
+                    "health_worker_close_failed",
+                    extra={"worker": name, "error_type": type(exc).__name__},
                 )
 
     if raw is None:
-        return ComponentHealth(
-            name="webhooks_worker",
-            status="degraded",
-            error="no heartbeat recorded yet",
-        )
+        return ComponentHealth(name=name, status="degraded", error="no heartbeat recorded yet")
 
     try:
         last = int(raw)
@@ -400,11 +412,16 @@ async def check_webhooks_worker() -> ComponentHealth:
         last = 0
     age = int(time.time()) - last
     status: Status = "ok" if age <= WORKER_HEARTBEAT_STALE_SECONDS else "down"
-    return ComponentHealth(
-        name="webhooks_worker",
-        status=status,
-        detail={"heartbeat_age_seconds": str(age)},
-    )
+    return ComponentHealth(name=name, status=status, detail={"heartbeat_age_seconds": str(age)})
+
+
+async def check_webhooks_worker() -> ComponentHealth:
+    """Kept as a named entry point; the logic now lives in `check_worker`."""
+    return await check_worker("webhooks_worker")
+
+
+async def check_emails_worker() -> ComponentHealth:
+    return await check_worker("emails_worker")
 
 
 def overall_status(components: list[ComponentHealth]) -> Status:

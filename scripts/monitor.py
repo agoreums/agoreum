@@ -221,6 +221,15 @@ def check() -> tuple[bool, list[str]]:
             problems.append(
                 f"webhooks worker: not delivering ({hook.get('heartbeat_age_seconds', '?')}s since last heartbeat)"
             )
+        # Added 2026-08-15. The endpoint reported two workers and production ran
+        # four, and the missing one sends sign-in alerts and verification links.
+        # Its silence is the hardest to notice from outside, because nobody
+        # reports mail they were never expecting.
+        mail = body.get("emails_worker", {})
+        if mail.get("status") == "down":
+            problems.append(
+                f"emails worker: not delivering ({mail.get('heartbeat_age_seconds', '?')}s since last heartbeat)"
+            )
 
     return (len(problems) == 0), problems
 

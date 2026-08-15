@@ -83,17 +83,24 @@ async def workers(
     """Liveness of the background workers that have no HTTP surface of their own.
 
     The subscription indexer is judged by its cursor freshness (like the escrow
-    indexer); the webhooks delivery loop by the heartbeat it records each pass.
-    503 when either has stopped, so the monitor can alert on a stuck worker even
-    though its container is up.
+    indexer); the delivery loops by the heartbeat each records every pass. 503
+    when any has stopped, so the monitor can alert on a stuck worker even though
+    its container is up.
+
+    The emails worker was absent here until 2026-08-15. Production ran it and
+    nothing watched it, so a wedged loop would have stopped sign-in alerts and
+    verification links with no alarm. It is the worker whose silence is hardest
+    to notice from outside, because nobody reports mail they never expected.
     """
     sub = await service.check_subscription_indexer(db)
     hook = await service.check_webhooks_worker()
-    overall = service.overall_status([sub, hook])
+    mail = await service.check_emails_worker()
+    overall = service.overall_status([sub, hook, mail])
     if overall == "down":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {
         "status": overall,
         "subscription_indexer": sub.as_dict(),
         "webhooks_worker": hook.as_dict(),
+        "emails_worker": mail.as_dict(),
     }

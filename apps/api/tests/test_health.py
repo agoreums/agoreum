@@ -202,3 +202,147 @@ async def test_unknown_route_returns_error_envelope(client: AsyncClient) -> None
     body = response.json()
     assert body["error"]["code"] == "http_error"
     assert "request_id" in body["error"]
+
+
+class _FakeRedis:
+    """A Redis stand-in answering per key, or raising.
+
+    Per key on purpose. Every worker check calls the same `create_client`, so a
+    fake that returns one value for all of them makes each worker's health
+    depend on the others. The first version of these tests did that, and a
+    mutation excluding the emails worker from the overall status still passed,
+    because the 503 it asserted was coming from the webhooks worker instead.
+    """
+
+    def __init__(self, values: dict[str, str | None] | None = None, fail: bool = False) -> None:
+        self._values = values or {}
+        self._fail = fail
+        self.asked: list[str] = []
+
+    async def get(self, key: str):
+        self.asked.append(key)
+        if self._fail:
+            raise ConnectionError("redis unreachable")
+        return self._values.get(key)
+
+    async def aclose(self) -> None:
+        return None
+
+
+class TestEveryRunningWorkerIsWatched:
+    """The emails worker ran in production with nothing watching it.
+
+    `/health/workers` reported the subscription indexer and the webhooks worker
+    and looked complete. Production runs four workers besides the monitor, and
+    the one with no heartbeat was the one that sends sign-in alerts and email
+    verification links.
+
+    That silence is the hardest kind to notice from outside, because nobody
+    reports mail they were never expecting. A wedged loop would have looked
+    exactly like a quiet week.
+
+    The fix generalised the check rather than copying it, so these assert the
+    general shape and not one worker's spelling.
+    """
+
+    async def test_the_endpoint_reports_the_emails_worker(
+        self, client: AsyncClient, monkeypatch
+    ) -> None:
+        import time as _time
+
+        from app.modules.health import service as health
+
+        now = str(int(_time.time()))
+        fresh = _FakeRedis(dict.fromkeys(health.WORKER_HEARTBEAT_KEYS.values(), now))
+        monkeypatch.setattr("app.core.redis.create_client", lambda **_: fresh)
+
+        body = (await client.get("/api/v1/health/workers")).json()
+        assert "emails_worker" in body, (
+            "the emails worker is not reported, so a stalled loop is invisible"
+        )
+        assert body["emails_worker"]["status"] == "ok"
+
+    async def test_a_stalled_email_loop_is_reported_down(
+        self, client: AsyncClient, monkeypatch
+    ) -> None:
+        """The case that matters: the container is up and the loop is not."""
+        import time as _time
+
+        from app.modules.health import service as health
+
+        now = int(_time.time())
+        stale = now - (health.WORKER_HEARTBEAT_STALE_SECONDS + 60)
+        # Only the emails worker is stale. Everything else this endpoint can see
+        # is healthy, so a 503 can only be coming from the emails worker.
+        monkeypatch.setattr(
+            "app.core.redis.create_client",
+            lambda **_: _FakeRedis(
+                {
+                    health.WEBHOOK_HEARTBEAT_KEY: str(now),
+                    health.EMAIL_HEARTBEAT_KEY: str(stale),
+                }
+            ),
+        )
+
+        resp = await client.get("/api/v1/health/workers")
+        body = resp.json()
+        assert body["emails_worker"]["status"] == "down"
+        assert body["webhooks_worker"]["status"] == "ok", "the other worker must be healthy here"
+        assert body["status"] == "down", (
+            "a stopped emails worker did not reach the overall status, so the "
+            "endpoint would report healthy and the monitor would never alert"
+        )
+        assert resp.status_code == 503, (
+            "a stopped worker must fail the endpoint, or the monitor never sees it"
+        )
+
+    async def test_a_worker_that_never_ran_is_distinguished_from_a_stalled_one(
+        self, client: AsyncClient, monkeypatch
+    ) -> None:
+        """No heartbeat at all is a fresh deploy, not a stalled loop.
+
+        Reporting it as down would page somebody every release, and an alert
+        that cries wolf on every deploy is one people learn to close.
+        """
+
+        monkeypatch.setattr("app.core.redis.create_client", lambda **_: _FakeRedis({}))
+
+        body = (await client.get("/api/v1/health/workers")).json()
+        assert body["emails_worker"]["status"] == "degraded"
+
+    async def test_an_unreachable_redis_does_not_read_as_a_healthy_worker(
+        self, client: AsyncClient, monkeypatch
+    ) -> None:
+
+        monkeypatch.setattr("app.core.redis.create_client", lambda **_: _FakeRedis(fail=True))
+
+        body = (await client.get("/api/v1/health/workers")).json()
+        assert body["emails_worker"]["status"] == "down"
+
+    async def test_each_watched_worker_has_its_own_heartbeat_key(self) -> None:
+        """Otherwise two workers share a key and one masks the other's death."""
+        from app.modules.health import service as health
+
+        keys = list(health.WORKER_HEARTBEAT_KEYS.values())
+        assert len(keys) == len(set(keys)), f"heartbeat keys collide: {keys}"
+        assert "emails_worker" in health.WORKER_HEARTBEAT_KEYS
+
+    def test_the_worker_that_writes_the_heartbeat_uses_the_same_key(self) -> None:
+        """The reader and the writer must agree, and they live in different files.
+
+        A renamed constant on one side would leave the endpoint reading a key
+        nobody writes, which reports a healthy worker as permanently degraded,
+        or worse, reports a dead one as fine if the default ever changed.
+        """
+        from pathlib import Path
+
+        from app.modules.health import service as health
+
+        cli = Path(health.__file__).resolve().parents[2] / "cli.py"
+        source = cli.read_text(encoding="utf-8")
+        # The shared constant, not merely the name. A local variable of the same
+        # name would satisfy a substring check while writing a different key,
+        # which is exactly what a mutation of this test proved.
+        assert "from app.modules.health.service import EMAIL_HEARTBEAT_KEY" in source, (
+            "the emails worker no longer imports the heartbeat key the endpoint reads"
+        )
