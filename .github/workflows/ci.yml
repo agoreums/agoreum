@@ -139,24 +139,28 @@ jobs:
         working-directory: apps/api
         run: python -m app.cli seed
 
-      - name: Test
+      - name: Test, and no test may skip
         working-directory: apps/api
-        # The whole suite runs in about a minute, so any single test over 60
-        # seconds is stuck rather than slow. Without this a blocked test hangs
-        # the job silently and the log never says which one it was.
-        run: pytest -q --timeout=60
-
-      - name: The chain tests must have run, not skipped
-        working-directory: apps/api
-        # Every one of these skips itself when the node or the fixture is
-        # missing, and a skipped test still exits zero. Without this assertion,
-        # Anvil failing to start would leave the job green while the chain
-        # client went unverified, which is the failure this whole step exists
-        # to prevent and would be invisible in a suite of six hundred.
+        # The timeout: the whole suite runs in about a minute, so any single test
+        # over 60 seconds is stuck rather than slow. Without it a blocked test
+        # hangs the job silently and the log never says which one it was.
+        #
+        # The skip assertion: a test that skips is not a test that passes, and a
+        # skipped test still exits zero, so a dependency quietly disappearing
+        # shrinks the suite without turning anything red. This used to guard the
+        # chain tests only, which left every other skippable test unwatched. It
+        # now covers the whole suite, and `-rs` makes the log name each skip and
+        # its reason rather than leaving an `s` in a row of dots.
+        #
+        # Run without `-q` on purpose. Under `-q` this pytest prints no final
+        # counts line at all, so "N passed" cannot be read back out of the log
+        # and any check looking for it would pass by never matching.
         run: |
-          pytest tests/test_chain.py -q --timeout=60 -rs 2>&1 | tee /tmp/chain.txt
-          if grep -qE "^SKIPPED|[0-9]+ skipped" /tmp/chain.txt; then
-            echo "::error::Chain tests skipped. Anvil or the fixture is missing, so the chain client is unverified."
+          set -o pipefail
+          pytest --timeout=60 -rs 2>&1 | tee /tmp/api-tests.txt
+          if grep -qE "^SKIPPED" /tmp/api-tests.txt; then
+            echo "::error::Tests skipped rather than ran. A dependency is missing, so whatever those tests cover is unverified."
+            grep -E "^SKIPPED" /tmp/api-tests.txt
             exit 1
           fi
 

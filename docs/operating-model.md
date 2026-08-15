@@ -137,6 +137,20 @@ Earned by getting each of these wrong at least once.
    Where a suite can skip itself, the job now asserts it did not, because a
    skipped test still exits zero and that is indistinguishable from success in
    every summary anybody reads.
+
+   Revisited on 2026-08-15 and found half-done, which is worth more than the
+   original fix. The assertion covered `test_chain.py` alone, so every other
+   skippable test in the suite was still unwatched: the guard was written while
+   looking at the tests that had just been caught skipping, and inherited their
+   scope. It now covers the whole suite and prints each skip with its reason.
+
+   The same look found the check partly aimed at nothing. It grepped for
+   `^SKIPPED` or `[0-9]+ skipped`, and under `-q` this pytest prints no final
+   counts line at all, so the second pattern could never match and "N passed"
+   could not be read back out of any log, in CI or locally. The step no longer
+   passes `-q`. Both halves were then mutation tested: with every dependency up
+   the guard is silent, and with Redis stopped it fails and names the seven
+   tests that skipped and why.
 3. **Verify the deployed artifact, not the repository.** Read the running
    container's configuration and the explorer's verification metadata.
 4. **Follow the whole path a person takes.** An endpoint that works and a link
@@ -274,7 +288,7 @@ gone stale is a defect in this file.
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.1.1. The 0.1.0 payment-endpoint defect is fixed and released |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
-| Local environment | Postgres, Redis and Anvil run as plain processes. `scripts/local-dev.ps1` brings them up, `-Status` says which are answering. Restored on 2026-08-15 after a cleanup removed the Docker Desktop that had been providing them |
+| Local environment | Postgres, Redis and Anvil run as plain processes. `scripts/local-dev.ps1` brings them up, `-Status` says which are answering. Restored on 2026-08-15 after a cleanup removed the Docker Desktop that had been providing them. The GitHub CLI went in the same cleanup and has not been reinstalled: CI is queried through the REST API with the token from the env file, which needs no install and no separate login |
 | Community | Support inbox answered to zero as of 2026-08-15. Discord blocked, see below |
 
 ### In flight
@@ -417,6 +431,24 @@ production with both an RPC URL and the escrow address configured.
 Small to fix and listed because of what it is rather than its size. A runbook is
 read in an incident, by someone deciding what to trust, and one that understates
 its own coverage is the wrong kind of wrong.
+
+### 6. The API suite only passes on a virgin database (open)
+
+Found on 2026-08-15 while restoring the local database. `test_email_verification`
+uses fixed addresses, `a@example.com` through `e@example.com`, against a unique
+constraint. The first run creates those rows and nothing removes them, so the
+second run of the same suite fails nine tests with `profile_conflict`, and a
+tenth in `test_notification_events` for the same reason.
+
+CI has never seen this because its database is new every run, which is exactly
+what makes it worth writing down rather than fixing quietly: the green CI badge
+is not evidence about this, and anybody running the suite twice locally will hit
+it and reasonably assume they broke something.
+
+Not urgent, and deliberately not fixed in the same change as the scope work.
+The fix is either unique addresses per test or a fixture that cleans up after
+itself, and picking between those is a decision about how the whole suite
+handles isolation rather than a patch to one file.
 
 ### Standing, not scheduled
 
