@@ -130,7 +130,26 @@ We would rather you spend the time elsewhere.
   validator can move the clock by seconds.
 - **Auto-release is permissionless once due.** Anyone may call `release` after
   `autoReleaseAt`. That is intended, so a provider is not dependent on the buyer
-  showing up, but it is worth confirming the deadline cannot be brought forward.
+  showing up. The deadline cannot be brought forward, and that is now asserted
+  rather than left as a note to check.
+
+  The property is what makes the permissionless path safe. If any actor could
+  move `autoReleaseAt` earlier, they could pay a provider before the buyer's
+  window to dispute had run, and nothing about the release path itself would look
+  wrong: the deadline would simply have arrived early.
+
+  Both deadlines are written once, inside the struct literal at funding, and no
+  function reassigns either. The windows are bounded by `MIN_WINDOW` and
+  `MAX_WINDOW`, so the additions cannot overflow into a small value under
+  checked arithmetic. `invariant_deadlinesNeverMove` compares every escrow's
+  `autoReleaseAt` and `deliveryDeadline` against values recorded at creation, in
+  handler state outside the contract, so the check cannot read the contract's own
+  storage back and agree with itself. It held over 32,768 calls including warps,
+  disputes, settlements, releases and refunds.
+
+  Confirmed to be load-bearing rather than decorative: making `dispute` rewrite
+  `autoReleaseAt` fails the invariant, and it reports the deadline having moved
+  earlier, which is the direction that would cost a buyer their dispute window.
 
 ## Security-relevant defects found and fixed during the build
 
