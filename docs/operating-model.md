@@ -328,7 +328,7 @@ gone stale is a defect in this file.
 
 | Area | State |
 | --- | --- |
-| Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
+| Contracts | Escrow and subscriptions on Base Sepolia only. 140 tests, 0 skipped, including an invariant that deadlines never move. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
 | Backend and API | 692 tests, 692 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
@@ -354,6 +354,9 @@ fourteen CI jobs green including Deploy and Fork tests:
   and still serving `x-ratelimit-*`.
 - `4718650` (PR #12), the route-level limiter assertion and two corrected
   comments. Deployed, production healthy.
+- `3820c39` (PR #14), the deadline invariant, the subscriptions self-transfer
+  test, and the corrected security register row. Contracts 140 passed, 0
+  skipped, and the fork suite ran on merge.
 
 **What was not verified in production, and why.** Bucket separation needs two
 real keys, which means minting credentials against live data for a change that
@@ -404,6 +407,31 @@ One thing the 403 buys that is easy to undervalue. The old failure was a 401,
 which tells a developer their key is wrong, so they go and check the key. It is
 not wrong. Hours can go into checking a correct credential. `insufficient_scope`
 with the missing scope named points at the actual fix.
+
+### Raised for the owner: a status line on the landing page
+
+Raised by a prospective user on 2026-08-15, who asked why the site did not give
+enough detail about the testnet phase.
+
+Checked before agreeing, and the criticism is fair in substance but not in the
+way it was phrased. The landing page does carry a "Testnet first" card, and the
+docs and security pages are explicit. What it does not carry is a statement of
+*current status*. "Testnet first" describes a practice, a way of working, and a
+visitor can reasonably read it as "we test carefully" rather than "everything
+here is testnet only and the USDC has no value". Those are different sentences
+and only one answers the question people arrive with.
+
+Proposed: an unambiguous status line near the top of the landing page. Not made
+unilaterally, because public-facing copy is listed under decision rights as
+described first, then done on the word. The user has been told plainly that it
+is their message that raised it and that the decision is not mine.
+
+**A measurement error worth recording**, because it nearly turned this into the
+wrong fix. The first check fetched the landing page without following the
+redirect, got an empty shell, and reported zero mentions of testnet. That would
+have meant telling a user their criticism was entirely correct and changing the
+page on a false premise. Following the redirect shows four mentions. The site
+was fine; the fetch was not.
 
 ### Open, blocked
 
