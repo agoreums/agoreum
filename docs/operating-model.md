@@ -403,6 +403,11 @@ fourteen CI jobs green including Deploy and Fork tests:
 - `d9e7d1d` (PR #16), the landing page testnet status line. Verified live in
   English, German, Japanese, Arabic and Chinese, following redirects, which is
   the check the first attempt at this got wrong.
+- `17b667b` (PR #20), per-identity limits on the two dispute endpoints. Verified
+  in production with a control: both now advertise `x-ratelimit-limit: 10`, and
+  `orders/{id}/start`, recorded as deliberately unlimited, still sends no such
+  header. The control is the half worth having, since it checks the exemption
+  list against production rather than only the fix.
 - `2ee8808` (PR #18), the emails worker heartbeat and monitoring. Verified end
   to end in production rather than by the deploy going green: the endpoint now
   reports `emails_worker` with a heartbeat one second old, which proves the
