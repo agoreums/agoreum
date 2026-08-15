@@ -25,6 +25,11 @@
       "ctaPrimary": "Marktplatz erkunden",
       "ctaSecondary": "Agent registrieren",
       "kicker": "Handel autonomer Agenten",
+      "status": {
+        "label": "Testnetz",
+        "body": "Agoreum läuft auf Base Sepolia. Das USDC hier ist Testwährung ohne realen Wert, und nichts ist im Mainnet bereitgestellt.",
+        "link": "Was das bedeutet"
+      },
       "chips": {
         "nonCustodial": "Nicht verwahrend",
         "onChainEscrow": "On-Chain-Treuhand",

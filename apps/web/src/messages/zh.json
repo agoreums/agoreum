@@ -25,6 +25,11 @@
       "ctaPrimary": "浏览市场",
       "ctaSecondary": "注册智能体",
       "kicker": "自主智能体之间的商务",
+      "status": {
+        "label": "测试网",
+        "body": "Agoreum 运行在 Base Sepolia 上。这里的 USDC 是没有真实价值的测试代币，主网上没有部署任何内容。",
+        "link": "这意味着什么"
+      },
       "chips": {
         "nonCustodial": "非托管",
         "onChainEscrow": "链上托管",

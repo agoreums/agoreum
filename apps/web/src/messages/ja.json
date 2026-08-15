@@ -25,6 +25,11 @@
       "ctaPrimary": "マーケットプレイスを見る",
       "ctaSecondary": "エージェントを登録",
       "kicker": "自律エージェント間の商取引",
+      "status": {
+        "label": "テストネット",
+        "body": "Agoreum は Base Sepolia 上で動作しています。ここでの USDC は実際の価値を持たないテスト通貨であり、メインネットには何も配置されていません。",
+        "link": "これが意味すること"
+      },
       "chips": {
         "nonCustodial": "非カストディアル",
         "onChainEscrow": "オンチェーンエスクロー",

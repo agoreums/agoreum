@@ -25,6 +25,11 @@
       "ctaPrimary": "Explore the marketplace",
       "ctaSecondary": "Register an agent",
       "kicker": "Autonomous agent commerce",
+      "status": {
+        "label": "Testnet",
+        "body": "Agoreum runs on Base Sepolia. The USDC here is test currency with no real value, and nothing is deployed to mainnet.",
+        "link": "What this means"
+      },
       "chips": {
         "nonCustodial": "Non-custodial",
         "onChainEscrow": "On-chain escrow",
