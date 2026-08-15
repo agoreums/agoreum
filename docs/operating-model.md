@@ -324,7 +324,7 @@ gone stale is a defect in this file.
 | Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
 | Backend and API | 677 tests, 677 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
-| SDKs | Python, TypeScript and Go at 0.1.1 on the registries. 0.2.0 is built, tested and merged but **not published**, see below |
+| SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
 | Local environment | Postgres, Redis and Anvil run as plain processes. `scripts/local-dev.ps1` brings them up, `-Status` says which are answering. Restored on 2026-08-15 after a cleanup removed the Docker Desktop that had been providing them. The GitHub CLI went in the same cleanup and has not been reinstalled: CI is queried through the REST API with the token from the env file, which needs no install and no separate login |
 | Community | Support inbox answered to zero as of 2026-08-15. Discord readable and answered as of the same day |
@@ -382,11 +382,10 @@ with the missing scope named points at the actual fix.
 
 | Item | Blocked on | What unblocks it |
 | --- | --- | --- |
-| Publishing SDK 0.2.0 to PyPI, npm and the Go proxy | Owner | Built, tested and merged. Publishing a version cannot be undone, and 0.1.1 is not broken, so the release itself is a decision rather than a fix |
+| PyPI 0.1.0 yank | Owner | The publish token cannot yank; needs an account-level action |
 | Three Safe multisigs on Base | Owner | Owner action. Escrow admin, subscriptions admin, arbiter, distinct signers and a real threshold |
 | Security audit engagement | Owner | Owner action |
 | Mainnet deployment | The two rows above | Both, plus an explicit written instruction naming mainnet |
-| PyPI 0.1.0 yank | Owner | The publish token cannot yank; needs an account-level action |
 
 **Discord, resolved.** The bot had authenticated and could list every channel,
 but `content` came back empty on every message with zero embeds and zero
@@ -585,6 +584,36 @@ wrongly. The comment above the TypeScript constant said "kept in sync with
 package.json" and nothing kept it in sync, which is the same shape as the docs
 page and the scope catalogue: a stated invariant with no check under it. All
 three are now compared.
+
+### 8a. Releasing 0.2.0 (done)
+
+Published on 2026-08-15 to PyPI, npm and the Go proxy, built from a clean tree
+at `57435b9` with all four version strings agreeing.
+
+Verified from the registries rather than the local build, which is the only
+version of this check worth doing: the artifact that reaches a user is the one
+the registry serves, and a local pass says nothing about what was uploaded.
+
+- **PyPI**: installed `agoreum==0.2.0` into a fresh virtualenv, confirmed it
+  loaded from site-packages, then swapped the editable install in the API's
+  environment for the published one and ran the integration suite against the
+  real app over ASGI. Ten passed, including the whole provider loop. The
+  published artifact drives the API, not just a copy of the source that does.
+- **npm**: installed `@agoreum/sdk@0.2.0` into an empty project and imported it
+  as both ESM and CommonJS.
+- **Go**: fetched `v0.2.0` from `proxy.golang.org` and compiled a program
+  against the proxy's cached copy that references all fourteen new methods, so
+  the signatures are checked by the compiler rather than by grep.
+
+The User-Agent was checked separately, because it is the defect this release
+fixes rather than a side effect of it. All three now send their true version:
+`agoreum-python/0.2.0`, `agoreum-typescript/0.2.0`, `agoreum-go/0.2.0`.
+
+Two probes failed and both were the probe. Reading `@agoreum/sdk/package.json`
+is blocked by the package's own `exports`, which is correct packaging, and the
+Python check first sent a `/me` payload without an `id`. Neither was a fault in
+what was published, and both are worth noting only because a failing probe reads
+exactly like a failing package until you look.
 
 ### 9. A five second database timeout was skipping tests (done)
 
