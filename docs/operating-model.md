@@ -207,6 +207,18 @@ Earned by getting each of these wrong at least once.
    known job name is what gave it away. A watcher now filters on the workflow
    file rather than the commit alone.
 
+   It happened a fourth time the same day, in the fixed watcher, for a different
+   reason. The shell step capturing the merge commit failed, so the watcher was
+   handed an empty string, and `startswith("")` matches every run. It
+   confidently reported a *previous* commit's green deploy as this one's, with
+   all fourteen jobs green, which is exactly what the real answer would look
+   like. The tell was the run id being one already seen earlier in the session.
+
+   Two lessons rather than one. A prefix match needs a minimum length before it
+   means anything, and it now refuses a sha shorter than seven characters. And a
+   value read from a step that can fail must be checked before it is used,
+   because an empty filter does not look like an error, it looks like a match.
+
    The point has a second edge, learned by getting it wrong here. A public URL
    returned 200 within a second of a reboot, and that was written up as
    Cloudflare serving cache over a dead origin. It was not. Caching was off, and
@@ -326,6 +338,9 @@ fourteen CI jobs green including Deploy and Fork tests:
   `scripts/local-dev.ps1`. Confirmed live in production.
 - `366c245` (PR #2), test isolation, the second suite run against the same
   database, and the scope documentation check.
+- `d8ea6e6` (PR #4), the SDK write surface, the method-and-path contract check,
+  the SDK version parity check, and the database connect timeout. The new
+  provider walkthrough is live at `/docs/sdks`, checked in three locales.
 
 The production check on the first is worth recording because it needed no
 credentials. A fake API key only proves authentication, not scope. Instead,
