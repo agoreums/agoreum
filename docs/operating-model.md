@@ -293,6 +293,11 @@ gone stale is a defect in this file.
 
 ### In flight
 
+On branch `api-key-write-scopes`, PR #1, CI green across all fourteen jobs with
+667 passed and 0 skipped. Not merged: a merge to `main` triggers a production
+deploy, which is externally visible and therefore the owner's call rather than
+something to do quietly at the end of a session.
+
 **API key write scopes.** `orders:write`, `agents:write` and `services:write`
 existed in the catalogue, were offered when minting a key, and were enforced by
 nothing: every write endpoint took `CurrentUser`, which is session-only and
