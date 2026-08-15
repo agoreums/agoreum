@@ -91,16 +91,16 @@ async def get_current_user(
             code="account_suspended",
         )
 
-    # Publish the identity for anything later in the request that wants a fully
-    # authorised principal rather than a token subject. Set after the session and
-    # account status checks for that reason.
+    # Nothing reads this today either, for the same reason as the API key path
+    # below. Limiters are route-level dependencies and FastAPI resolves those
+    # before the path function's own parameters, so the limiter has already run
+    # by the time this executes, and `client_identity` reads the bearer token
+    # itself instead. Moving this earlier would not help; the ordering is the
+    # point.
     #
-    # This is no longer what makes the rate limiter count by account, and a
-    # previous version of this comment claimed it was. Limiters are declared as
-    # route-level dependencies, and FastAPI resolves those before the path
-    # function's own parameters, so the limiter has already run by the time this
-    # line executes. `client_identity` reads the bearer token itself for that
-    # reason. Moving this earlier would not help; the ordering is the point.
+    # An earlier comment here claimed this is what made the limiter count by
+    # account. It never did. Kept as the conventional place to publish the
+    # resolved caller, and described as the empty hook it is.
     request.state.user_id = str(user.id)
     # The session this token belongs to, so a handler can act on the caller's own
     # session without being handed the refresh token. Logout uses it to end the
@@ -250,16 +250,21 @@ async def get_principal(
     )
     if key_token:
         user, key = await apikey_service.authenticate(db, token=key_token)
-        # Published for anything later in the request that wants the account:
-        # logging, auditing, error context.
+        # Nothing reads this today. Stated plainly because two previous versions
+        # of this comment asserted a purpose it did not have: first that it
+        # bucketed the rate limiter by account, and then, after that was
+        # corrected, that logging and error context consumed it. Neither was
+        # true, and the second was written while fixing the first, which is how
+        # easily this happens.
         #
-        # This does NOT decide the rate limit bucket, and a previous version of
-        # this comment claimed it did. Limiters are route-level dependencies and
+        # It cannot reach the limiter: limiters are route-level dependencies and
         # FastAPI resolves those before a path function's own parameters, so the
-        # limiter has already run by the time this line executes. The claim was
-        # false for the same reason `client_identity` documents at length, and
-        # key traffic was counted against its IP address for as long as it stood.
-        # The limiter now recognises a key from the request headers directly.
+        # limiter has already run by the time this line executes.
+        # `client_identity` reads the key from the request headers instead.
+        #
+        # Kept because it is the conventional place to publish the resolved
+        # caller and costs nothing, but it is an empty hook, and calling it that
+        # is more useful than inventing a consumer for it.
         request.state.user_id = str(user.id)
         return Principal(user=user, scopes=frozenset(key.scopes), api_key=key)
 

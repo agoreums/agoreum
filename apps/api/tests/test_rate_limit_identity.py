@@ -27,6 +27,51 @@ def _request(*, headers: dict[str, str] | None = None, user_id: str | None = Non
     return SimpleNamespace(headers=headers or {}, state=state, client=None)
 
 
+def _api_routes(router):
+    """Every route with a resolved dependency tree, through FastAPI's wrappers."""
+    out = []
+    for route in getattr(router, "routes", []) or []:
+        if type(route).__name__ == "_IncludedRouter":
+            out.extend(_api_routes(route.original_router))
+        elif hasattr(route, "dependant") and getattr(route, "methods", None):
+            out.append(route)
+    return out
+
+
+def _is_limiter(call) -> bool:
+    # `limiter(bucket)` returns a closure named `limiter.<locals>.dependency`.
+    return getattr(call, "__qualname__", "").startswith("limiter.")
+
+
+def misplaced_limiters(app) -> list[str]:
+    """Routes whose limiter is a path parameter rather than a route dependency.
+
+    Deliberately one function rather than one per caller. An earlier version had
+    the assertion and the test proving the assertion works carry separate copies
+    of this logic, so blinding the first left the second green, which is the
+    exact shape of defect this file exists to catch.
+    """
+    found = []
+    for route in _api_routes(app):
+        declared = {
+            id(getattr(dep, "dependency", None))
+            for dep in (getattr(route, "dependencies", []) or [])
+        }
+        for dep in route.dependant.dependencies:
+            if _is_limiter(getattr(dep, "call", None)) and id(dep.call) not in declared:
+                found.append(f"{sorted(route.methods)[0]} {route.path}")
+    return found
+
+
+def count_limiters(app) -> int:
+    return sum(
+        1
+        for route in _api_routes(app)
+        for dep in route.dependant.dependencies
+        if _is_limiter(getattr(dep, "call", None))
+    )
+
+
 class TestAnAddressIsNarrowedToWhatACallerCannotChange:
     def test_ipv4_is_counted_whole(self) -> None:
         assert rate_limit_scope("203.0.113.9") == "203.0.113.9"
@@ -205,3 +250,103 @@ class TestAProgrammaticCallerIsCountedByKey:
             client=SimpleNamespace(host="203.0.113.9"),
         )
         assert client_identity(request) == "ip:203.0.113.9"
+
+
+class TestTheAssumptionTheIdentityLogicRestsOn:
+    """Every limiter must be attached as a route-level dependency.
+
+    This is the load-bearing assumption underneath both defects above, and it
+    was never written down anywhere a change could trip over it.
+
+    FastAPI resolves route-level dependencies before a path function's own
+    parameters. That ordering is why `client_identity` reads the bearer token
+    and the API key header directly instead of trusting request state, and it is
+    why two separate attempts to set `request.state.user_id` during
+    authentication achieved nothing.
+
+    Attach a limiter as a path parameter instead and the ordering inverts.
+    Authentication would run first, `request.state.user_id` would be set, and
+    that branch would start winning. Sessions would land in the same bucket
+    either way, so nothing would look wrong. API keys would silently move from
+    a per-key quota to a per-account one, quietly merging the quotas of every
+    key an account holds, and the only signal would be a limit behaving
+    differently than documented.
+
+    So the assumption is asserted rather than described.
+    """
+
+    def test_every_limiter_is_attached_at_route_level(self) -> None:
+        from app.main import app
+
+        found = count_limiters(app)
+        assert found, (
+            "no limiters were found at all, so this test is checking nothing. "
+            "Either they were removed, or `limiter` was renamed and the qualname "
+            "check no longer recognises it."
+        )
+
+        misplaced = misplaced_limiters(app)
+        assert not misplaced, (
+            "a limiter is attached as a path parameter rather than a route-level "
+            "dependency, which inverts its ordering against authentication and "
+            "silently changes which bucket an API key is counted in: "
+            + ", ".join(sorted(set(misplaced)))
+        )
+
+    def test_this_check_can_actually_tell_the_two_apart(self) -> None:
+        """Guards the guard, and it needed guarding.
+
+        The first attempt to mutation test the assertion above moved a real
+        limiter onto a path parameter and the suite stayed green. The mutation
+        was the thing that was broken: the router uses lazy annotations and does
+        not import `Annotated`, so the annotation never resolved and FastAPI
+        dropped the parameter altogether. The result was a route with no limiter
+        at all, which is not the case being tested, and it looked exactly like a
+        guard that had nothing to complain about.
+
+        So the detection is exercised here against an application built for the
+        purpose, with one limiter attached each way. If this ever stops
+        distinguishing them, the assertion above is decorative and this says so
+        rather than passing quietly.
+        """
+        from fastapi import Depends, FastAPI
+
+        def fake_limiter():
+            async def dependency() -> None:
+                return None
+
+            # `limiter(bucket)` produces exactly this qualname, which is what
+            # the check recognises.
+            dependency.__qualname__ = "limiter.<locals>.dependency"
+            return dependency
+
+        probe = FastAPI()
+
+        @probe.get("/route-level", dependencies=[Depends(fake_limiter())])
+        async def _route_level() -> dict:
+            return {}
+
+        # The default-value form on purpose. This module uses lazy annotations,
+        # so an `Annotated[...]` parameter is a string FastAPI has to resolve,
+        # and it silently drops the parameter when it cannot. That is precisely
+        # how the first mutation of this check managed to test nothing.
+        @probe.get("/param-level")
+        async def _param_level(_rl=Depends(fake_limiter())) -> dict:
+            return {}
+
+        assert count_limiters(probe) == 2, "both limiters must be wired to prove anything"
+        flagged = misplaced_limiters(probe)
+
+        assert flagged == ["GET /param-level"], flagged
+
+    def test_the_state_branch_is_unreachable_today_and_that_is_deliberate(self) -> None:
+        """Documents why a tested branch never runs in production.
+
+        `client_identity` prefers `request.state.user_id`, and given the
+        assertion above nothing has set it by the time a limiter runs. The
+        branch is kept because it is correct for a limiter applied after
+        authentication, and removing it would leave a future one silently
+        counting an authenticated caller by address. Its unreachability is a
+        property of how limiters are currently wired, not of the branch.
+        """
+        assert client_identity(_request(user_id="abc")) == "user:abc"

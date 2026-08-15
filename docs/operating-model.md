@@ -300,6 +300,13 @@ They now run concurrently, with one coordinator. The rules that make that safe:
 3. **A strand reports its own evidence.** The coordinator does not summarise a
    strand as done because it was started. Each strand ends with a command and its
    output, or with a plain statement that it is unfinished and why.
+
+   A mutation counts as evidence only once it is shown to have changed
+   behaviour. Three times on 2026-08-15 a mutation was applied, the suite stayed
+   green, and the mutation was the broken thing: an annotation FastAPI silently
+   dropped, twice, and a replacement string matching nothing so the file was
+   never edited. A green run after a mutation that did not land looks exactly
+   like a guard that correctly had nothing to say.
 4. **Blocked strands are declared, not parked.** A strand waiting on the owner or
    on a credential goes into "Open, blocked" below with what unblocks it. Silence
    about a blocked strand reads as progress.
@@ -322,7 +329,7 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 689 tests, 689 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 692 tests, 692 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
@@ -646,6 +653,53 @@ is blocked by the package's own `exports`, which is correct packaging, and the
 Python check first sent a `/me` payload without an `id`. Neither was a fault in
 what was published, and both are worth noting only because a failing probe reads
 exactly like a failing package until you look.
+
+### 12. The assumption under both key bugs was never asserted (done)
+
+After the same fingerprint appeared twice in one day, the next step was to stop
+finding instances and go after what they rest on.
+
+Both defects depended on one unwritten fact: every rate limiter is attached as a
+route-level dependency, so FastAPI resolves it before the path function's own
+parameters. That ordering is why `client_identity` reads credentials from the
+headers rather than from request state, and why two separate attempts to publish
+the caller onto `request.state.user_id` achieved nothing. Nothing anywhere
+asserted it. Attach one limiter as a path parameter and the ordering inverts,
+sessions behave identically, and API keys silently move from a per-key quota to
+a per-account one, merging the quotas of every key an account holds.
+
+Now asserted: 13 limiters, all route-level.
+
+**Two comments corrected, including one I wrote the day before.** The API key
+path said the assignment served "logging, auditing, error context". Nothing
+reads it. That comment was written while fixing the previous false comment on
+the same line, which is how quickly this happens even with the pattern in mind.
+Both now say plainly that nothing reads it and why it is kept.
+
+**The guard needed guarding, three times over.** Worth recording in full because
+each failure looked like success.
+
+The first mutation moved a real limiter onto a path parameter and the suite
+stayed green. The mutation was broken, not the guard: that router uses lazy
+annotations and never imports `Annotated`, so the annotation did not resolve and
+FastAPI dropped the parameter entirely, leaving a route with no limiter at all.
+A mutation that silently does nothing is indistinguishable from a guard with
+nothing to complain about.
+
+The second attempt moved the check into a purpose-built application, and hit the
+same cause inside the test file, which also uses lazy annotations. That one was
+caught only because the probe asserted its own setup had worked before drawing a
+conclusion. Without that line it would have passed while testing nothing.
+
+The third was the worst. The self-test carried its own copy of the detection
+logic, so blinding the real detector left it green: it proved that *a* detector
+like this works, not that *the* detector does. Both now call one function, and
+blinding it fails both tests.
+
+**The rule this leaves.** A test that proves a guard works must exercise the
+same code the guard uses, and a mutation must be shown to have changed
+behaviour before its result means anything. Otherwise the verification inherits
+the exact weakness it exists to rule out.
 
 ### 11. API key traffic was rate limited by address, not by key (done)
 
