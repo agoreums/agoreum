@@ -343,6 +343,14 @@ fourteen CI jobs green including Deploy and Fork tests:
   provider walkthrough is live at `/docs/sdks`, checked in three locales.
 - `baf8fe6` (PR #8), API key organization confinement. Deployed and production
   confirmed healthy afterwards.
+- `a0771bf` (PR #10), API key rate limit bucketing. Deployed, production healthy
+  and still serving `x-ratelimit-*`.
+
+**What was not verified in production, and why.** Bucket separation needs two
+real keys, which means minting credentials against live data for a change that
+is pure logic with no configuration dependency. The evidence is the unit level
+with three mutations plus a green deploy of identical code, and that is stated
+here rather than left to look like a production check that happened.
 
 **Who was exposed.** Nobody outside their own account. The gap let a key reach
 organizations its creator already belonged to, so it was a containment failure
