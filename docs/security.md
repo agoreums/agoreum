@@ -180,13 +180,13 @@ Two independent layers:
 | Layer | Scope | Catches |
 | --- | --- | --- |
 | Nginx | Per IP | Volumetric floods, before any application code |
-| API | Per identity (user id when authenticated) | A single abusive actor |
+| API | Per identity (account when signed in, API key when programmatic, else address) | A single abusive actor |
 
 Per-identity counting matters: one abusive account behind a shared NAT must not
 exhaust everyone else's allowance, and rotating addresses must not reset a
 quota.
 
-Two things about that identity are load-bearing and were each wrong once.
+Three things about that identity are load-bearing and were each wrong once.
 
 **The account is read from the bearer token, not from request state.** Limiters
 are declared as route-level dependencies and FastAPI resolves those before the
@@ -197,6 +197,26 @@ even after that assignment was added. The token is signature-verified and needs
 no database round trip; an expired or forged one resolves to nobody and falls
 through to the address, which is correct because such a caller is not
 authenticated.
+
+**A programmatic caller is counted per API key.** The bearer path above
+understands a session JWT and nothing else, and an API key arrives either as
+`X-API-Key` or as `Authorization: Bearer ak_...`, which is not a JWT and fails
+to decode. So key traffic fell through to the address bucket. Two unrelated
+customers calling from one cloud provider's address shared a quota, and moving
+address reset a key's quota, both of which this section says cannot happen.
+
+It looked handled, which is why it lasted. Authentication set
+`request.state.user_id` for key traffic under a comment stating that keys are
+counted by account, so anyone checking found an answer. It was the wrong answer
+for exactly the ordering reason described immediately above it.
+
+Counted per key rather than per account, because resolving the account needs a
+database round trip and costing nothing is a design property of this path. Per
+key is also the better unit: one runaway integration cannot consume the quota of
+its owner's other keys. The cost is that an organization holding several keys
+holds several quotas, bounded by the 25 active keys it is allowed. The token is
+hashed before it becomes a bucket name, so a live credential never reaches a
+Redis key, a log line, or an error message.
 
 **An anonymous caller is counted per IPv6 allocation, not per address.** A
 residential IPv6 allocation is typically a /64, eighteen quintillion addresses
