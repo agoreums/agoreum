@@ -87,6 +87,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
+      # The published Python SDK, installed from source in this repository so
+      # the integration test can drive it against the real app through ASGI.
+      # Without it that test skips itself, which is how it went unrun in CI from
+      # the day it was added: it was written and verified locally, where the SDK
+      # happened to be installed, and nothing said the job was not running it.
+      # The SDK suites answer their own mock server, so this is the only place
+      # the two halves are ever put together.
+      - name: Install the Python SDK, so the integration test can run
+        run: pip install -e ./sdks/python
+
       - name: Lint
         working-directory: apps/api
         run: ruff check .
