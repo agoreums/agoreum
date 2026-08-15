@@ -21,6 +21,8 @@ These are not defaults to be weighed against other factors. They are settled.
 | Commits attributed to the project alone | Author is Agoreum. No co-author trailers, no tool attribution |
 | No em dashes | In code, comments, commits, docs, and messages |
 | Honest reporting | Failures reported as failures, with the evidence. A thing is "done" when it has been verified, not when it has been written |
+| No manufactured activity | No giveaways, points programmes, airdrops, engagement campaigns or paid promotion, and no KOL or influencer arrangements. Reputation on the platform comes only from orders that settled on chain, and a community inflated by campaigns would contradict the one claim the product rests on |
+| Not hiring until after the audit | Applications and partnership pitches of that shape are declined directly, with the reason, and without checking first. Settled on 2026-08-15 rather than decided per message |
 
 ## Decision rights
 
@@ -116,6 +118,20 @@ by mail is treated as an instruction.
 
 Standing checks: is inbound mail announced to a human. Can a stranger post in a
 channel members trust. Is a published claim still true.
+
+Inbound is a standing responsibility rather than a periodic sweep. Every real
+message to the support address and every real conversation in Discord gets a
+considered answer, and what people actually ask feeds the backlog rather than
+sitting in an inbox. Two kinds are declined without asking the owner, per the
+standing constraints above: applications for roles while hiring is closed, and
+anything offering giveaways, engagement campaigns, KOL or influencer reach. Both
+are answered with the real reason rather than a brush-off, because a person who
+took the time to write deserves to know where they actually stand.
+
+Nothing is sent to a channel that cannot be read. When the Discord bot lacked
+the message content intent it could see that conversations existed but not what
+they said, and the correct state was "unread", not "unanswered". Replying to
+messages nobody has read is worse than a delay.
 
 ## Verification standard
 
@@ -293,10 +309,16 @@ gone stale is a defect in this file.
 
 ### In flight
 
-On branch `api-key-write-scopes`, PR #1, CI green across all fourteen jobs with
-667 passed and 0 skipped. Not merged: a merge to `main` triggers a production
-deploy, which is externally visible and therefore the owner's call rather than
-something to do quietly at the end of a session.
+Nothing. PR #1 merged to `main` on 2026-08-15 as `5b4a7ce`, all fourteen CI jobs
+green including Deploy and Fork tests, and confirmed live in production.
+
+The production check is worth recording because it needed no credentials. A fake
+API key only proves authentication, not scope. Instead, `POST /api/v1/orders`
+now returns the principal path's message, "Provide an API key (X-API-Key) or
+sign in", identical to an endpoint that was already scoped, while `/auth/me`,
+which was deliberately left on `CurrentUser`, still returns "Authentication is
+required". The contrast between an endpoint that changed and one that did not is
+what identifies the running build.
 
 **API key write scopes.** `orders:write`, `agents:write` and `services:write`
 existed in the catalogue, were offered when minting a key, and were enforced by
@@ -329,20 +351,21 @@ with the missing scope named points at the actual fix.
 
 | Item | Blocked on | What unblocks it |
 | --- | --- | --- |
-| Reading and answering Discord | The bot cannot see message content | Owner enables MESSAGE CONTENT INTENT for application `1535454403161755748` in the Discord developer portal. Detail below |
 | Three Safe multisigs on Base | Owner | Owner action. Escrow admin, subscriptions admin, arbiter, distinct signers and a real threshold |
 | Security audit engagement | Owner | Owner action |
 | Mainnet deployment | The two rows above | Both, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Owner | The publish token cannot yank; needs an account-level action |
 
-**Discord, in detail.** The bot authenticates and can list every channel, but
-`content` comes back as an empty string on every message, with zero embeds and
-zero attachments, which is the signature of Discord stripping content rather
-than the messages being empty. `GET /applications/@me` returns `flags: 0`, so
-neither `GATEWAY_MESSAGE_CONTENT` nor its limited variant is set. There are real
-conversations waiting behind this, in `#general` and `#introductions`, from
-members who joined on 2026-08-14. They are unread rather than unanswered, and
-the difference matters: nothing should be sent to them until they can be read.
+**Discord, resolved.** The bot had authenticated and could list every channel,
+but `content` came back empty on every message with zero embeds and zero
+attachments, which is the signature of Discord stripping content rather than the
+messages being empty, and `GET /applications/@me` returned `flags: 0`. The owner
+enabled the message content intent on 2026-08-15; flags are now `565248` and
+content reads. The waiting conversations were answered the same day: a direct
+question in `#introductions` about who runs the project, and the first real
+exchange between members in `#general`, which was answered with what the project
+is and is not, including that there is no token, sale, airdrop or points
+programme and that anything claiming otherwise is a scam.
 
 ## Backlog
 
@@ -437,23 +460,59 @@ Small to fix and listed because of what it is rather than its size. A runbook is
 read in an incident, by someone deciding what to trust, and one that understates
 its own coverage is the wrong kind of wrong.
 
-### 6. The API suite only passes on a virgin database (open)
+### 6. The API suite only passed on a virgin database (done)
 
 Found on 2026-08-15 while restoring the local database. `test_email_verification`
-uses fixed addresses, `a@example.com` through `e@example.com`, against a unique
-constraint. The first run creates those rows and nothing removes them, so the
-second run of the same suite fails nine tests with `profile_conflict`, and a
+used fixed addresses, `a@example.com` through `h@example.com`, against a unique
+constraint. The first run created those rows and nothing removed them, so the
+second run of the same suite failed nine tests with `profile_conflict`, and a
 tenth in `test_notification_events` for the same reason.
 
-CI has never seen this because its database is new every run, which is exactly
-what makes it worth writing down rather than fixing quietly: the green CI badge
-is not evidence about this, and anybody running the suite twice locally will hit
-it and reasonably assume they broke something.
+Fixed with unique addresses per test rather than a cleanup fixture, because that
+is already how these files solve the identical problem for identities: `Wallet`
+has always created a fresh keypair per test rather than deleting the old one.
+Cleanup has to run to be correct and does not run when a test fails partway,
+which is precisely when leftovers matter. Twenty three literals across the two
+files became generated addresses, each carrying a label so a failure message
+still says which address it means.
 
-Not urgent, and deliberately not fixed in the same change as the scope work.
-The fix is either unique addresses per test or a fixture that cleans up after
-itself, and picking between those is a decision about how the whole suite
-handles isolation rather than a patch to one file.
+Verified by running the whole suite twice against the same database: 667 passed
+both times. Then mutation tested, because two green runs on their own do not
+show which change caused them. Putting one literal back makes run one pass and
+run two fail, and restoring it makes both pass again.
+
+CI could never have caught this. Its database is new every run, so it was
+structurally incapable of seeing a test that only passes the first time, and the
+green badge was not evidence either way. The Backend job now runs the suite a
+second time against the same database, which is the only thing that asserts the
+property, for about a minute.
+
+The general shape is worth keeping: **a check that is re-created clean before
+every use cannot detect anything that accumulates.** Freshness is usually a
+virtue in a test environment and is exactly what blinded this one.
+
+### 7. The public API docs duplicated the scope catalogue (done)
+
+Found while checking whether shipping the write scopes had made any published
+claim untrue. The docs page at `/docs/api` hardcodes the seven scopes and their
+descriptions as a literal array, while the key-minting UI fetches
+`/api-keys/scopes` and renders whatever the API returns. The second cannot
+drift. The first can, and nothing compared them.
+
+The copies happened to agree, which is the least reassuring possible state: the
+same shape as three published SDKs calling an endpoint this API had never
+served, agreeing with each other and with nothing authoritative.
+
+Worse than cosmetic, because this page is what a developer reads to decide which
+scopes to request. A scope listed but not real means keys minted for something
+that will never work. A scope real but not listed means people granting more
+than they needed because the narrower option looked absent. Both are
+authorisation decisions taken from a stale page.
+
+Now compared in `test_sdk_contract.py`, names and descriptions both, since a
+description that quietly narrowed would understate what a leaked key can do.
+Mutation tested twice: a drifted description and a scope that does not exist are
+each caught, and the test refuses to pass when it parses nothing.
 
 ### Standing, not scheduled
 

@@ -48,6 +48,18 @@ def wallet() -> Wallet:
     return Wallet()
 
 
+def an_email(label: str = "user") -> str:
+    """A fresh address, unique to this call.
+
+    Same reason as in test_email_verification.py: these were literals against a
+    unique constraint, so the rows survived the run and the second run of the
+    same suite failed on `profile_conflict`. Duplicated rather than imported
+    because `tests/` is not a package and these files cannot import each other,
+    which is the existing convention here for `Wallet` too.
+    """
+    return f"{label}-{uuid.uuid4().hex[:12]}@example.com"
+
+
 @pytest_asyncio.fixture
 async def engine():
     eng = create_async_engine(
@@ -145,7 +157,7 @@ class TestUnverifiedAddressesAreRefused:
         """
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "unproven@example.com"
+        user.email = an_email()
         user.email_verified_at = None
         await db.flush()
 
@@ -174,7 +186,7 @@ class TestUnverifiedAddressesAreRefused:
         """It has to reach an unproven address; that is its entire purpose."""
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "unproven2@example.com"
+        user.email = an_email()
         user.email_verified_at = None
         await db.flush()
 
@@ -201,7 +213,7 @@ class TestUnverifiedAddressesAreRefused:
 
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "proven@example.com"
+        user.email = an_email()
         user.email_verified_at = datetime.now(UTC)
         await db.flush()
 
@@ -236,7 +248,7 @@ class TestNothingLeavesThisDeployment:
 
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "verified@example.com"
+        user.email = an_email()
         user.email_verified_at = datetime.now(UTC)
         await db.flush()
 
@@ -370,7 +382,7 @@ class TestSignInNotice:
         headers = {"Authorization": f"Bearer {access}"}
 
         await client.patch(
-            "/api/v1/auth/me", json={"email": "x@example.com"}, headers=headers
+            "/api/v1/auth/me", json={"email": an_email()}, headers=headers
         )
         resp = await client.post("/api/v1/auth/me/email/verify", headers=headers)
         assert resp.status_code == 200
@@ -493,7 +505,7 @@ class TestSendingIsOffTheRequestPath:
 
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "queued@example.com"
+        user.email = an_email()
         user.email_verified_at = datetime.now(UTC)
         await db.flush()
 
@@ -520,7 +532,8 @@ class TestSendingIsOffTheRequestPath:
         _enable_sending(monkeypatch)
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "claimable@example.com"
+        claimable = an_email("claimable")
+        user.email = claimable
         user.email_verified_at = datetime.now(UTC)
         await db.flush()
 
@@ -534,7 +547,7 @@ class TestSendingIsOffTheRequestPath:
         await db.flush()
 
         due = await notifications.claim_due_emails(db, limit=50)
-        assert any(d.destination == "claimable@example.com" for d in due)
+        assert any(d.destination == claimable for d in due)
 
     async def test_nothing_is_queued_while_sending_is_disabled(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
@@ -544,7 +557,7 @@ class TestSendingIsOffTheRequestPath:
 
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "notqueued@example.com"
+        user.email = an_email()
         user.email_verified_at = datetime.now(UTC)
         await db.flush()
 
@@ -569,7 +582,8 @@ class TestSendingIsOffTheRequestPath:
         _enable_sending(monkeypatch)
         body = await _sign_in(client, wallet)
         user = await db.get(User, uuid.UUID(body["user"]["id"]))
-        user.email = "bounced-later@example.com"
+        bounced = an_email("bounced")
+        user.email = bounced
         user.email_verified_at = datetime.now(UTC)
         await db.flush()
 
@@ -584,7 +598,7 @@ class TestSendingIsOffTheRequestPath:
 
         # The bounce arrives after the row was queued.
         await notifications.suppress_email(
-            db, email="bounced-later@example.com", reason="bounce"
+            db, email=bounced, reason="bounce"
         )
 
         # If the re-check regressed, this turns a silent send into a failure.

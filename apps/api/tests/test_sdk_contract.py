@@ -176,3 +176,53 @@ def test_the_paths_this_check_relies_on_are_real(path: str) -> None:
     checking an empty set.
     """
     assert "/api/v1" + path in _api_paths()
+
+
+# The public API documentation page hardcodes the scope catalogue as a literal
+# array. The key-minting UI does not: it fetches `/api-keys/scopes` and renders
+# whatever the API returns, so it cannot drift. The docs page can, and the drift
+# would be the same shape as the endpoint path that was wrong in three published
+# SDKs for a year: a duplicated contract with nothing comparing the copies.
+#
+# The failure is worse than cosmetic here. This page is what a developer reads
+# to decide which scopes to request. A scope listed but not real means keys
+# minted for something that will never work; a scope real but not listed means
+# people granting more than they needed because the narrower option looked
+# absent. Both are authorisation decisions made from a stale page.
+DOCS_PAGE = WEB_ROOT / "app" / "[locale]" / "(public)" / "docs" / "api" / "page.tsx"
+
+_SCOPE_ENTRY = re.compile(r'\[\s*"([a-z]+:[a-z]+)"\s*,\s*"([^"]+)"\s*\]')
+
+
+def _documented_scopes() -> dict[str, str]:
+    text = DOCS_PAGE.read_text(encoding="utf-8")
+    block = text.split("const scopes", 1)[-1].split("];", 1)[0]
+    return dict(_SCOPE_ENTRY.findall(block))
+
+
+def test_the_documented_scopes_are_the_real_ones() -> None:
+    from app.modules.apikeys.scopes import SCOPES
+
+    documented = _documented_scopes()
+    assert documented, (
+        f"no scopes were parsed out of {DOCS_PAGE.name}, so this test is checking "
+        "nothing. The page's `const scopes` array has probably been renamed or "
+        "restructured."
+    )
+
+    assert set(documented) == set(SCOPES), (
+        "the public API docs and the scope catalogue disagree about which scopes "
+        f"exist.\n  documented but not real: {sorted(set(documented) - set(SCOPES))}"
+        f"\n  real but undocumented: {sorted(set(SCOPES) - set(documented))}"
+    )
+
+    # Descriptions too, because a scope whose stated meaning has drifted is a
+    # scope somebody grants for the wrong reason. `orders:write` covers acting
+    # on disputes as well as placing orders, and a description that lost that
+    # would understate what a leaked key can do.
+    differing = [
+        f"{scope}: docs say {documented[scope]!r}, catalogue says {SCOPES[scope]!r}"
+        for scope in sorted(set(documented) & set(SCOPES))
+        if documented[scope] != SCOPES[scope]
+    ]
+    assert not differing, "scope descriptions have drifted:\n  " + "\n  ".join(differing)
