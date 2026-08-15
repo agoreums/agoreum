@@ -74,6 +74,22 @@ LIMITS: dict[str, Limit] = {
     "services:create": Limit(requests=20, window_seconds=300),
     "orders:create": Limit(requests=20, window_seconds=300),
     "reviews:create": Limit(requests=10, window_seconds=300),
+    # Both dispute endpoints append a row to the order's timeline every call,
+    # with no cap. That timeline is the record an arbiter reads to decide who
+    # gets the money, so flooding it is not merely storage abuse: it degrades
+    # the process the escrow depends on, and it does so against the other party
+    # rather than against us.
+    #
+    # They were missing from this table until 2026-08-15, under a comment
+    # reading "writes that create durable records", which is exactly what they
+    # are. Nginx bounded them per address at 30 r/s, and this layer exists
+    # because an address is something a caller can change.
+    #
+    # Generous on purpose. Disputes are rare and deliberate, and a party writing
+    # several accounts of what happened is normal; a party writing hundreds is
+    # not.
+    "orders:dispute_intent": Limit(requests=10, window_seconds=300),
+    "orders:dispute_statement": Limit(requests=10, window_seconds=300),
     # Domain verification performs an outbound DNS lookup or HTTPS fetch, so it
     # is both expensive and a potential amplification vector.
     "agents:verify_domain": Limit(requests=10, window_seconds=300),

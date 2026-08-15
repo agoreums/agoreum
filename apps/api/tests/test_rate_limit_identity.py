@@ -350,3 +350,119 @@ class TestTheAssumptionTheIdentityLogicRestsOn:
         property of how limiters are currently wired, not of the branch.
         """
         assert client_identity(_request(user_id="abc")) == "user:abc"
+
+
+# Every endpoint reachable with a write scope, and whether it carries a
+# per-identity limit.
+#
+# Two of these were missing until 2026-08-15, both dispute endpoints, both
+# appending a row to the order's timeline on every call with no cap. That
+# timeline is the record an arbiter reads to decide who gets the money, so
+# flooding it degrades the process the escrow depends on, and it does so against
+# the other party rather than against us.
+#
+# They were missing under a comment in the bucket table reading "writes that
+# create durable records", which is exactly what they are. Nginx bounded them
+# per address, and this layer exists because an address is something a caller
+# can change.
+#
+# The value is the bucket name, or None with the reason a limit is not needed.
+# A new write endpoint cannot be added without someone deciding which.
+WRITE_ENDPOINT_LIMITS: dict[tuple[str, str], str | None] = {
+    ("POST", "/agents"): "agents:create",
+    ("POST", "/agents/{agent_slug}/services"): "services:create",
+    ("POST", "/orders"): "orders:create",
+    ("POST", "/orders/{order_id}/dispute-intent"): "orders:dispute_intent",
+    ("POST", "/orders/{order_id}/dispute-statements"): "orders:dispute_statement",
+    ("POST", "/agents/{slug}/domain-challenges/{challenge_id}/verify"): "agents:verify_domain",
+    ("POST", "/agents/{slug}/github-challenges/{challenge_id}/verify"): "agents:verify_github",
+    # State changes on a resource the caller already owns, creating no new rows.
+    # The number of agents and services is already bounded by the create limits
+    # above, so there is a ceiling on how much there is to toggle.
+    ("PATCH", "/agents/{slug}"): None,
+    ("POST", "/agents/{slug}/publish"): None,
+    ("POST", "/agents/{slug}/pause"): None,
+    ("PUT", "/agents/{slug}/payout-wallet"): None,
+    ("PATCH", "/agents/{agent_slug}/services/{service_slug}"): None,
+    ("POST", "/agents/{agent_slug}/services/{service_slug}/publish"): None,
+    ("POST", "/agents/{agent_slug}/services/{service_slug}/availability"): None,
+    ("DELETE", "/agents/{agent_slug}/services/{service_slug}"): None,
+    # One-way transitions on a single order. Each can succeed at most once,
+    # because the second call finds the order already in the next state.
+    ("POST", "/orders/{order_id}/start"): None,
+    ("POST", "/orders/{order_id}/deliver"): None,
+    # Arbiter only, and terminal for the dispute.
+    ("POST", "/orders/{order_id}/dispute-decision"): None,
+}
+
+
+def _write_scoped_routes(app):
+    """Routes reachable with a write scope, and the bucket each limits on."""
+    prefix = "/api/v1"
+    found = {}
+    for route in _api_routes(app):
+        scopes = set()
+        bucket = None
+        stack = list(route.dependant.dependencies)
+        while stack:
+            dep = stack.pop()
+            call = getattr(dep, "call", None)
+            for cell in getattr(call, "__closure__", None) or ():
+                try:
+                    value = cell.cell_contents
+                except ValueError:
+                    continue
+                if isinstance(value, frozenset) and value and all(
+                    isinstance(i, str) and ":" in i for i in value
+                ):
+                    scopes |= value
+                elif _is_limiter(call) and isinstance(value, str):
+                    bucket = value
+            stack.extend(dep.dependencies)
+        if any(s.endswith(":write") for s in scopes):
+            path = route.path
+            path = path[len(prefix):] if path.startswith(prefix) else path
+            found[(sorted(route.methods)[0], path)] = bucket
+    return found
+
+
+class TestEveryWriteEndpointHasADecisionAboutLimiting:
+    def test_the_table_matches_the_application(self) -> None:
+        from app.main import app
+
+        actual = _write_scoped_routes(app)
+        assert actual, "no write-scoped routes found, so this test checks nothing"
+
+        recorded = set(WRITE_ENDPOINT_LIMITS)
+        assert set(actual) == recorded, (
+            "the write endpoints and their recorded rate limit position disagree.\n"
+            f"  reachable but unrecorded: {sorted(set(actual) - recorded)}\n"
+            f"  recorded but not reachable: {sorted(recorded - set(actual))}\n"
+            "Add the endpoint to WRITE_ENDPOINT_LIMITS with either its bucket "
+            "name or None and the reason a limit is not needed."
+        )
+
+    def test_every_endpoint_recorded_as_limited_really_is(self) -> None:
+        from app.main import app
+
+        actual = _write_scoped_routes(app)
+        wrong = []
+        for key, expected in WRITE_ENDPOINT_LIMITS.items():
+            if expected is None:
+                continue
+            got = actual.get(key)
+            if got != expected:
+                wrong.append(f"{key[0]} {key[1]}: expected {expected!r}, found {got!r}")
+
+        assert not wrong, "an endpoint is not limited by the bucket recorded for it:\n  " + "\n  ".join(wrong)
+
+    def test_every_named_bucket_is_configured(self) -> None:
+        """A limiter naming a bucket with no configured limit is not a limit."""
+        from app.core.rate_limit import LIMITS
+
+        missing = [
+            bucket
+            for bucket in WRITE_ENDPOINT_LIMITS.values()
+            if bucket is not None and bucket not in LIMITS
+        ]
+        assert not missing, f"buckets used but never configured: {missing}"
