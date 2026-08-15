@@ -105,6 +105,16 @@ export function ApiKeysView() {
   );
 }
 
+/** Whether a scope lets a key change something rather than only look at it.
+ *
+ * Derived from the scope string rather than kept as a list here, so a scope
+ * added to the API's catalogue later is flagged the day it appears instead of
+ * the day somebody remembers this file. The naming convention is the contract:
+ * `resource:write`. */
+function isWriteScope(scope: string): boolean {
+  return scope.endsWith(":write");
+}
+
 function CreateKey({
   catalog,
   accessToken,
@@ -193,28 +203,59 @@ function CreateKey({
         <fieldset>
           <legend className="text-sm font-medium">{t("scopesLabel")}</legend>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {catalog.map((s) => (
-              <label
-                key={s.scope}
-                className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-subtle)] p-3 transition-colors hover:border-brand-500"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(s.scope)}
-                  onChange={() => toggle(s.scope)}
-                  className="mt-0.5 size-4 accent-brand-600"
-                />
-                <span>
-                  <code className="text-xs font-medium text-[var(--text-primary)]">
-                    {s.scope}
-                  </code>
-                  <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                    {s.description}
+            {catalog.map((s) => {
+              const writes = isWriteScope(s.scope);
+              return (
+                <label
+                  key={s.scope}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors hover:border-brand-500 ${
+                    writes && selected.has(s.scope)
+                      ? "border-amber-500/60 bg-amber-500/5"
+                      : "border-[var(--border-subtle)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(s.scope)}
+                    onChange={() => toggle(s.scope)}
+                    className="mt-0.5 size-4 accent-brand-600"
+                  />
+                  <span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      <code className="text-xs font-medium text-[var(--text-primary)]">
+                        {s.scope}
+                      </code>
+                      {writes && (
+                        <span className="rounded-full border border-amber-500/50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                          {t("writeBadge")}
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                      {s.description}
+                    </span>
                   </span>
-                </span>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
+
+          {/* Shown only once a write scope is actually ticked. A warning that is
+              always on the page is furniture, and gets read as decoration; one
+              that appears in response to the choice being made is about that
+              choice. The scope descriptions from the API say what a scope does,
+              which is not the same as saying what it costs if the key leaks. */}
+          {[...selected].some(isWriteScope) && (
+            <p
+              role="status"
+              className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/5 p-3 text-xs text-[var(--text-secondary)]"
+            >
+              <strong className="font-medium text-amber-600 dark:text-amber-400">
+                {t("writeWarningTitle")}
+              </strong>{" "}
+              {t("writeWarning")}
+            </p>
+          )}
         </fieldset>
 
         <label className="block max-w-xs">
