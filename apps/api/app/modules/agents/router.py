@@ -86,7 +86,8 @@ async def create_agent(
 ) -> AgentOwnerView:
     user = principal.user
     org = await org_service.resolve_org_for_action(
-        db, user=user, slug=payload.org_slug, action=OrgAction.MANAGE_AGENTS
+        db, user=user, slug=payload.org_slug, action=OrgAction.MANAGE_AGENTS,
+        org_scope=principal.org_scope
     )
     agent = await service.create_agent(db, org=org, creator=user, payload=payload)
     return AgentOwnerView.model_validate(agent)
@@ -122,7 +123,9 @@ async def update_agent(
     slug: str, payload: AgentUpdate, principal: AgentsWrite, db: DbSession
 ) -> AgentOwnerView:
     user = principal.user
-    agent = await service.require_managed_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(
+        db, slug, user=user, org_scope=principal.org_scope
+    )
     updated = await service.update_agent(db, agent=agent, payload=payload)
     return AgentOwnerView.model_validate(updated)
 
@@ -137,7 +140,8 @@ async def set_payout_wallet(
 ) -> AgentOwnerView:
     user = principal.user
     agent = await service.require_managed_agent(
-        db, slug, user=user, action=OrgAction.MANAGE_PAYOUT
+        db, slug, user=user, action=OrgAction.MANAGE_PAYOUT,
+        org_scope=principal.org_scope
     )
     updated = await service.set_payout_wallet(
         db, agent=agent, wallet_id=payload.wallet_id
@@ -154,7 +158,9 @@ async def publish_agent(
     slug: str, principal: AgentsWrite, db: DbSession
 ) -> AgentOwnerView:
     user = principal.user
-    agent = await service.require_managed_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(
+        db, slug, user=user, org_scope=principal.org_scope
+    )
     return AgentOwnerView.model_validate(
         await service.publish_agent(db, agent=agent)
     )
@@ -167,7 +173,9 @@ async def publish_agent(
 )
 async def pause_agent(slug: str, principal: AgentsWrite, db: DbSession) -> AgentOwnerView:
     user = principal.user
-    agent = await service.require_managed_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(
+        db, slug, user=user, org_scope=principal.org_scope
+    )
     return AgentOwnerView.model_validate(await service.pause_agent(db, agent=agent))
 
 
@@ -212,7 +220,9 @@ async def verify_domain_challenge(
     """Performs a real DNS lookup or HTTPS fetch. Never succeeds without
     observing the token."""
     user = principal.user
-    agent = await service.require_managed_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(
+        db, slug, user=user, org_scope=principal.org_scope
+    )
     challenge = await service.get_challenge(db, agent=agent, challenge_id=challenge_id)
     verified = await service.verify_domain_challenge(
         db, challenge=challenge, agent=agent
@@ -251,7 +261,9 @@ async def verify_github_challenge(
     """Performs a real read of the account's public gists. Never succeeds without
     observing the token."""
     user = principal.user
-    agent = await service.require_managed_agent(db, slug, user=user)
+    agent = await service.require_managed_agent(
+        db, slug, user=user, org_scope=principal.org_scope
+    )
     challenge = await service.get_github_challenge(
         db, agent=agent, challenge_id=challenge_id
     )

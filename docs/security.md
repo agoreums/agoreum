@@ -113,6 +113,40 @@ request-scoped transaction would otherwise roll it back. It has a test.
   leaks private drafts and trading relationships.
 - Payout wallets must be verified and owned by the caller.
 - Only a buyer can review; only a provider can deliver.
+- **An API key acts only inside the organization it was minted in.** A browser
+  session is not confined this way, because a signed-in person switches
+  organizations in the interface and is meant to act in all of theirs. It is the
+  credential sitting in a config file that needs containing.
+
+### API key confinement
+
+Worth describing rather than asserting, because it was wrong until 2026-08-15
+and the fix is the kind that is easy to believe you already have.
+
+A key is created inside an organization, listed under it, and chosen per
+organization in the interface. Its holder therefore reasonably believes it
+cannot reach anywhere else. The key resolved to the member who created it, and
+that member's authority was then used for every ownership check, so the key
+carried its creator's access across **every** organization they belong to. A key
+minted for a personal project could register and manage agents in an employer's
+organization, if the same person belonged to both.
+
+The organization was being checked, once, at authentication, to confirm the
+creator is still a member. That is a real check and a necessary one, and it is
+answering a different question: whether the key still works, not where it may
+act. Answering the first was mistaken for answering the second.
+
+Two behaviours changed. A key naming another organization is refused with the
+same 404 a non-member sees, so a strayed key learns nothing about what is there.
+And a key naming no organization now acts in its own, rather than falling
+through to its creator's personal one, which had quietly filed team agents under
+a private account.
+
+This became materially worse the same week, because enforcing the write scopes
+turned a read-only reach into the ability to register agents and publish
+services. Both the gap and the fix were verified against the running
+application, not reasoned about, and the guards are covered by tests that fail
+when each is individually removed.
 
 ## Injection
 

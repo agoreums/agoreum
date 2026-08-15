@@ -78,15 +78,26 @@ async def require_managed_agent(
     *,
     user: User,
     action: OrgAction = OrgAction.MANAGE_AGENTS,
+    org_scope: uuid.UUID | None = None,
 ) -> Agent:
     """Load an agent the caller is allowed to act on within its organization.
 
     A non-member gets the same 404 a stranger would, rather than a 403. Telling
     someone "this exists but is not yours" leaks the existence of private drafts.
     A member whose role is too low for the action gets a 403.
+
+    `org_scope` confines an API key to the organization it was minted in. It is
+    None for a browser session, which is meant to act across the caller's
+    organizations. Without it a key carried its creator's full cross
+    organization authority, so a key minted in one organization could manage
+    agents in another the creator happened to belong to. The 404 is the same one
+    a non-member gets, for the same reason: a key that has strayed outside its
+    organization should learn nothing about what is there.
     """
     agent = await get_by_slug(db, slug)
     if agent is None:
+        raise NotFoundError("No agent exists with that name.")
+    if org_scope is not None and agent.org_id != org_scope:
         raise NotFoundError("No agent exists with that name.")
     membership = await get_membership(db, org_id=agent.org_id, user_id=user.id)
     if membership is None:

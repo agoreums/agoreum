@@ -200,6 +200,31 @@ class Principal:
     def via_api_key(self) -> bool:
         return self.api_key is not None
 
+    @property
+    def org_scope(self) -> uuid.UUID | None:
+        """The one organization this caller may act in, or None for no limit.
+
+        A key is minted inside an organization, is listed under it, and is
+        chosen per organization in the interface, so its holder reasonably
+        believes it cannot reach anywhere else. Until this existed that belief
+        was wrong: the key was resolved to its creator and then carried that
+        person's full authority across *every* organization they belong to, so a
+        key minted for a personal side project could register agents in an
+        employer's organization. Verified against the running app before it was
+        fixed, not inferred.
+
+        The organization was checked exactly once, at authentication, to confirm
+        the creator is still a member. That is a different question from which
+        organization the key may act in, and answering the first was being
+        mistaken for answering the second.
+
+        A browser session returns None on purpose. A signed-in person switches
+        organizations in the interface and is meant to act in all of theirs;
+        it is the credential that lives in a config file somewhere that needs
+        containing.
+        """
+        return self.api_key.org_id if self.api_key is not None else None
+
     def has_scopes(self, required: frozenset[str]) -> bool:
         return required <= self.scopes
 
