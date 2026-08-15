@@ -371,7 +371,7 @@ gone stale is a defect in this file.
 
 | Area | State |
 | --- | --- |
-| Contracts | Escrow and subscriptions on Base Sepolia only. 140 tests, 0 skipped, including an invariant that deadlines never move. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
+| Contracts | Escrow and subscriptions on Base Sepolia only. 142 tests, 0 skipped, including an invariant that deadlines never move and coverage measured at 99% of escrow lines. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
 | Backend and API | 701 tests, 701 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
@@ -462,6 +462,41 @@ One thing the 403 buys that is easy to undervalue. The old failure was a 401,
 which tells a developer their key is wrong, so they go and check the key. It is
 not wrong. Hours can go into checking a correct credential. `insufficient_scope`
 with the missing scope named points at the actual fix.
+
+### 19. Subscriptions could be stopped but never proven startable (done)
+
+Found by preparing for the audit rather than waiting for it. The engagement is
+the owner's to move; the artefacts an auditor reads are mine, and an auditor's
+time is expensive enough that the difference is worth spending.
+
+Coverage had never been measured. Measured now: escrow 99.19% of lines and 100%
+of functions, subscriptions 97.14% and 92.86%. The number worth acting on was
+not the percentage but what it excluded. Thirteen of fourteen functions covered,
+and the missing one was `unpause`.
+
+`pause` was tested five ways. `unpause` was never called by any test in this
+repository, while the escrow tests both. The asymmetry is the tell: somebody
+proved the stop and not the restart.
+
+It matters because pause is an incident tool. The moment it is used is the
+moment the restart has to work, and until now the restart was the one governance
+action never executed outside production. A contract that can be stopped and not
+started is stopped permanently.
+
+Covered two ways, that it restores selling and that it remains governor only,
+asserted by selling again rather than by reading the `paused()` flag, because
+the flag flipping is not the property anybody cares about. Both fail if
+`unpause` is made a no-op or loses its role gate.
+
+**Two documents were also telling an auditor the wrong numbers.** Both quoted
+"144 tests, 138 passing with 6 skipped", written days earlier and wrong by the
+time anybody read it, because a count maintained by hand drifts every time a
+test is added and nothing notices.
+
+Corrected by removing the totals rather than updating them. The figure that
+matters is not how many tests exist but that none skip, which CI asserts on
+every run, and `forge test` prints the current count for anyone who wants it. A
+number nobody checks is worse than no number, because it looks like evidence.
 
 ### 18. Two dispute endpoints had no per-identity limit (done)
 

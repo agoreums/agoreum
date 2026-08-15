@@ -118,12 +118,18 @@ would hand over the contract.
 
 ## Testing
 
-**144 tests, all passing.** The suites include fuzzing at 2000 runs, invariants
-at 512 sequences of depth 64, and six fork tests against the real USDC contract
-on Base rather than a mock.
+**All passing, none skipped.** The suites include fuzzing at 2000 runs,
+invariants at 512 sequences of depth 64, and six fork tests against the real
+USDC contract on Base rather than a mock.
 
-Those six need a Base RPC URL and are the only tests that do, so locally they
-skip and the count reads 138 passing with 6 skipped. **They run in CI on every
+A total is deliberately not quoted. This paragraph carried one, it was wrong
+within a week, and a number maintained by hand drifts every time a test is added
+while nothing notices. What is worth stating is that nothing skips, which CI
+asserts rather than leaving to a reader to trust. `forge test` prints the
+current figure.
+
+Those six fork tests need a Base RPC URL and are the only tests that do, so
+locally they skip. **They run in CI on every
 push to main**, in a job that asserts six passed and zero skipped rather than
 trusting the exit code. Until that job existed they ran only when somebody
 remembered to run them, while `docs/incident-runbook.md` cited them by name as
