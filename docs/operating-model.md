@@ -403,6 +403,10 @@ fourteen CI jobs green including Deploy and Fork tests:
 - `d9e7d1d` (PR #16), the landing page testnet status line. Verified live in
   English, German, Japanese, Arabic and Chinese, following redirects, which is
   the check the first attempt at this got wrong.
+- `2ee8808` (PR #18), the emails worker heartbeat and monitoring. Verified end
+  to end in production rather than by the deploy going green: the endpoint now
+  reports `emails_worker` with a heartbeat one second old, which proves the
+  worker writes the key and the endpoint reads the same one.
 
 **What was not verified in production, and why.** Bucket separation needs two
 real keys, which means minting credentials against live data for a change that
