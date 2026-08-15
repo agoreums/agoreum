@@ -6,6 +6,7 @@ Nothing about the auth path is stubbed.
 """
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -292,3 +293,134 @@ class TestScopeLogic:
         assert ApiKey(expires_at=None, revoked_at=None).is_active
         assert not ApiKey(expires_at=past, revoked_at=None).is_active
         assert not ApiKey(expires_at=None, revoked_at=past).is_active
+
+
+class TestKeysAreConfinedToTheirOrganization:
+    """A key may act only in the organization it was minted in.
+
+    A key is created inside an organization, listed under it, and chosen per
+    organization in the interface, so its holder reasonably believes it cannot
+    reach anywhere else. That belief used to be wrong. The key resolved to its
+    creator and then carried that person's authority across every organization
+    they belong to, so a key minted for a personal side project could register
+    and manage agents in an employer's organization.
+
+    The organization was checked once, at authentication, to confirm the creator
+    is still a member. That is a different question from which organization the
+    key may act in, and answering the first was being mistaken for answering the
+    second.
+
+    It mattered much more once the write scopes were enforced: before that a key
+    could only read, and afterwards it could register agents and publish
+    services anywhere its creator had access.
+    """
+
+    async def _team(self, client: AsyncClient, session: str) -> str:
+        slug = f"team-{uuid.uuid4().hex[:8]}"
+        resp = await client.post(
+            "/api/v1/orgs",
+            json={"slug": slug, "name": "Team"},
+            headers=auth(session),
+        )
+        assert resp.status_code in (200, 201), resp.text
+        return slug
+
+    async def _mint_in(
+        self, client: AsyncClient, session: str, org: str | None, scopes: list[str]
+    ) -> str:
+        query = f"?org={org}" if org else ""
+        resp = await client.post(
+            f"/api/v1/api-keys{query}",
+            json={"name": "k", "scopes": scopes},
+            headers=auth(session),
+        )
+        assert resp.status_code in (200, 201), resp.text
+        return resp.json()["token"]
+
+    async def test_a_key_cannot_create_in_another_organization(
+        self, client: AsyncClient
+    ) -> None:
+        """The gap itself, asserted directly.
+
+        The caller is a member of both organizations, so this is not about
+        membership. It is about the key naming an organization it was not minted
+        in and being told no anyway.
+        """
+        session = await sign_in(client)
+        team = await self._team(client, session)
+        personal_key = await self._mint_in(client, session, None, ["agents:write"])
+
+        resp = await client.post(
+            "/api/v1/agents",
+            json={"slug": f"a{uuid.uuid4().hex[:8]}", "name": "Probe One", "org_slug": team},
+            headers={"X-API-Key": personal_key},
+        )
+        assert resp.status_code == 404, resp.text
+        assert resp.json()["error"]["code"] == "org_not_found"
+
+    async def test_a_key_cannot_manage_an_agent_in_another_organization(
+        self, client: AsyncClient
+    ) -> None:
+        session = await sign_in(client)
+        team = await self._team(client, session)
+        team_key = await self._mint_in(client, session, team, ["agents:write"])
+        personal_key = await self._mint_in(client, session, None, ["agents:write"])
+
+        created = await client.post(
+            "/api/v1/agents",
+            json={"slug": f"b{uuid.uuid4().hex[:8]}", "name": "Probe Two"},
+            headers={"X-API-Key": team_key},
+        )
+        assert created.status_code == 201, created.text
+        slug = created.json()["slug"]
+
+        # The same 404 a stranger gets. A key that has strayed outside its
+        # organization should learn nothing about what is in there.
+        resp = await client.post(
+            f"/api/v1/agents/{slug}/pause", headers={"X-API-Key": personal_key}
+        )
+        assert resp.status_code == 404, resp.text
+
+    async def test_a_key_naming_no_organization_acts_in_its_own(
+        self, client: AsyncClient
+    ) -> None:
+        """The quieter half of the same bug.
+
+        With no organization named the request fell through to the caller's
+        personal organization, so a team key filed new agents under the
+        creator's private account. Nothing failed and nothing warned; the agent
+        was simply in the wrong place, owned by a person rather than a team.
+        """
+        session = await sign_in(client)
+        team = await self._team(client, session)
+        team_key = await self._mint_in(client, session, team, ["agents:write", "agents:read"])
+
+        created = await client.post(
+            "/api/v1/agents",
+            json={"slug": f"c{uuid.uuid4().hex[:8]}", "name": "Probe Three"},
+            headers={"X-API-Key": team_key},
+        )
+        assert created.status_code == 201, created.text
+
+        orgs = (await client.get("/api/v1/orgs", headers=auth(session))).json()
+        team_id = next(o["id"] for o in orgs if o["slug"] == team)
+        assert created.json()["org_id"] == team_id, "a team key filed the agent elsewhere"
+
+    async def test_a_session_still_acts_across_its_organizations(
+        self, client: AsyncClient
+    ) -> None:
+        """The confinement must not reach the web app.
+
+        A signed-in person switches organizations in the interface and is meant
+        to act in all of theirs. It is the credential living in a config file
+        that needs containing, not the human at the keyboard.
+        """
+        session = await sign_in(client)
+        team = await self._team(client, session)
+
+        for org_slug in (None, team):
+            body = {"slug": f"d{uuid.uuid4().hex[:8]}", "name": "Probe Four"}
+            if org_slug:
+                body["org_slug"] = org_slug
+            resp = await client.post("/api/v1/agents", json=body, headers=auth(session))
+            assert resp.status_code == 201, f"session refused for org={org_slug}: {resp.text}"

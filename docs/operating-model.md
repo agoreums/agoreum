@@ -322,7 +322,7 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 677 tests, 677 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 681 tests, 681 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
@@ -628,6 +628,52 @@ is blocked by the package's own `exports`, which is correct packaging, and the
 Python check first sent a `/me` payload without an `id`. Neither was a fault in
 what was published, and both are worth noting only because a failing probe reads
 exactly like a failing package until you look.
+
+### 10. An API key was not confined to its organization (done)
+
+Found by asking the security question that follows from the previous batch
+rather than waiting for it to surface: enforcing the write scopes made 18
+endpoints reachable by a credential that previously could not reach them at all,
+so what does the authorization layer *underneath* the scope check actually
+enforce.
+
+It enforced the caller's membership of the resource's organization, and nothing
+about the key's own. A key is minted inside an organization, listed under it,
+and chosen per organization in the interface, so its holder reasonably believes
+it is confined there. It was not. The key resolved to its creator, and that
+person's authority was used for every ownership check, so the key reached every
+organization they belong to.
+
+The organization *was* being checked, once, at authentication, to confirm the
+creator is still a member. That is a real and necessary check answering a
+different question: whether the key still works, not where it may act. Answering
+the first was mistaken for answering the second, which is why nothing looked
+missing.
+
+Demonstrated before it was fixed: a key minted in a personal organization
+created an agent in a separate team organization and got a 201. Then fixed, then
+demonstrated again in the other direction.
+
+A second, quieter half surfaced while fixing the first. A key naming no
+organization fell through to the creator's *personal* organization, so a team
+key filed new agents under a private account. Nothing failed and nothing warned.
+The agent was simply in the wrong place, owned by a person rather than a team.
+
+Sessions are deliberately not confined. A signed-in person switches
+organizations in the interface and is meant to act in all of theirs; it is the
+credential living in a config file that needs containing. Asserted rather than
+assumed, with a test that a session still acts in both.
+
+Four tests, and each of the three guards was removed individually to confirm it
+is what fails: removing the agent confinement, letting a key name any
+organization, and restoring the personal-organization fallback each turn the
+suite red on their own.
+
+**The general point worth keeping.** A check that mentions the right noun is not
+the same as a check that answers the right question. `key.org_id` appeared in
+the authentication path, so a reader looking for "is the organization enforced"
+found something and stopped. Searching for whether a concept is *referenced*
+will keep finding these; the question has to be what the reference decides.
 
 ### 9. A five second database timeout was skipping tests (done)
 

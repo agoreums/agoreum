@@ -122,6 +122,7 @@ async def resolve_org_for_action(
     user: User,
     slug: str | None,
     action: authz.OrgAction,
+    org_scope: uuid.UUID | None = None,
 ) -> Organization:
     """Resolve which org a request acts under, enforcing the caller's permission.
 
@@ -129,7 +130,26 @@ async def resolve_org_for_action(
     so the action is always permitted there. With a slug the org must exist and the
     caller must hold a role that permits the action; a non-member gets a 404 so org
     membership stays unenumerable.
+
+    `org_scope` confines an API key to the organization it was minted in, and is
+    None for a browser session. It changes two things, both of which were wrong
+    for keys before it existed.
+
+    A key naming another organization is refused, rather than acting there on the
+    strength of its creator's membership. And a key naming none acts in its own
+    organization rather than falling through to its creator's personal one,
+    which had the quiet effect of a team key filing new agents under the
+    creator's private account.
     """
+    if org_scope is not None:
+        org = await get_org_by_id(db, org_id=org_scope)
+        if slug is not None and slug != org.slug:
+            raise NotFoundError("Organization not found.", code="org_not_found")
+        await authz.require_permission(
+            db, org_id=org.id, user_id=user.id, action=action
+        )
+        return org
+
     if slug is None:
         return await ensure_personal_org(db, user=user)
     org = await get_org_by_slug(db, slug=slug)

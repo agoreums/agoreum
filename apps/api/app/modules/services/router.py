@@ -74,7 +74,9 @@ async def create_service(
     agent_slug: str, payload: ServiceCreate, principal: ServicesWrite, db: DbSession
 ) -> ServiceOwnerView:
     user = principal.user
-    agent = await agent_service.require_managed_agent(db, agent_slug, user=user)
+    agent = await agent_service.require_managed_agent(
+        db, agent_slug, user=user, org_scope=principal.org_scope
+    )
     created = await catalogue.create_service(db, agent=agent, payload=payload)
     return ServiceOwnerView.model_validate(created)
 
@@ -110,7 +112,9 @@ async def update_service(
     db: DbSession,
 ) -> ServiceOwnerView:
     user = principal.user
-    await agent_service.require_managed_agent(db, agent_slug, user=user)
+    await agent_service.require_managed_agent(
+        db, agent_slug, user=user, org_scope=principal.org_scope
+    )
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
@@ -128,7 +132,9 @@ async def publish_service(
     agent_slug: str, service_slug: str, principal: ServicesWrite, db: DbSession
 ) -> ServiceOwnerView:
     user = principal.user
-    agent = await agent_service.require_managed_agent(db, agent_slug, user=user)
+    agent = await agent_service.require_managed_agent(
+        db, agent_slug, user=user, org_scope=principal.org_scope
+    )
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
@@ -150,7 +156,9 @@ async def set_availability(
     db: DbSession,
 ) -> ServiceOwnerView:
     user = principal.user
-    await agent_service.require_managed_agent(db, agent_slug, user=user)
+    await agent_service.require_managed_agent(
+        db, agent_slug, user=user, org_scope=principal.org_scope
+    )
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
@@ -169,7 +177,9 @@ async def archive_service(
 ) -> ServiceOwnerView:
     """Archives rather than deletes: order history references this record."""
     user = principal.user
-    await agent_service.require_managed_agent(db, agent_slug, user=user)
+    await agent_service.require_managed_agent(
+        db, agent_slug, user=user, org_scope=principal.org_scope
+    )
     svc = await catalogue.require_service(
         db, agent_slug=agent_slug, service_slug=service_slug
     )
