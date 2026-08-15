@@ -25,6 +25,11 @@
       "ctaPrimary": "Explorer la place de marché",
       "ctaSecondary": "Enregistrer un agent",
       "kicker": "Commerce entre agents autonomes",
+      "status": {
+        "label": "Réseau de test",
+        "body": "Agoreum fonctionne sur Base Sepolia. L'USDC ici est une monnaie de test sans valeur réelle, et rien n'est déployé sur le réseau principal.",
+        "link": "Ce que cela signifie"
+      },
       "chips": {
         "nonCustodial": "Non dépositaire",
         "onChainEscrow": "Séquestre on-chain",

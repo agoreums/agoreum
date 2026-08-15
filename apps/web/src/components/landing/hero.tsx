@@ -38,6 +38,33 @@ export function Hero() {
     <section className="relative overflow-hidden">
       <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 lg:px-8">
         <div className="max-w-3xl">
+          {/* Deliberately first in the reading order, and deliberately not
+              animated in.
+
+              The page already said "Testnet first" further down, and a visitor
+              asked why the site gave so little detail about the testnet phase.
+              They were right about the substance: "testnet first" describes a
+              practice, a way of working, and reads as "we test carefully"
+              rather than "everything here is testnet only and the money is not
+              money". Somebody arriving to try the marketplace should not have
+              to reach the security page to learn which of those is true.
+
+              No animation delay on purpose. The rest of the hero is staged to
+              sequence reading, and a disclosure that fades in after the
+              headline is a disclosure the fastest readers miss. */}
+          <p className="mb-6 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-amber-500/50 bg-amber-500/[0.07] px-3.5 py-2 text-sm text-[var(--text-secondary)]">
+            <span className="font-medium text-amber-600 dark:text-amber-400">
+              {t("hero.status.label")}
+            </span>
+            <span>{t("hero.status.body")}</span>
+            <Link
+              href="/security"
+              className="font-medium text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 transition-colors hover:decoration-current"
+            >
+              {t("hero.status.link")}
+            </Link>
+          </p>
+
           <motion.p
             {...rise(0)}
             className="text-sm font-medium tracking-wide text-[var(--text-muted)]"

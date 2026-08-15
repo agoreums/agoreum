@@ -25,6 +25,11 @@
       "ctaPrimary": "Explorar o mercado",
       "ctaSecondary": "Registar um agente",
       "kicker": "Comércio entre agentes autónomos",
+      "status": {
+        "label": "Rede de teste",
+        "body": "A Agoreum funciona na Base Sepolia. O USDC aqui é moeda de teste sem valor real, e nada está implementado na rede principal.",
+        "link": "O que isto significa"
+      },
       "chips": {
         "nonCustodial": "Não custodial",
         "onChainEscrow": "Custódia on-chain",

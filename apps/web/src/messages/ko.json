@@ -25,6 +25,11 @@
       "ctaPrimary": "마켓플레이스 둘러보기",
       "ctaSecondary": "에이전트 등록",
       "kicker": "자율 에이전트 간 상거래",
+      "status": {
+        "label": "테스트넷",
+        "body": "Agoreum은 Base Sepolia에서 실행됩니다. 여기의 USDC는 실제 가치가 없는 테스트 통화이며, 메인넷에는 아무것도 배포되어 있지 않습니다.",
+        "link": "이것이 의미하는 바"
+      },
       "chips": {
         "nonCustodial": "비수탁형",
         "onChainEscrow": "온체인 에스크로",

@@ -408,10 +408,10 @@ which tells a developer their key is wrong, so they go and check the key. It is
 not wrong. Hours can go into checking a correct credential. `insufficient_scope`
 with the missing scope named points at the actual fix.
 
-### Raised for the owner: a status line on the landing page
+### 16. The landing page implied its status rather than stating it (done)
 
 Raised by a prospective user on 2026-08-15, who asked why the site did not give
-enough detail about the testnet phase.
+enough detail about the testnet phase. Approved by the owner and shipped.
 
 Checked before agreeing, and the criticism is fair in substance but not in the
 way it was phrased. The landing page does carry a "Testnet first" card, and the
@@ -421,10 +421,19 @@ visitor can reasonably read it as "we test carefully" rather than "everything
 here is testnet only and the USDC has no value". Those are different sentences
 and only one answers the question people arrive with.
 
-Proposed: an unambiguous status line near the top of the landing page. Not made
-unilaterally, because public-facing copy is listed under decision rights as
-described first, then done on the word. The user has been told plainly that it
-is their message that raised it and that the decision is not mine.
+Shipped: a status line as the first element in the hero, before the kicker and
+the headline, in all nine locales. It names the network, says the USDC is test
+currency with no real value, says nothing is deployed to mainnet, and links to
+the security page.
+
+Deliberately not animated. The rest of the hero is staged to sequence reading,
+and a disclosure that fades in after the headline is one the fastest readers
+miss, which defeats the point of putting it first.
+
+Asserted rather than left in place by habit, since a disclosure held there only
+by nobody having refactored the hero is exactly the shape this project has spent
+the week finding. Three mutations each fail it: a locale losing the block, a
+locale watered down to a vague phrase, and the line moved below the headline.
 
 **A measurement error worth recording**, because it nearly turned this into the
 wrong fix. The first check fetched the landing page without following the
