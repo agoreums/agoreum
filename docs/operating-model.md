@@ -197,6 +197,16 @@ Earned by getting each of these wrong at least once.
    check in the same batch parsed the wrong CSS block and would have reported a
    clean palette it had never read.
 
+   A third instance, 2026-08-15, caught before it was reported rather than
+   after. A script waiting on CI took the first workflow run matching a commit
+   on a branch, and every commit here has at least two: our own CI, and GitHub's
+   built-in Pages build. The script reported "success" with jobs named build,
+   deploy and report-build-status, which are not the names of any job in
+   `ci.yml`. The real CI run for that commit was still in progress. Nothing was
+   wrong except which instrument was being read, and the jobs not matching any
+   known job name is what gave it away. A watcher now filters on the workflow
+   file rather than the commit alone.
+
    The point has a second edge, learned by getting it wrong here. A public URL
    returned 200 within a second of a reboot, and that was written up as
    Cloudflare serving cache over a dead origin. It was not. Caching was off, and
@@ -300,20 +310,26 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 667 tests, 667 passed, 0 skipped, on a clean database with every dependency present. API keys can now write, gated per scope, see below |
+| Backend and API | 667 tests, 667 passed, 0 skipped, and the same 667 again on the second run against the same database, which CI now enforces. API keys can now write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.1.1. The 0.1.0 payment-endpoint defect is fixed and released |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
 | Local environment | Postgres, Redis and Anvil run as plain processes. `scripts/local-dev.ps1` brings them up, `-Status` says which are answering. Restored on 2026-08-15 after a cleanup removed the Docker Desktop that had been providing them. The GitHub CLI went in the same cleanup and has not been reinstalled: CI is queried through the REST API with the token from the env file, which needs no install and no separate login |
-| Community | Support inbox answered to zero as of 2026-08-15. Discord blocked, see below |
+| Community | Support inbox answered to zero as of 2026-08-15. Discord readable and answered as of the same day |
 
 ### In flight
 
-Nothing. PR #1 merged to `main` on 2026-08-15 as `5b4a7ce`, all fourteen CI jobs
-green including Deploy and Fork tests, and confirmed live in production.
+Nothing. Two pull requests merged to `main` on 2026-08-15, each with all
+fourteen CI jobs green including Deploy and Fork tests:
 
-The production check is worth recording because it needed no credentials. A fake
-API key only proves authentication, not scope. Instead, `POST /api/v1/orders`
+- `5b4a7ce` (PR #1), the write scopes, the whole-suite skip assertion, and
+  `scripts/local-dev.ps1`. Confirmed live in production.
+- `366c245` (PR #2), test isolation, the second suite run against the same
+  database, and the scope documentation check.
+
+The production check on the first is worth recording because it needed no
+credentials. A fake API key only proves authentication, not scope. Instead,
+`POST /api/v1/orders`
 now returns the principal path's message, "Provide an API key (X-API-Key) or
 sign in", identical to an endpoint that was already scoped, while `/auth/me`,
 which was deliberately left on `CurrentUser`, still returns "Authentication is
