@@ -50,6 +50,28 @@ def wallet() -> Wallet:
     return Wallet()
 
 
+def an_email(label: str = "user") -> str:
+    """A fresh address, unique to this call.
+
+    These used to be literals, `a@example.com` through `h@example.com`, against
+    a unique constraint on the column. The first run created those rows, nothing
+    removed them, and running the same suite a second time against the same
+    database failed nine tests here with `profile_conflict`. CI never saw it,
+    because its database is new every run, so the suite was order dependent and
+    permanently green.
+
+    Fresh values rather than a cleanup fixture, because that is already how this
+    file handles the same problem for identities: `Wallet` has always created a
+    new keypair per test rather than deleting the old one afterwards. Cleanup
+    has to run to be correct, and it does not run when a test fails partway,
+    which is exactly when the leftovers matter most.
+
+    The label survives into the address so a failure message says which of the
+    two addresses in a test it is talking about.
+    """
+    return f"{label}-{uuid.uuid4().hex[:12]}@example.com"
+
+
 @pytest_asyncio.fixture
 async def engine():
     eng = create_async_engine(
@@ -141,7 +163,8 @@ class TestIssuing:
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
         """A leaked backup must not hand out working verification links."""
-        access, user = await _signed_in_with_email(client, db, wallet, "a@example.com")
+        email = an_email()
+        access, user = await _signed_in_with_email(client, db, wallet, email)
 
         resp = await client.post(
             "/api/v1/auth/me/email/verify",
@@ -161,7 +184,7 @@ class TestIssuing:
         ).scalars().all()
         assert len(rows) == 1
         assert len(rows[0].token_hash) == 64, "expected a hex sha256"
-        assert rows[0].email == "a@example.com"
+        assert rows[0].email == email
         assert rows[0].consumed_at is None
 
     async def test_requesting_again_invalidates_the_previous_token(
@@ -172,7 +195,7 @@ class TestIssuing:
         Someone requests a second link precisely when they suspect the first went
         astray, which is the worst moment for the first to keep working.
         """
-        access, user = await _signed_in_with_email(client, db, wallet, "b@example.com")
+        access, user = await _signed_in_with_email(client, db, wallet, an_email())
         headers = {"Authorization": f"Bearer {access}"}
 
         await client.post("/api/v1/auth/me/email/verify", headers=headers)
@@ -212,7 +235,7 @@ class TestConfirming:
     async def test_a_valid_token_proves_the_address(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        _access, user = await _signed_in_with_email(client, db, wallet, "c@example.com")
+        _access, user = await _signed_in_with_email(client, db, wallet, an_email())
         raw, _row = await service.issue_email_verification(db, user=user)
         await db.commit()
 
@@ -226,7 +249,7 @@ class TestConfirming:
     async def test_a_token_cannot_be_used_twice(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        _access, user = await _signed_in_with_email(client, db, wallet, "d@example.com")
+        _access, user = await _signed_in_with_email(client, db, wallet, an_email())
         raw, _row = await service.issue_email_verification(db, user=user)
         await db.commit()
 
@@ -241,7 +264,7 @@ class TestConfirming:
     async def test_an_expired_token_is_refused(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        _access, user = await _signed_in_with_email(client, db, wallet, "e@example.com")
+        _access, user = await _signed_in_with_email(client, db, wallet, an_email())
         raw, row = await service.issue_email_verification(db, user=user)
         row.expires_at = datetime.now(UTC) - timedelta(seconds=1)
         await db.commit()
@@ -269,13 +292,14 @@ class TestConfirming:
         one, or a user could point the profile at a stranger and then confirm with
         a link they legitimately received at their own address.
         """
-        access, user = await _signed_in_with_email(client, db, wallet, "mine@example.com")
+        mine, theirs = an_email("mine"), an_email("theirs")
+        access, user = await _signed_in_with_email(client, db, wallet, mine)
         raw, _row = await service.issue_email_verification(db, user=user)
         await db.commit()
 
         resp = await client.patch(
             "/api/v1/auth/me",
-            json={"email": "someone-else@example.com"},
+            json={"email": theirs},
             headers={"Authorization": f"Bearer {access}"},
         )
         assert resp.status_code == 200
@@ -287,19 +311,20 @@ class TestConfirming:
 
         await db.refresh(user)
         assert user.email_verified_at is None
-        assert user.email == "someone-else@example.com"
+        assert user.email == theirs
 
     async def test_the_spent_token_is_burned_even_when_the_address_moved(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
         """A refused token must not be replayable once the address moves back."""
-        access, user = await _signed_in_with_email(client, db, wallet, "orig@example.com")
+        original, moved = an_email("original"), an_email("moved")
+        access, user = await _signed_in_with_email(client, db, wallet, original)
         raw, _row = await service.issue_email_verification(db, user=user)
         await db.commit()
         headers = {"Authorization": f"Bearer {access}"}
 
         await client.patch(
-            "/api/v1/auth/me", json={"email": "moved@example.com"}, headers=headers
+            "/api/v1/auth/me", json={"email": moved}, headers=headers
         )
         assert (
             await client.post("/api/v1/auth/me/email/confirm", json={"token": raw})
@@ -307,7 +332,7 @@ class TestConfirming:
 
         # Move it back and try the same link again.
         await client.patch(
-            "/api/v1/auth/me", json={"email": "orig@example.com"}, headers=headers
+            "/api/v1/auth/me", json={"email": original}, headers=headers
         )
         again = await client.post(
             "/api/v1/auth/me/email/confirm", json={"token": raw}
@@ -322,7 +347,7 @@ class TestStoredForm:
     async def test_the_raw_token_is_never_stored(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        _access, user = await _signed_in_with_email(client, db, wallet, "f@example.com")
+        _access, user = await _signed_in_with_email(client, db, wallet, an_email())
         raw, _row = await service.issue_email_verification(db, user=user)
         await db.commit()
 
@@ -339,7 +364,7 @@ class TestStoredForm:
     async def test_changing_the_email_clears_prior_verification(
         self, client: AsyncClient, db: AsyncSession, wallet: Wallet
     ) -> None:
-        access, user = await _signed_in_with_email(client, db, wallet, "g@example.com")
+        access, user = await _signed_in_with_email(client, db, wallet, an_email())
         raw, _row = await service.issue_email_verification(db, user=user)
         await db.commit()
         await client.post("/api/v1/auth/me/email/confirm", json={"token": raw})
@@ -348,7 +373,7 @@ class TestStoredForm:
 
         resp = await client.patch(
             "/api/v1/auth/me",
-            json={"email": "h@example.com"},
+            json={"email": an_email("replacement")},
             headers={"Authorization": f"Bearer {access}"},
         )
         assert resp.status_code == 200

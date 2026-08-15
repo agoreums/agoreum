@@ -174,6 +174,21 @@ jobs:
             exit 1
           fi
 
+      - name: Run it again against the same database
+        working-directory: apps/api
+        # CI gets a new database every run, so it is structurally incapable of
+        # seeing a test that only passes the first time. That is not a
+        # hypothetical: the email verification tests used fixed addresses
+        # against a unique constraint, left their rows behind, and failed nine
+        # tests on any second run. It was invisible here for as long as it
+        # existed, and only showed up on a workstation where the database
+        # persists.
+        #
+        # A second run is the only thing that asserts the property, and it costs
+        # about a minute. The tests are the same tests; what is under test here
+        # is whether they left anything behind.
+        run: pytest --timeout=60 -q
+
   frontend:
     name: Frontend
     runs-on: ubuntu-24.04
