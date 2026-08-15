@@ -341,6 +341,16 @@ fourteen CI jobs green including Deploy and Fork tests:
 - `d8ea6e6` (PR #4), the SDK write surface, the method-and-path contract check,
   the SDK version parity check, and the database connect timeout. The new
   provider walkthrough is live at `/docs/sdks`, checked in three locales.
+- `baf8fe6` (PR #8), API key organization confinement. Deployed and production
+  confirmed healthy afterwards.
+
+**Who was exposed.** Nobody outside their own account. The gap let a key reach
+organizations its creator already belonged to, so it was a containment failure
+rather than a cross-tenant one: no key could ever reach an organization its
+creator could not. Combined with testnet only, no real funds, and a handful of
+accounts, there is no one to notify. Recorded because "we decided there was
+nothing to disclose" is a claim that should be written down with its reasoning,
+not left implied.
 
 The production check on the first is worth recording because it needed no
 credentials. A fake API key only proves authentication, not scope. Instead,
