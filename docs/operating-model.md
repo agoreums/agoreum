@@ -491,6 +491,29 @@ The general shape is worth keeping: **a check that is re-created clean before
 every use cannot detect anything that accumulates.** Freshness is usually a
 virtue in a test environment and is exactly what blinded this one.
 
+### 7. The public API docs duplicated the scope catalogue (done)
+
+Found while checking whether shipping the write scopes had made any published
+claim untrue. The docs page at `/docs/api` hardcodes the seven scopes and their
+descriptions as a literal array, while the key-minting UI fetches
+`/api-keys/scopes` and renders whatever the API returns. The second cannot
+drift. The first can, and nothing compared them.
+
+The copies happened to agree, which is the least reassuring possible state: the
+same shape as three published SDKs calling an endpoint this API had never
+served, agreeing with each other and with nothing authoritative.
+
+Worse than cosmetic, because this page is what a developer reads to decide which
+scopes to request. A scope listed but not real means keys minted for something
+that will never work. A scope real but not listed means people granting more
+than they needed because the narrower option looked absent. Both are
+authorisation decisions taken from a stale page.
+
+Now compared in `test_sdk_contract.py`, names and descriptions both, since a
+description that quietly narrowed would understate what a leaked key can do.
+Mutation tested twice: a drifted description and a scope that does not exist are
+each caught, and the test refuses to pass when it parses nothing.
+
 ### Standing, not scheduled
 
 | Item | Owner | State |
