@@ -245,7 +245,33 @@ Earned by getting each of these wrong at least once.
    checked too, and here it cost a false line in the runbook telling a future
    operator not to trust the one signal that was telling the truth.
 
-9. **What uses a thing and what a thing created are different questions.** Before
+9. **A pipeline's reported success can come from the wrong command entirely.**
+   A category of its own after three instances in one day, all the same shape
+   and all nearly reported as results.
+
+   `pytest ... | tail -4; echo $?` prints `tail`'s status, which is always zero.
+   `tsc --noEmit | tail -2` did the same while TypeScript was reporting two real
+   errors in a file just written. A watcher matched every workflow run because
+   the sha it filtered on was an empty string, and `startswith("")` is true of
+   everything. In each case a real failure wore the exact appearance of success:
+   not a suspicious result to be double-checked, but the specific result that
+   was wanted.
+
+   The common root is that the thing reporting is not the thing being asked
+   about. `set -o pipefail` covers the pipeline case and is easy to forget under
+   time pressure, which is how it was forgotten three times.
+
+   So it is a tool rather than a resolution. `scripts/run-checked.sh` runs a
+   command unpiped, sends its output to a file, prints the tail, and exits with
+   that command's status, which the calling shell cannot overwrite. It also says
+   so explicitly when a command produced no output at all, because "ran and
+   printed nothing" and "never ran" are otherwise identical on screen.
+
+   The general form, worth carrying beyond shell: **before believing a result,
+   name which process produced it.** An empty filter, a swallowed status and a
+   silently dropped mutation are the same mistake wearing different clothes.
+
+10. **What uses a thing and what a thing created are different questions.** Before
    removing anything, ask both. A GitHub token was replaced, and every operation
    that reads it was verified against the replacement first: pushing, editing
    workflow files, reading run status and logs, setting Actions secrets. All of
@@ -346,7 +372,7 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. 140 tests, 0 skipped, including an invariant that deadlines never move. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 692 tests, 692 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 698 tests, 698 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
@@ -427,6 +453,52 @@ One thing the 403 buys that is easy to undervalue. The old failure was a 401,
 which tells a developer their key is wrong, so they go and check the key. It is
 not wrong. Hours can go into checking a correct credential. `insufficient_scope`
 with the missing scope named points at the actual fix.
+
+### 17. A worker ran in production with nothing watching it (done)
+
+Found by doing the infrastructure role's standing check, which had gone
+unattended while the week went into backend and security work. Production is
+healthy on every component, verified rather than assumed: database, Redis and
+chain all ok, both indexers six blocks behind head, webhooks worker heartbeat
+three seconds old.
+
+The gap was next to that. Production runs four workers besides the monitor.
+`/health/workers` reported two, and the monitor alerted on three. The one
+watched by nothing was the emails worker, which sends sign-in alerts and
+verification links.
+
+Its silence is the hardest to notice from outside, because nobody reports mail
+they were never expecting. A wedged loop would have looked exactly like a quiet
+week, and sending is live: sign-in notices are being delivered today.
+
+The same fingerprint as the key bugs, in a third subsystem. The webhooks worker
+had the pattern, correct and load-bearing, one service over, writing a heartbeat
+each pass precisely so a stalled loop is visible while the container is up. The
+emails worker had a `while True` and nothing else. The endpoint reporting two
+workers made the set look complete.
+
+Fixed by generalising rather than copying: heartbeat keys now live in a map
+keyed by worker name, and one `check_worker` covers any of them, so adding a
+worker means adding an entry rather than remembering to write a new function.
+The worker writes its heartbeat after the pass rather than before, so it means
+"a pass completed" and not "a pass started".
+
+Six tests. Four mutations, two of which initially survived and are the more
+useful half:
+
+Excluding the emails worker from the overall status still passed, because every
+worker check calls the same `create_client` and the shared fake made one
+worker's health depend on another's. The 503 being asserted was coming from the
+webhooks worker. The fake now answers per key, so the test isolates what it
+claims to.
+
+Replacing the shared key constant with a local of the same name still passed,
+because the test grepped for the token rather than the import. It now requires
+the import, so a writer that stops using the reader's key fails.
+
+Both were the test being weaker than it looked while reporting success, which is
+the same category as the pipeline exit codes: the check ran, and it was not
+checking the thing named on it.
 
 ### 16. The landing page implied its status rather than stating it (done)
 
