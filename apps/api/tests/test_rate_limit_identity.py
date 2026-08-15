@@ -114,3 +114,94 @@ class TestAnAuthenticatedCallerIsCountedByAccount:
             headers={"CF-Connecting-IP": "2a0e:1d47:cb9a:6300:4de6:bfbd:7b46:ac45"}
         )
         assert client_identity(request) == "ip:2a0e:1d47:cb9a:6300::/64"
+
+
+class TestAProgrammaticCallerIsCountedByKey:
+    """The third defect that lived here, and the one that hid best.
+
+    `get_principal` sets `request.state.user_id` for key traffic under a comment
+    saying keys are counted by account. They were not. Limiters are route-level
+    dependencies and FastAPI resolves those before a path function's own
+    parameters, so the limiter has already run by the time that line executes,
+    which is the exact ordering trap `client_identity` documents at length a few
+    lines further up the same file.
+
+    So the code named the right thing, in the right place, with a comment
+    asserting the outcome, and could not deliver it. Two unrelated customers
+    calling from one cloud provider's address shared a quota, and moving address
+    reset a key's quota, both of which this module documents as impossible.
+    """
+
+    def test_a_key_is_not_counted_against_its_address(self) -> None:
+        key = security.generate_api_key()
+        identity = client_identity(_request(headers={"X-API-Key": key}))
+        assert identity.startswith("key:"), identity
+
+    def test_two_keys_from_one_address_do_not_share_a_quota(self) -> None:
+        """The failure that reached real callers.
+
+        Integrations run from a handful of cloud providers, so "same address,
+        different customer" is the normal case rather than an edge one.
+        """
+        first = client_identity(_request(headers={"X-API-Key": security.generate_api_key()}))
+        second = client_identity(_request(headers={"X-API-Key": security.generate_api_key()}))
+        assert first != second
+
+    def test_a_key_is_recognised_however_it_is_presented(self) -> None:
+        """Both forms are accepted by the authentication layer, so a caller must
+        not get a second quota by switching header."""
+        key = security.generate_api_key()
+        assert client_identity(
+            _request(headers={"X-API-Key": key})
+        ) == client_identity(_request(headers={"Authorization": f"Bearer {key}"}))
+
+    def test_changing_address_does_not_reset_a_key_quota(self) -> None:
+        key = security.generate_api_key()
+        one = SimpleNamespace(
+            headers={"X-API-Key": key},
+            state=SimpleNamespace(),
+            client=SimpleNamespace(host="203.0.113.9"),
+        )
+        two = SimpleNamespace(
+            headers={"X-API-Key": key},
+            state=SimpleNamespace(),
+            client=SimpleNamespace(host="198.51.100.4"),
+        )
+        assert client_identity(one) == client_identity(two)
+
+    def test_the_secret_never_becomes_the_bucket_name(self) -> None:
+        """The bucket reaches Redis key names, logs and error context. A live
+        credential must not travel with it."""
+        key = security.generate_api_key()
+        identity = client_identity(_request(headers={"X-API-Key": key}))
+        assert key not in identity
+        assert identity == f"key:{security.hash_token(key)[:32]}"
+
+    def test_a_bearer_token_that_is_not_a_key_is_left_alone(self) -> None:
+        """A session JWT must still resolve to its account, not to a key bucket."""
+        user_id = uuid.uuid4()
+        token, _ = security.create_access_token(
+            user_id=user_id,
+            address="0x" + "1" * 40,
+            role="user",
+            session_id=uuid.uuid4(),
+        )
+        identity = client_identity(_request(headers={"Authorization": f"Bearer {token}"}))
+        assert identity == f"user:{user_id}"
+
+    def test_a_session_outranks_a_key_when_both_are_present(self) -> None:
+        """An account is the broader unit, so it wins. Otherwise a caller could
+        widen their own quota by attaching a key to a browser request."""
+        key = security.generate_api_key()
+        identity = client_identity(
+            _request(headers={"X-API-Key": key}, user_id="abc")
+        )
+        assert identity == "user:abc"
+
+    def test_something_that_only_looks_like_a_key_falls_back_to_the_address(self) -> None:
+        request = SimpleNamespace(
+            headers={"X-API-Key": "not-a-key"},
+            state=SimpleNamespace(),
+            client=SimpleNamespace(host="203.0.113.9"),
+        )
+        assert client_identity(request) == "ip:203.0.113.9"

@@ -224,7 +224,60 @@ def client_identity(request: Request) -> str:
     if user:
         return f"user:{user}"
 
+    api_key = _api_key_bucket(request)
+    if api_key:
+        return api_key
+
     return f"ip:{rate_limit_scope(client_ip(request) or 'unknown')}"
+
+
+def _api_key_bucket(request: Request) -> str | None:
+    """A stable bucket for a caller presenting an API key, or None.
+
+    Programmatic callers were landing in the IP bucket, for the same ordering
+    reason documented above and missed anyway. `get_principal` sets
+    `request.state.user_id` for key traffic with a comment saying keys are
+    counted by account, but the limiter has already run by then, and the bearer
+    fallback only understands a session JWT. An API key arrives as `X-API-Key`,
+    or as `Authorization: Bearer ak_...` which is not a JWT and fails to decode.
+    Either way the request was counted against its address.
+
+    That is the failure `client_identity` exists to prevent, arriving through
+    the door it explicitly warns about. Two unrelated customers calling from one
+    cloud provider's address shared a quota, so a busy integration throttled a
+    stranger, and moving address reset a key's quota, which this function
+    documents as impossible.
+
+    Counted per key rather than per account, deliberately. Resolving the account
+    means a database round trip on every request, and costing nothing is a
+    design property of this function, not an accident. Per key is also the
+    better unit: one runaway integration does not consume the quota of its
+    owner's other keys. The cost is that an organization holding several keys
+    holds several quotas, bounded by `MAX_ACTIVE_KEYS_PER_ORG`, which is 25 and
+    enforced when a key is minted.
+
+    The token is hashed rather than used directly, so a live credential never
+    reaches a Redis key name, a slow-query log, or an error message.
+    """
+    # Imported here rather than at module scope, matching how this file already
+    # reaches for `client_ip` and `decode_access_token`.
+    from app.core.security import API_KEY_PREFIX, hash_token
+
+    token = request.headers.get("X-API-Key")
+    if not token:
+        header = request.headers.get("Authorization") or ""
+        scheme, _, bearer = header.partition(" ")
+        if scheme.lower() == "bearer":
+            token = bearer
+
+    token = (token or "").strip()
+    if not token.startswith(API_KEY_PREFIX):
+        return None
+
+    # Truncated only for readability in logs and Redis. This identifies a
+    # bucket, it does not authenticate anything, and authentication still
+    # verifies the whole hash against the database.
+    return f"key:{hash_token(token)[:32]}"
 
 
 def _subject_from_bearer(request: Request) -> str | None:

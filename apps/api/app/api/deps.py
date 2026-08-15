@@ -250,8 +250,16 @@ async def get_principal(
     )
     if key_token:
         user, key = await apikey_service.authenticate(db, token=key_token)
-        # API key traffic is bucketed by the owning account too, so a key cannot
-        # be used to spend everyone else's quota from a shared address.
+        # Published for anything later in the request that wants the account:
+        # logging, auditing, error context.
+        #
+        # This does NOT decide the rate limit bucket, and a previous version of
+        # this comment claimed it did. Limiters are route-level dependencies and
+        # FastAPI resolves those before a path function's own parameters, so the
+        # limiter has already run by the time this line executes. The claim was
+        # false for the same reason `client_identity` documents at length, and
+        # key traffic was counted against its IP address for as long as it stood.
+        # The limiter now recognises a key from the request headers directly.
         request.state.user_id = str(user.id)
         return Principal(user=user, scopes=frozenset(key.scopes), api_key=key)
 

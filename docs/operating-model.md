@@ -322,7 +322,7 @@ gone stale is a defect in this file.
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 681 tests, 681 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 689 tests, 689 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
@@ -638,6 +638,44 @@ is blocked by the package's own `exports`, which is correct packaging, and the
 Python check first sent a `/me` payload without an `id`. Neither was a fault in
 what was published, and both are worth noting only because a failing probe reads
 exactly like a failing package until you look.
+
+### 11. API key traffic was rate limited by address, not by key (done)
+
+Found by hunting the shape of item 10 rather than filing it: a check that names
+the right thing while answering a different question. The obvious place to look
+next was the other control that decides what a credential can do at volume.
+
+`client_identity` reads the account from `request.state.user_id`, and failing
+that decodes a bearer JWT. An API key arrives as `X-API-Key`, or as
+`Authorization: Bearer ak_...` which is not a JWT and fails to decode. Either
+way key traffic landed in the IP bucket. Two unrelated customers calling from
+one cloud provider's address shared a quota, and moving address reset a key's
+quota, both of which that module documents as impossible.
+
+It looked handled, which is the whole point. `get_principal` sets
+`request.state.user_id` for key traffic under a comment saying keys are counted
+by account, so anyone checking found an answer. It was wrong for exactly the
+ordering reason documented at length a few lines above the code it was wrong in:
+limiters are route-level dependencies, resolved before a path function's own
+parameters, so the limiter had already run.
+
+**Twice now in one day, and the pattern is worth stating.** A comment asserting
+an outcome is not evidence of the outcome, and it is worse than no comment,
+because it terminates the search. Both defects were found by asking what a line
+*decides* rather than what it *mentions*, and both had a correct, load-bearing
+version of the same idea sitting nearby, which is what made the wrong one look
+finished.
+
+Counted per key rather than per account: resolving the account needs a database
+round trip, and costing nothing is a design property of that path. Per key is
+also the better unit, since one runaway integration cannot consume the quota of
+its owner's other keys. The bound is the 25 active keys an organization may
+hold. The token is hashed before it becomes a bucket name, so a live credential
+never reaches a Redis key, a log line, or an error message.
+
+Eight tests, and three separate mutations each fail on their own: removing the
+key bucket, bucketing by the raw secret, and reading only one of the two headers
+a key may arrive in.
 
 ### 10. An API key was not confined to its organization (done)
 
