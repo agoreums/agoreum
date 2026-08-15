@@ -352,6 +352,8 @@ fourteen CI jobs green including Deploy and Fork tests:
   confirmed healthy afterwards.
 - `a0771bf` (PR #10), API key rate limit bucketing. Deployed, production healthy
   and still serving `x-ratelimit-*`.
+- `4718650` (PR #12), the route-level limiter assertion and two corrected
+  comments. Deployed, production healthy.
 
 **What was not verified in production, and why.** Bucket separation needs two
 real keys, which means minting credentials against live data for a change that
