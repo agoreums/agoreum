@@ -239,6 +239,53 @@ contract AgoreumSubscriptionsGovernanceTest is Test {
         assertTrue(subs.getSubscription(subscriber, PLAN).autoRenewCancelled);
     }
 
+    /// @notice The way back from an emergency stop, which nothing had executed.
+    /// @dev `pause` was tested five ways and `unpause` was never called by any
+    ///      test in this repository. The escrow has both. The asymmetry is the
+    ///      tell: somebody proved the stop and not the restart.
+    ///
+    ///      It matters because pause is an incident tool. The moment it is used
+    ///      is the moment the restart has to work, and until now the restart was
+    ///      the one governance action never executed outside production. A
+    ///      contract that can be stopped and not started is stopped
+    ///      permanently.
+    function test_unpauseRestoresSelling() public {
+        vm.prank(admin);
+        subs.pause();
+
+        vm.prank(subscriber);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        subs.subscribe(PLAN, PRICE);
+
+        vm.prank(admin);
+        subs.unpause();
+
+        // Asserted by selling again rather than by reading `paused()`. The flag
+        // flipping is not the property anybody cares about; the contract
+        // accepting a payment again is.
+        vm.prank(subscriber);
+        subs.subscribe(PLAN, PRICE);
+        assertTrue(subs.isActive(subscriber, PLAN), "unpaused contract refused a payment");
+    }
+
+    function test_onlyAGovernorCanUnpause() public {
+        vm.prank(admin);
+        subs.pause();
+
+        vm.prank(outsider);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, governorRole
+            )
+        );
+        subs.unpause();
+
+        // Still paused, so a failed attempt did not half-open the contract.
+        vm.prank(subscriber);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        subs.subscribe(PLAN, PRICE);
+    }
+
     function test_pausingDoesNotStrandFundsBecauseNoneAreHeld() public {
         vm.prank(subscriber);
         subs.subscribe(PLAN, PRICE);

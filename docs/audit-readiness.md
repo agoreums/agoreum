@@ -105,6 +105,35 @@ Stated as properties, with where each is enforced and where it is tested.
 | The subscription contract holds no token balance | payment goes straight to the treasury | `AgoreumSubscriptions.invariant.t.sol` |
 | Coverage moves forward only on payment | `subscribe` is the only writer of `expiresAt` | subscription invariant suite |
 
+## Coverage, measured
+
+Measured on 2026-08-15 with `forge coverage`, invariant suites included and fork
+tests excluded, since those need an RPC URL.
+
+| Contract | Lines | Statements | Branches | Functions |
+| --- | --- | --- | --- | --- |
+| `AgoreumEscrow` | 99.19% | 98.14% | 88.00% | 100.00% |
+| `AgoreumSubscriptions` | 97.14% | 96.55% | 85.71% | 92.86% |
+
+The figure worth acting on was not the percentage but the shape of what it
+excluded. `AgoreumSubscriptions` reported 92.86% of functions, which is
+thirteen of fourteen, and the missing one was `unpause`.
+
+`pause` was tested five ways. `unpause` was never called by any test in this
+repository, while the escrow tests both. The asymmetry is the tell: somebody
+proved the stop and not the restart. It matters because pause is an incident
+tool, so the moment it is used is the moment the restart has to work, and a
+contract that can be stopped and not started is stopped permanently.
+
+Now covered two ways, that it restores selling and that it is still governor
+only, asserted by selling again rather than by reading the `paused()` flag,
+since the flag flipping is not the property anybody cares about. Both fail if
+`unpause` is made a no-op or loses its role gate.
+
+The remaining uncovered branches are revert paths on inputs the type system or a
+prior require already excludes. They are listed rather than closed because
+forcing them would mean testing the compiler.
+
 ## Known limitations, stated rather than found
 
 We would rather you spend the time elsewhere.
@@ -210,11 +239,18 @@ comparison, because it was made by something with no interest in the answer.
 
 ```bash
 cd contracts
-forge test                 # 144 with a fork URL; 138 pass, 6 skip without
+forge test                 # the whole suite; 6 of these need a fork URL
 forge test --match-path 'test/*invariant*'
 forge test --match-path 'test/*fork*'   # needs ALCHEMY_BASE_URL_MAINNET
 forge coverage
 ```
+
+Exact totals are deliberately not quoted here. They were, and they were wrong
+within a week of being written, because a number maintained by hand drifts every
+time a test is added and nothing notices. The figure that matters is not how
+many tests there are but that **none of them skip**, which CI asserts on every
+run rather than leaving to a reader to trust. Run the command above for the
+current count.
 
 The six fork tests exercise the escrow against the **real USDC contract** on a
 Base mainnet fork rather than a mock: the blacklist cases for provider, buyer
