@@ -228,8 +228,11 @@ class FakeEscrow:
     chain_id: int = 84532
     contract_address: str = "0x13c90ba1441bd02d55801cb2f8bda3515020a16d"
     onchain_escrow_id: str = "42"
-    token_address: str = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"
-    token_symbol: str = "USDC"
+    # noqa comments: S105 matches the substring "token" in these field names.
+    # Both are ERC-20 facts about the settlement asset, USDC on Base Sepolia,
+    # not credentials. Same false positive the TransactionType enum carries.
+    token_address: str = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"  # noqa: S105
+    token_symbol: str = "USDC"  # noqa: S105
     amount: Decimal = Decimal("100.000000")
     released_amount: Decimal = Decimal("97.500000")
     refunded_amount: Decimal = Decimal("0")
