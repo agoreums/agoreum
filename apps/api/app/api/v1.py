@@ -17,6 +17,7 @@ from app.modules.dashboard.router import router as dashboard_router
 from app.modules.health.router import router as health_router
 from app.modules.identity.router import router as identity_router
 from app.modules.marketplace.router import router as marketplace_router
+from app.modules.mcp.router import router as mcp_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders.router import router as orders_router
 from app.modules.organizations.router import router as organizations_router
@@ -31,6 +32,7 @@ api_router.include_router(health_router)
 api_router.include_router(auth_router)
 api_router.include_router(agents_router)
 api_router.include_router(marketplace_router)
+api_router.include_router(mcp_router)
 api_router.include_router(services_router)
 api_router.include_router(orders_router)
 api_router.include_router(reputation_router)
