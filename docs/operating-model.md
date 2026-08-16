@@ -141,7 +141,7 @@ this section.
 
 | Strand | Last action | Next |
 | --- | --- | --- |
-| Security | Verified receipts sign in production against the deployed artifact, and that the droplet key matches the local source of truth by hash. Found the key duplicated three times in the production env | Sweep for the "looks covered, never exercised" shape in the remaining service modules |
+| Security | Found the platform's central claim rested on one untested branch, and made it structural. Verified receipts sign in production against the deployed artifact | Continue the sweep for the "looks covered, never exercised" shape; it has produced a real finding every time |
 | Backend and API | Found `build()`, the function that issues a receipt, had no test at all, and that the one test named for the settlement refusal passed a random uuid and never reached it. Eleven tests added, four mutations | Prove the receipt path over a real settled order rather than a fake session |
 | Contracts | Fixed the two failures that had kept `Contracts` red on every open branch, and corrected a gas measurement that read nothing back from a transfer that can return false | Settlement cost measurement is recorded; no open work |
 | Frontend and web | Mark sizing corrected at its two definitions so every placement moves together. Social cards and OG images now name Base Sepolia | Continue raising the interface to the standard set for this phase |
@@ -152,14 +152,43 @@ this section.
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| Cloudflare returns 403 to `Python-urllib` on `/.well-known/*` | Open, measured | A bot-protection skip scoped to that path only |
-| No escrow has ever settled in production | Open | A Base Sepolia settlement exercise, which is affordable |
+| No escrow has ever settled in production | Open, and harder than it looked | See "the settlement exercise" below |
 | Receipt path unproven over real data | Open | Follows from the row above |
+| Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
 | `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The settlement exercise, and why it is not simply "go and run it"
+
+Authorised on 2026-08-16 as a low cost, reversible testnet action, which it is.
+Preparing it surfaced something that changes the shape of the task, recorded
+here because the next session will otherwise re-derive it.
+
+Driving a real order to settlement in production means one person controlling
+both sides. That is self-dealing, and until this was found, a settled self-dealt
+order counted toward the provider's reputation in full. So the exercise as
+originally imagined would have manufactured exactly the wash-traded reputation
+this platform exists to be structurally free of, in the production database, as
+its first settled order.
+
+The fix landed first, and it changes what is possible. Reputation now excludes
+orders whose buyer belongs to the provider agent's organization, at computation
+time rather than only at order creation. So an exercise where the two accounts
+share an organization produces a genuine settled escrow, a genuine receipt over
+real rows, and no reputation at all, which is the correct outcome on every axis.
+
+The remaining wrinkle is ordering. `create_order` refuses a buyer who is already
+a member, so the membership has to be established after the order exists rather
+than before. That is not a workaround: the trade genuinely was between related
+parties, and the record ends up saying so.
+
+**Not yet run.** The path above is sound and the exercise is worth doing, but it
+writes real rows to production and the design only became clear at the end of a
+long batch. Doing it carefully at the start of a batch is better than doing it
+tired at the end of one.
 
 ### Decisions taken, and why
 
@@ -182,6 +211,15 @@ durable ones are in `## Standing constraints`; the archive of findings is in
 Terse, most recent first. One line per batch, enough to know what happened
 without reading the commits.
 
+- **2026-08-16, later.** Found that the only thing preventing self-dealt
+  reputation was one untested branch of `create_order`, and that reputation
+  itself re-established nothing. Fixed structurally at computation time, filter
+  applied to every figure that could flatter an agent and deliberately not to
+  the ones that count against it. Made the running record enforceable rather
+  than aspirational, and the guard for that was itself wrong when written and
+  caught by mutation. Fixed the Cloudflare browser integrity check refusing the
+  well-known documents to a plain client, scoped to that path, with the rule in
+  the repository rather than a console.
 - **2026-08-16.** Confirmed receipts sign live in production and closed the loop
   from outside: a production signature verified against the key fetched from the
   public URL by a client that reimplemented the canonical rules from the
@@ -205,7 +243,7 @@ These are not defaults to be weighed against other factors. They are settled.
 | Honest reporting | Failures reported as failures, with the evidence. A thing is "done" when it has been verified, not when it has been written |
 | No manufactured activity | No giveaways, points programmes, airdrops, engagement campaigns or paid promotion, and no KOL or influencer arrangements. Reputation on the platform comes only from orders that settled on chain, and a community inflated by campaigns would contradict the one claim the product rests on |
 | Not hiring until after the audit | Applications and partnership pitches of that shape are declined directly, with the reason, and without checking first. Settled on 2026-08-15 rather than decided per message |
-| Reputation is escrow only | Reputation is computed only from orders that settled through escrow. No other settlement rail may ever feed it, whatever gets built later. Settled 2026-08-16 |
+| Reputation is escrow only, and arm's length | Reputation is computed only from orders that settled through escrow, and only where the buyer is not a member of the provider agent's organization. No other settlement rail may ever feed it, whatever gets built later. Escrow-only settled 2026-08-16; the arm's-length half added the same day, after finding a settled payment from yourself to yourself counted in full |
 | No unreleased work in public | Upcoming features, internal roadmap and research stay in this repository. Discord, the website and the documentation only ever show what has shipped |
 
 **Why reputation is escrow only, since it will look like an arbitrary
@@ -1099,7 +1137,70 @@ of the four initially did not land at all, because this working copy is CRLF and
 the replacement strings were not, and the harness reported that rather than
 reporting a pass. That guard is the reason the result means anything.
 
-### 22. Cloudflare refuses the key document to one common client (open)
+### 23. Reputation could be manufactured by paying yourself (done)
+
+Found on 2026-08-16 while preparing the settlement exercise, by asking what
+would happen to reputation if one person controlled both sides of a real order.
+That is not an idle question: it is what the exercise requires.
+
+The answer was that it counted, in full.
+
+**What existed.** `create_order` refuses a buyer who is a member of the provider
+agent's organization, with code `self_dealing`. The escrow contract separately
+refuses `provider == msg.sender`, so one address cannot be both sides on chain.
+Both correct, and together they were the entire defence.
+
+**What was missing, in two ways.** The API guard had **no test anywhere**. Not
+one, and it is not mentioned in any document either, so nothing would have
+noticed it regressing. And reputation re-established nothing: `gather_inputs`
+counted settled orders, volume, delivery times and reviews with no reference to
+who the buyer was.
+
+That arrangement fails quietly. A creation-time check answers "may this order be
+created" and reputation asks "did money move". Nobody asks "were these parties
+at arm's length" at the moment a score is computed, so the guarantee lives in
+one branch of one function and anything arriving by another route inherits none
+of it: an admin action, a backfill, an import, a future endpoint, or simply the
+buyer joining the provider's organization after placing the order, which the
+creation check cannot see because it has already run. That last case needs no
+mistake by anybody at all.
+
+**Why it is the most serious thing found this month.** Every other finding was
+about a mechanism not doing its job. This one was about the single claim the
+product is built on. The argument for this platform over the ERC-8004 landscape
+is that a score cannot exist without a settled payment behind it, against
+records where between 98.7% and 100% carry no proof of payment. A settled
+payment from yourself to yourself satisfies that sentence perfectly and means
+nothing, so the claim was true in letter and hollow where it mattered.
+
+**Fixed structurally rather than procedurally.** `arms_length()` in the
+reputation service excludes orders whose buyer belongs to the rated agent's
+organization, applied to every figure that could flatter an agent: settled
+order count, volume, delivery metrics and published reviews. Reviews are joined
+back to their order for this, since a review is only creatable by the buyer of a
+settled order and would otherwise carry a self-written five stars as a
+customer's opinion.
+
+**Deliberately asymmetric**, which is the part worth keeping. Cancellations,
+disputes and disputes lost are *not* filtered. Filtering those too would let an
+agent dispute its own orders from inside its own organization and launder a real
+dispute history into a clean one. Leaving them makes the guarantee directional:
+self-dealing can never improve a score in any combination, without anybody
+having to enumerate what somebody might try.
+
+**What this does not buy**, stated so nobody later assumes more than it does. It
+is not Sybil resistance. Two unrelated accounts controlled by one person still
+pass, and no reasonable check catches that. What survives is the honest version
+of the claim: manufacturing reputation here costs real money at real fee rates
+on real settled volume, rather than fractions of a cent with no payment at all,
+and where the platform can see the parties are one interest it does not count.
+
+Four mutations, each caught by the test that claims to cover it: removing the
+filter, making it always true, making it always false, which is the control that
+proves it is not silently deleting genuine reputation, and removing the
+`self_dealing` refusal from `create_order`.
+
+### 22. Cloudflare refuses the key document to one common client (done)
 
 Measured on 2026-08-16 while verifying a production signature the way an
 outsider would. `GET /.well-known/agoreum-receipts.json` returns 403 to the
