@@ -19,9 +19,13 @@ from __future__ import annotations
 import base64
 import json
 import uuid
+from dataclasses import dataclass, field
+from decimal import Decimal
 
 import pytest
 
+from app.core.errors import ConflictError, NotFoundError
+from app.db.enums import EscrowStatus, OrderStatus, TransactionType
 from app.modules.receipts import service as receipts
 
 
@@ -149,9 +153,21 @@ class TestTheDocumentIsVerifiable:
 
 
 class TestAReceiptMeansSomething:
-    async def test_the_endpoint_refuses_an_order_that_has_not_settled(
+    async def test_the_endpoint_refuses_an_order_nobody_can_see(
         self, client
     ) -> None:
+        """Renamed on 2026-08-16, because it was named for a different check.
+
+        It read `test_the_endpoint_refuses_an_order_that_has_not_settled`, and it
+        passes a random uuid, so `require_visible_order` answers 404 and
+        `build()` is never reached. It has never once exercised the settlement
+        refusal its name claimed. That refusal is asserted properly in
+        `TestBuildingAReceipt` below, against an escrow that exists and has not
+        settled.
+
+        The check itself is worth keeping under an honest name: a stranger must
+        not be able to learn whether an order exists by asking for its receipt.
+        """
         from eth_account import Account
         from eth_account.messages import encode_defunct
 
@@ -188,6 +204,321 @@ class TestAReceiptMeansSomething:
         resp = await client.get("/.well-known/agoreum-receipts.json")
         assert resp.status_code == 200, resp.text
         assert "keys" in resp.json()
+
+
+@dataclass
+class FakeOrder:
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    reference: str = "AGO-000123"
+    status: OrderStatus = OrderStatus.COMPLETED
+
+
+@dataclass
+class FakeEscrow:
+    """Every field `build()` copies into the payload, with plausible values.
+
+    Deliberately not a subset. A receipt that omits a field is a receipt a
+    verifier cannot check, and the point of asserting against a full escrow is
+    that dropping any one of these from the payload turns a test red.
+    """
+
+    order_id: uuid.UUID
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    status: EscrowStatus = EscrowStatus.RELEASED
+    chain_id: int = 84532
+    contract_address: str = "0x13c90ba1441bd02d55801cb2f8bda3515020a16d"
+    onchain_escrow_id: str = "42"
+    # noqa comments: S105 matches the substring "token" in these field names.
+    # Both are ERC-20 facts about the settlement asset, USDC on Base Sepolia,
+    # not credentials. Same false positive the TransactionType enum carries.
+    token_address: str = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"  # noqa: S105
+    token_symbol: str = "USDC"  # noqa: S105
+    amount: Decimal = Decimal("100.000000")
+    released_amount: Decimal = Decimal("97.500000")
+    refunded_amount: Decimal = Decimal("0")
+    fee_amount: Decimal = Decimal("2.500000")
+    buyer_address: str = "0x0000000000000000000000000000000000000b0b"
+    provider_address: str = "0x00000000000000000000000000000000000a1ice"
+
+
+@dataclass
+class FakeTx:
+    tx_type: TransactionType
+    tx_hash: str = "0x" + "ab" * 32
+    block_number: int = 45561900
+
+
+class FakeResult:
+    def __init__(self, rows: list) -> None:
+        self._rows = rows
+
+    def scalar_one_or_none(self):
+        return self._rows[0] if self._rows else None
+
+    def scalars(self):
+        return self
+
+    def all(self) -> list:
+        return list(self._rows)
+
+
+class FakeSession:
+    """Answers each query by the entity it selects.
+
+    Dispatching on the entity rather than on call order is the point. A session
+    that returned rows positionally would still pass if `build()` started asking
+    for the wrong things in the right sequence, and the ordering of those three
+    queries is not the property under test.
+    """
+
+    def __init__(self, *, order=None, escrow=None, transactions=()) -> None:
+        self._rows = {
+            "Order": [order] if order is not None else [],
+            "Escrow": [escrow] if escrow is not None else [],
+            "ChainTransaction": list(transactions),
+        }
+        self.queried: list[str] = []
+
+    async def execute(self, statement):
+        entity = statement.column_descriptions[0]["entity"].__name__
+        self.queried.append(entity)
+        return FakeResult(self._rows.get(entity, []))
+
+
+def _settled(**overrides):
+    """An order, its settled escrow, and the transaction that settled it."""
+    order = FakeOrder()
+    escrow = FakeEscrow(order_id=order.id, **overrides)
+    tx = FakeTx(tx_type=TransactionType.ESCROW_RELEASE)
+    return order, escrow, tx
+
+
+class TestBuildingAReceipt:
+    """The path that had no test at all.
+
+    Everything above asserted properties of the key and of the signing
+    primitives, and the one test naming a settlement refusal was passing a
+    random uuid and getting a 404 from the visibility check instead. So on the
+    day signing went live in production, the function that actually issues a
+    receipt had never been called by anything, in either direction.
+
+    That is the same asymmetry found in the subscriptions contract a day
+    earlier, where `pause` was tested five ways and `unpause` was never called
+    once. Somebody proves the refusal and not the thing being refused.
+    """
+
+    async def test_a_settled_escrow_produces_a_signed_receipt(
+        self, signing_key
+    ) -> None:
+        order, escrow, tx = _settled()
+        db = FakeSession(order=order, escrow=escrow, transactions=[tx])
+
+        receipt = (await receipts.build(db, order_id=order.id)).as_dict()
+
+        assert receipt["signature"] is not None, (
+            "a settled order produced an unsigned receipt while a key is "
+            "configured, which is the exact state production was in before "
+            "RECEIPT_SIGNING_KEY was set"
+        )
+        assert receipt["algorithm"] == "ed25519"
+        assert receipt["key_id"] == receipts.key_id()
+
+    async def test_the_receipt_carries_what_a_verifier_needs(
+        self, signing_key
+    ) -> None:
+        """The coordinates are the whole product.
+
+        Our signature only says we made a claim. Without the transaction hash,
+        the chain id and the contract, a reader cannot go and find out whether
+        the claim is true, and the receipt degrades to exactly the unbacked
+        assertion the ERC-8004 records already are.
+        """
+        order, escrow, tx = _settled()
+        db = FakeSession(order=order, escrow=escrow, transactions=[tx])
+
+        payload = (await receipts.build(db, order_id=order.id)).payload
+        settlement = payload["settlement"]
+
+        assert settlement["transaction_hash"] == tx.tx_hash
+        assert settlement["block_number"] == tx.block_number
+        assert settlement["chain_id"] == escrow.chain_id
+        assert settlement["escrow_contract"] == escrow.contract_address
+        assert settlement["onchain_escrow_id"] == escrow.onchain_escrow_id
+        assert settlement["buyer_address"] == escrow.buyer_address
+        assert settlement["provider_address"] == escrow.provider_address
+        assert settlement["amount"] == str(escrow.amount)
+        assert settlement["released_amount"] == str(escrow.released_amount)
+        assert settlement["fee_amount"] == str(escrow.fee_amount)
+        assert payload["order"]["reference"] == order.reference
+        assert payload["verify"]["authority"] == "chain"
+
+    async def test_the_signature_covers_the_settlement_figures(
+        self, signing_key
+    ) -> None:
+        """Signing the wrong bytes is indistinguishable from signing the right
+        ones until somebody changes a number and the signature still verifies.
+
+        Asserted against the amount specifically, because that is the field an
+        attacker would want to move and the one a reader is most likely to act
+        on.
+        """
+        order, escrow, tx = _settled()
+        db = FakeSession(order=order, escrow=escrow, transactions=[tx])
+
+        built = await receipts.build(db, order_id=order.id)
+        jwk = receipts.public_key_document()["keys"][0]
+
+        assert _verify(built.payload, built.signature, jwk)
+
+        tampered = json.loads(json.dumps(built.payload))
+        tampered["settlement"]["released_amount"] = "97000.000000"
+        assert not _verify(tampered, built.signature, jwk), (
+            "the released amount was changed and the signature still verified, "
+            "so the signature does not cover the figures it appears to attest"
+        )
+
+    async def test_a_refund_is_a_settlement_too(self, signing_key) -> None:
+        """A refunded escrow finished moving money, so it is attestable.
+
+        Worth its own test rather than trusting the frozenset, because a refund
+        is the case where the *provider* wants evidence and the release path is
+        the one everybody writes first.
+        """
+        order = FakeOrder()
+        escrow = FakeEscrow(
+            order_id=order.id,
+            status=EscrowStatus.REFUNDED,
+            released_amount=Decimal("0"),
+            refunded_amount=Decimal("100.000000"),
+        )
+        tx = FakeTx(tx_type=TransactionType.ESCROW_REFUND)
+        db = FakeSession(order=order, escrow=escrow, transactions=[tx])
+
+        payload = (await receipts.build(db, order_id=order.id)).payload
+        assert payload["settlement"]["status"] == EscrowStatus.REFUNDED.value
+        assert payload["settlement"]["transaction_hash"] == tx.tx_hash
+
+    async def test_an_escrow_that_is_only_funded_is_refused(
+        self, signing_key
+    ) -> None:
+        """The refusal the test above was named for and never performed.
+
+        A funded escrow has committed the money and left its destination open.
+        A receipt at that point would attest to something that has not happened,
+        and its presence is meant to mean that it has.
+        """
+        order = FakeOrder(status=OrderStatus.IN_PROGRESS)
+        escrow = FakeEscrow(order_id=order.id, status=EscrowStatus.FUNDED)
+        db = FakeSession(order=order, escrow=escrow, transactions=[])
+
+        with pytest.raises(ConflictError) as caught:
+            await receipts.build(db, order_id=order.id)
+        assert caught.value.code == "not_settled"
+
+    async def test_an_order_with_no_escrow_at_all_is_refused(
+        self, signing_key
+    ) -> None:
+        order = FakeOrder()
+        db = FakeSession(order=order, escrow=None, transactions=[])
+
+        with pytest.raises(ConflictError) as caught:
+            await receipts.build(db, order_id=order.id)
+        assert caught.value.code == "not_settled"
+
+    async def test_an_unknown_order_is_not_found(self, signing_key) -> None:
+        db = FakeSession(order=None)
+        with pytest.raises(NotFoundError):
+            await receipts.build(db, order_id=uuid.uuid4())
+
+    async def test_the_receipt_points_at_the_settling_transaction(
+        self, signing_key
+    ) -> None:
+        """An escrow accumulates transactions, and only one of them ended it.
+
+        Pointing at the approval or the funding would send a verifier to a
+        transaction that proves the money moved *in*, which is not what the
+        receipt claims. The rows are ordered here with the settling transaction
+        last so a naive "first row" implementation fails.
+        """
+        order, escrow, settling = _settled()
+        db = FakeSession(
+            order=order,
+            escrow=escrow,
+            transactions=[
+                FakeTx(tx_type=TransactionType.TOKEN_APPROVAL, tx_hash="0x" + "11" * 32),
+                FakeTx(tx_type=TransactionType.ESCROW_FUND, tx_hash="0x" + "22" * 32),
+                FakeTx(tx_type=TransactionType.PLATFORM_FEE, tx_hash="0x" + "33" * 32),
+                settling,
+            ],
+        )
+
+        payload = (await receipts.build(db, order_id=order.id)).payload
+        assert payload["settlement"]["transaction_hash"] == settling.tx_hash
+
+    async def test_a_settled_escrow_with_no_recorded_transaction_still_issues(
+        self, signing_key
+    ) -> None:
+        """Degrades rather than refuses, and the absence is visible.
+
+        The escrow status is written from a confirmed chain event, so a settled
+        escrow with no matching row is an indexing gap on our side rather than
+        evidence that nothing happened. Refusing would withhold a receipt the
+        chain would support; issuing a null hash says plainly that we cannot
+        name the transaction.
+        """
+        order, escrow, _ = _settled()
+        db = FakeSession(order=order, escrow=escrow, transactions=[])
+
+        payload = (await receipts.build(db, order_id=order.id)).payload
+        assert payload["settlement"]["transaction_hash"] is None
+        assert payload["settlement"]["block_number"] is None
+
+    async def test_the_receipt_says_which_network_and_whether_it_is_real(
+        self, signing_key
+    ) -> None:
+        """Whoever reads this may be software, with no page around it to explain.
+
+        The same reason the MCP tools state the network in the result itself: a
+        receipt for test money that does not say so is a receipt that will
+        eventually be quoted as if it were real.
+        """
+        order, escrow, tx = _settled()
+        db = FakeSession(order=order, escrow=escrow, transactions=[tx])
+        settlement = (await receipts.build(db, order_id=order.id)).payload["settlement"]
+        assert settlement["network"] == "base-sepolia"
+        assert settlement["is_testnet"] is True
+
+        order2 = FakeOrder()
+        escrow2 = FakeEscrow(order_id=order2.id, chain_id=8453)
+        db2 = FakeSession(order=order2, escrow=escrow2, transactions=[tx])
+        settlement2 = (
+            await receipts.build(db2, order_id=order2.id)
+        ).payload["settlement"]
+        assert settlement2["network"] == "base"
+        assert settlement2["is_testnet"] is False
+
+    async def test_without_a_key_the_receipt_is_unsigned_rather_than_faked(
+        self, monkeypatch
+    ) -> None:
+        """The documented degradation, asserted rather than trusted.
+
+        This is exactly the state production was in until the signing key was
+        added, and the reason it went unnoticed is that everything else about
+        the response looks correct. The coordinates must survive, so the receipt
+        stays useful, and the signature must be absent rather than empty string
+        or a placeholder, so the absence is legible to a verifier.
+        """
+        from app.core.config import settings
+
+        monkeypatch.setattr(settings, "RECEIPT_SIGNING_KEY", None, raising=False)
+        order, escrow, tx = _settled()
+        db = FakeSession(order=order, escrow=escrow, transactions=[tx])
+
+        receipt = (await receipts.build(db, order_id=order.id)).as_dict()
+        assert receipt["signature"] is None
+        assert receipt["key_id"] is None
+        assert receipt["algorithm"] is None
+        assert receipt["receipt"]["settlement"]["transaction_hash"] == tx.tx_hash
 
 
 def test_only_terminal_escrow_states_count_as_settled() -> None:

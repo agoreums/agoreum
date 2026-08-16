@@ -931,6 +931,74 @@ language, `not tested`, `untested`, `worth confirming`, `should be`, `we assume`
 `known limitation`. Every hit is either a real check nobody wrote, or a decision
 that should be stated without the hedge. Both outcomes are worth having.
 
+### 21. The function that issues a receipt had no test (done)
+
+Found on 2026-08-16, hours after signing went live in production, by asking what
+covers the feature that had just shipped rather than by anything failing.
+
+Ten tests existed and every one of them was about the key or the signing
+primitives: that no key is invented at startup, that the key is not a chain key,
+that an Ed25519 key cannot sign an Ethereum transaction, that a signature
+verifies, that tampering breaks it, that the canonical form is order
+independent. All worth having. None of them called `build()`.
+
+So on the day the product's newest claim went live, the function that decides
+whether a receipt exists at all, and what goes in it, had never been executed by
+any test in either direction.
+
+**The one test that looked like coverage was named for a different check.**
+`test_the_endpoint_refuses_an_order_that_has_not_settled` passes a random uuid,
+so `require_visible_order` answers 404 and `build()` is never reached. It has
+never once exercised the settlement refusal in its name. Renamed to what it
+actually asserts, which is worth keeping: a stranger must not learn whether an
+order exists by asking for its receipt.
+
+This is the same asymmetry as item 19 in the subscriptions contract, where
+`pause` was tested five ways and `unpause` was never called, found a day apart
+in unrelated code. The pattern is that somebody proves the refusal and not the
+thing being refused, because the refusal is the case they were worried about.
+
+Eleven tests now cover the issuing path: that a settled escrow produces a signed
+receipt, that it carries every coordinate a verifier needs, that the signature
+covers the settlement figures rather than merely some payload, that a refund
+settles as well as a release, that a merely funded escrow is refused with
+`not_settled`, that an escrow with no settling transaction still issues with a
+null hash rather than refusing, that the network is named and testnet marked,
+and that with no key configured the receipt is unsigned rather than faked, which
+is precisely the state production was in until today.
+
+Four mutations, each caught by the test that claims to cover it: disabling
+signing, counting a funded escrow as settled, pointing at the first transaction
+instead of the settling one, and dropping a figure from the signed payload. Two
+of the four initially did not land at all, because this working copy is CRLF and
+the replacement strings were not, and the harness reported that rather than
+reporting a pass. That guard is the reason the result means anything.
+
+### 22. Cloudflare refuses the key document to one common client (open)
+
+Measured on 2026-08-16 while verifying a production signature the way an
+outsider would. `GET /.well-known/agoreum-receipts.json` returns 403 to the
+default `Python-urllib` user agent and 200 to everything else tried:
+python-requests, curl, Go-http-client, node-fetch, axios, a browser, and our own
+`agoreum-python/0.2.0`.
+
+Not specific to receipts. The same client gets 403 on
+`/.well-known/oauth-protected-resource` too, so it is a blanket edge rule
+against that user agent rather than anything about this document.
+
+Worth fixing anyway, and the reason is the design rather than the severity. The
+intended reader of that document is software belonging to somebody with no
+account here, and the most dependency-free way to write that verifier in Python
+is the standard library, which is exactly the client that is refused. A verifier
+that gets 403 does not conclude "I should set a user agent", it concludes the
+receipt cannot be checked.
+
+Left open rather than fixed, because it needs a Cloudflare rule change and edge
+configuration is externally visible. The proposal is a bot-protection skip
+scoped to `/.well-known/*` only: those documents are public, unauthenticated,
+420 bytes, and already rate limited by nginx, so exempting them costs nothing
+that bot protection was buying.
+
 ### 1. Dispute resolution has no ending (done)
 
 `AgoreumEscrow.settleDispute(escrowId, providerAmount, buyerAmount)` exists and
