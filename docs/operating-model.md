@@ -719,39 +719,42 @@ have meant telling a user their criticism was entirely correct and changing the
 page on a false premise. Following the redirect shows four mentions. The site
 was fine; the fetch was not.
 
-### Open: the MCP discovery document is not reachable in production
+### 20. nginx had been serving a week-old configuration (done)
 
-Found 2026-08-16 by following the authentication challenge exactly as a client
-would, rather than by testing the application.
+The MCP discovery document returned the web application's 404 page in
+production while serving correctly everywhere else. The cause was not routing
+and not Cloudflare.
 
-`POST /api/v1/mcp` correctly answers 401 with
-`WWW-Authenticate: Bearer resource_metadata="https://agoreum.xyz/.well-known/oauth-protected-resource"`.
-Following that URL returns the web application's 404 page rather than the
-metadata document.
+**Docker bind-mounts a single file by inode, not by path.** `git pull` replaces
+these files rather than editing them in place, so the container kept serving the
+copy it started with. `up -d nginx` saw an unchanged service definition and did
+nothing. `nginx -s reload` re-read the same stale inode and succeeded, so the
+deploy's recreate fallback, which only fires when reload *fails*, never fired.
 
-**What is established, and what is not.** The application serves the document
-correctly: it is asserted by test and returns 200 locally. The API's own 404s are
-JSON, and this response is Next.js HTML, so the request is reaching the web
-application and not the API. An nginx `location =` block routing that exact path
-to the API was added, merged and deployed, and the behaviour did not change.
-Every other `/.well-known/` path returns the same 404, so nothing about that
-prefix is being routed to the API.
+Measured rather than reasoned: the config on disk and the config inside the
+running container had different checksums, and the container had been created on
+2026-08-09. **Every nginx configuration change for a week had silently not taken
+effect**, including routing and rate limiting. Nothing failed. Every deploy went
+green.
 
-What is **not** established is why. Candidates not yet distinguished: the
-droplet's mounted config not carrying the change despite a successful deploy,
-nginx reloading without re-reading the bind mount, or Cloudflare handling the
-`/.well-known/` prefix at the edge before the origin sees it. Guessing between
-them is what this project has repeatedly found to be the expensive move, so it
-is written down instead.
+The narrowing is worth keeping, because two plausible causes were ruled out
+before touching either. All `/.well-known/` paths returned Next.js 404s, and the
+API's own 404s are JSON, so the request was reaching the origin and being routed
+to the web app. That eliminated Cloudflare interception, which was the more
+attractive hypothesis, without opening a dashboard. What remained was the origin,
+and the origin's config was checkable directly.
 
-**Impact, stated plainly.** The MCP endpoint works and is usable by any client
-given a key. Automatic authentication discovery does not: a client that does
-exactly what the challenge tells it to do gets an HTML page. That is a real
-defect for well-behaved clients and it is the next thing to fix.
+Fixed in two places. Production was recreated, and following the challenge now
+resolves to the metadata document. `scripts/deploy.sh` compares each mounted
+config against its copy inside the container, recreates only when they differ so
+an ordinary deploy keeps its zero-downtime reload, and then **asserts** they
+match, failing the deploy rather than reporting success while serving
+yesterday's routing.
 
-It is also a clean instance of the standing rule. Every test passed, because the
-tests speak to the application. Only the edge disagreed, and the edge is what an
-outside client actually meets.
+**The general shape.** A reload is not a guarantee that what reloaded is what
+you wrote. This is the same family as everything else found this month: a
+mechanism that names the right thing, succeeds, and does not do the job. The
+difference here is that the success signal was the deploy itself.
 
 ### Open, blocked
 
