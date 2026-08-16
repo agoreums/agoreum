@@ -66,12 +66,131 @@ Facts about this machine that have cost time before:
   stale**, because every other kind of stale note gets corrected by somebody
   going to look, and this kind is specifically an instruction not to.
 
-### Then read the rest of the state
+### Then read the running record
 
-`## Current state`, `### In flight`, and `## Backlog` below are maintained so
-that starting a session means reading them rather than rediscovering them. If
-something in them turns out to be stale, fixing the record is part of the work,
-not an aside.
+`## Running record` immediately below is the state of the project as of the last
+batch of work. It is the part written for a cold start: what is true now, what
+each strand did last, what is open, and what was decided and why. Everything
+after it is durable doctrine and the archive of findings, which is worth reading
+but does not change week to week.
+
+### And update it before you stop
+
+The record is only worth reading if it is true, and a rule to keep it true is
+worth nothing on its own. This project has spent a month proving that a stated
+invariant with no check under it drifts, in the SDK version constants, in the
+scope catalogue, in two documents quoting test counts maintained by hand.
+
+So: **before reporting a batch of work or moving to the next one, update the
+running record in the same commit as the work.** Not afterwards, not at the end
+of a session, because the moment the work feels finished is exactly the moment
+the record stops feeling urgent.
+
+`scripts/check_state_record.py` enforces it. If a commit changes code and the
+record's `Last updated` line is older than that commit, CI fails and names the
+commits that landed without the record moving. That check exists because
+"remember to update the document" is the same class of instruction as every
+other one that rotted, and the fix for those was never a stronger reminder.
+
+**Forgetting something already established is a failure to read this file, not
+an ordinary cost of working across sessions.** Claiming access is missing when
+it sits in `.env` is the same failure. Both are treated as defects with a root
+cause, and the root cause is never "should have tried harder".
+
+## Running record
+
+**Last updated:** 2026-08-16, after `8dab8c3`.
+
+Written so that a session starting cold, whether that is a fresh instance or the
+same one resuming, can act from this section rather than reconstruct it.
+
+### Where the project is right now
+
+Testnet only, on Base Sepolia, in the hardening and expansion phase set on
+2026-08-16. The platform is live at `agoreum.xyz` and usable end to end:
+identities, published services, orders, on-chain escrow, disputes with an
+arbiter path, native USDC subscriptions, three published SDKs, a remote MCP
+server, a published OpenAPI contract, and signed settlement receipts. Nine
+locales. Nothing is deployed to mainnet and nothing may be without an explicit
+instruction naming it.
+
+The single structural advantage, and the thing every decision defends: reputation
+is computed only from orders that settled through escrow, against an ERC-8004
+landscape where between 98.7% and 100% of on-chain reputation records carry no
+proof of payment at all.
+
+### Live production facts
+
+Verified against the running artifact rather than the repository, on the date
+shown. Anything here that cannot be re-derived from production is a defect in
+this section.
+
+| Fact | Value | How it was checked |
+| --- | --- | --- |
+| Origin | Droplet `209.97.186.80`, repo at `/root/agoreum`, locked to Cloudflare ranges | SSH, direct shell |
+| Containers | `agoreum-<service>-1`, ten of them, all up | `docker ps` |
+| API health | database, Redis and chain all ok, chain ~1.5s behind head | `/api/v1/health/ready` inside the container |
+| Workers | subscription indexer, webhooks, emails, all heartbeating within 3s | `/api/v1/health/workers` |
+| Receipts | **signing live**, kid `rVl3VOYAtNY4LW0J`, key document public and 200 | fetched from the public URL, and a production signature verified against it by an independent client |
+| Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
+| Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
+| SDKs | Python, TypeScript, Go all at 0.2.0 | verified from the registries, not the local build |
+| Suites | API 744+ passing with 0 skipped, asserted; contracts 142 with 0 skipped; fork suite runs in CI | CI |
+
+### What each strand did last, and what is next
+
+| Strand | Last action | Next |
+| --- | --- | --- |
+| Security | Verified receipts sign in production against the deployed artifact, and that the droplet key matches the local source of truth by hash. Found the key duplicated three times in the production env | Sweep for the "looks covered, never exercised" shape in the remaining service modules |
+| Backend and API | Found `build()`, the function that issues a receipt, had no test at all, and that the one test named for the settlement refusal passed a random uuid and never reached it. Eleven tests added, four mutations | Prove the receipt path over a real settled order rather than a fake session |
+| Contracts | Fixed the two failures that had kept `Contracts` red on every open branch, and corrected a gas measurement that read nothing back from a transfer that can return false | Settlement cost measurement is recorded; no open work |
+| Frontend and web | Mark sizing corrected at its two definitions so every placement moves together. Social cards and OG images now name Base Sepolia | Continue raising the interface to the standard set for this phase |
+| Infrastructure | Added a deploy assertion that fails when the receipts key document stops carrying a key, exercised in both directions against production before shipping | Cloudflare refuses `/.well-known/*` to one common client, see open threads |
+| Product and growth | Discord read in full, nothing unanswered; the only recent messages are members talking to each other, and posting into that would be manufactured activity | Keep inbound answered as a standing responsibility |
+
+### Open threads
+
+| Item | State | What it needs |
+| --- | --- | --- |
+| Cloudflare returns 403 to `Python-urllib` on `/.well-known/*` | Open, measured | A bot-protection skip scoped to that path only |
+| No escrow has ever settled in production | Open | A Base Sepolia settlement exercise, which is affordable |
+| Receipt path unproven over real data | Open | Follows from the row above |
+| `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
+| Three Safe multisigs on Base | Blocked | Owner action |
+| Security audit engagement | Blocked | Owner action |
+| Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
+| PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### Decisions taken, and why
+
+Recorded here when the reasoning would not survive being rediscovered. The
+durable ones are in `## Standing constraints`; the archive of findings is in
+`## Backlog`.
+
+- **Reputation is escrow only, permanently.** Any cheap high-frequency
+  settlement rail is, read adversarially, a machine for manufacturing settled
+  volume at gas prices. Wiring one into reputation would sell the only
+  differentiator for the price of gas. Decoupling costs nothing.
+- **A payment channel is not being built yet.** The premise was that settling
+  each call on chain is too expensive, and nobody had measured it. It is now
+  measured against a real fork rather than assumed, in
+  `docs/micropayment-settlement-cost.md`.
+- **The record gets a check, not a reminder.** See the section above.
+
+### Session log
+
+Terse, most recent first. One line per batch, enough to know what happened
+without reading the commits.
+
+- **2026-08-16.** Confirmed receipts sign live in production and closed the loop
+  from outside: a production signature verified against the key fetched from the
+  public URL by a client that reimplemented the canonical rules from the
+  published instructions rather than importing ours. Merged #30, #31 and #32.
+  Found and fixed two Contracts failures that had never been green, a gas
+  measurement that could report a plausible number for a transfer that did
+  nothing, an operating model note asserting CI had no branch signal, and a
+  receipts feature whose issuing function had no test. Measured a Cloudflare
+  403 against one common client on the well-known documents.
 
 ## Standing constraints
 
@@ -492,14 +611,20 @@ more expensive than waiting for it.
 Research is the exception and runs ahead of everything, because it is the only
 strand whose output changes what the others should build rather than how.
 
-## Current state
+## Roadmap and delivery history
 
-Maintained so a session starting cold can act from this section rather than
-re-reading the repository. It records what is true now and what is in flight,
-not the history, which is in the backlog and the git log. Anything here that has
-gone stale is a defect in this file.
+Superseded as the place to start. `## Running record` near the top of this file
+is what a cold session reads; this section is the roadmap and the archive of
+what has already been delivered.
 
-**Last updated:** 2026-08-16.
+It used to be called "Current state" and carried its own `Last updated` line,
+which is how `scripts/check_state_record.py` came to have a real defect on the
+day it was written. The check searched the file for the first `Last updated`
+line, and with two of them it would happily read this one while the running
+record's line was missing entirely, reporting the record current when nothing
+was maintaining it. Found by mutation testing the guard rather than by trusting
+it, which is the only reason it is not still there. There is now exactly one
+such line, and the check refuses to run if that stops being true.
 
 ### Roadmap, from evidence rather than instinct
 
