@@ -21,6 +21,7 @@ from app.modules.mcp.router import router as mcp_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.orders.router import router as orders_router
 from app.modules.organizations.router import router as organizations_router
+from app.modules.receipts.router import router as receipts_router
 from app.modules.reputation.router import router as reputation_router
 from app.modules.services.router import router as services_router
 from app.modules.subscriptions.router import router as subscriptions_router
@@ -33,6 +34,7 @@ api_router.include_router(auth_router)
 api_router.include_router(agents_router)
 api_router.include_router(marketplace_router)
 api_router.include_router(mcp_router)
+api_router.include_router(receipts_router)
 api_router.include_router(services_router)
 api_router.include_router(orders_router)
 api_router.include_router(reputation_router)

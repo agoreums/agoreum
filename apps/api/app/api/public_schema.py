@@ -45,6 +45,9 @@ PUBLIC_TAGS: frozenset[str] = frozenset(
         "subscriptions",
         "api-keys",
         "webhooks",
+        # A receipt is meant to be handed to a third party and checked, so the
+        # endpoint that issues it belongs in the contract an integrator reads.
+        "receipts",
     }
 )
 

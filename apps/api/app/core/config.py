@@ -165,6 +165,15 @@ class Settings(BaseSettings):
     # default so no request leaves for a user-configured URL until an operator
     # turns it on; until then deliveries are recorded as suppressed, with the
     # reason, so the intent is visible without anything being sent.
+    # Ed25519 key for signing settlement receipts, base64url without padding.
+    # Absent by default and never generated at runtime: a key invented at
+    # startup would change on every restart and silently invalidate every
+    # receipt already issued, which teaches people to stop checking signatures.
+    #
+    # It holds no funds and has no on-chain authority. Compromise would let an
+    # attacker forge claims, which is serious, and would not move a cent.
+    RECEIPT_SIGNING_KEY: str | None = None
+
     WEBHOOK_DELIVERY_ENABLED: bool = False
     # How many times a failing delivery is retried before it is abandoned.
     WEBHOOK_MAX_ATTEMPTS: int = 6
