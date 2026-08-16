@@ -651,3 +651,182 @@ class TestReputationCannotBeSelfDealt:
             "self-dealing filter is destroying real reputation"
         )
         assert inputs.total_volume == Decimal("97.5")
+
+class TestReputationExclusionIsOneWay:
+    """An operator can subtract standing and can never hand it back.
+
+    The case this exists for is one the platform cannot detect. An order between
+    two accounts sharing no organization, no wallet and nothing else visible is
+    indistinguishable from arm's length trade however well the operator knows
+    otherwise, which is exactly what the settlement exercise of 2026-08-16 left
+    behind in production.
+
+    The power to say "this does not count" is dangerous in one direction only. A
+    flag that can be set and cleared is a way of handing out standing: exclude a
+    rival's orders, or exclude your own through a bad month and restore them
+    after. So the requirement was never "an exclusion flag", it was "an exclusion
+    that cannot be reversed", and these assert the reversal is impossible rather
+    than merely unimplemented.
+    """
+
+    async def _settled_order(self, db, client):
+        _, slug, service_id = await build_provider(client)
+        buyer_token, _ = await sign_in(client)
+        buyer = (await client.get("/api/v1/auth/me", headers=auth(buyer_token))).json()
+
+        agent = (
+            await db.execute(
+                sa.text("SELECT id, org_id FROM agents WHERE slug = :slug"),
+                {"slug": slug},
+            )
+        ).one()
+
+        order_id = uuid.uuid4()
+        await db.execute(
+            sa.text(
+                "INSERT INTO orders (id, reference, buyer_id, provider_agent_id,"
+                " service_id, status, quantity, unit_price, subtotal,"
+                " platform_fee, total_amount, currency, platform_fee_bps,"
+                " created_at, updated_at, funded_at, delivered_at, completed_at)"
+                " VALUES (:id, :ref, :buyer, :agent, :service, 'completed', 1,"
+                " 100, 100, 2.5, 102.5, 'USDC', 250, now(), now(), now(), now(), now())"
+            ),
+            {
+                "id": order_id,
+                "ref": f"EXCL-{uuid.uuid4().hex[:6]}",
+                "buyer": buyer["id"],
+                "agent": agent.id,
+                "service": service_id,
+            },
+        )
+        await db.execute(
+            sa.text(
+                "INSERT INTO escrows (id, order_id, status, chain_id,"
+                " token_address, token_symbol, token_decimals, amount,"
+                " released_amount, refunded_amount, fee_amount,"
+                " buyer_address, provider_address,"
+                " funded_at, released_at, created_at, updated_at)"
+                " VALUES (:id, :order_id, 'released', 84532,"
+                " '0x036cbd53842c5426634e7929541ec2318f3dcf7e', 'USDC', 6,"
+                " 100, 97.5, 0, 2.5,"
+                " '0x00000000000000000000000000000000000000b0',"
+                " '0x00000000000000000000000000000000000000a1',"
+                " now(), now(), now(), now())"
+            ),
+            {"id": uuid.uuid4(), "order_id": order_id},
+        )
+        await db.flush()
+        return agent.id, order_id
+
+    async def _exclude(self, db, order_id, reason):
+        await db.execute(
+            sa.text(
+                "UPDATE orders SET reputation_excluded_at = now(),"
+                " reputation_exclusion_reason = :reason WHERE id = :id"
+            ),
+            {"id": order_id, "reason": reason},
+        )
+        await db.flush()
+
+    async def test_an_excluded_order_stops_counting(self, client, db) -> None:
+        agent_id, order_id = await self._settled_order(db, client)
+
+        before = await reputation.gather_inputs(db, agent_id=agent_id)
+        assert before.completed_orders == 1, "the fixture produced no countable order"
+        assert before.total_volume == Decimal("97.5")
+
+        await self._exclude(db, order_id, "settlement path verification")
+
+        after = await reputation.gather_inputs(db, agent_id=agent_id)
+        assert after.completed_orders == 0
+        assert after.total_volume == 0
+
+    async def test_the_database_refuses_to_lift_an_exclusion(self, client, db) -> None:
+        """The assertion the whole design rests on.
+
+        Enforced by a trigger rather than by the service layer, so it holds for a
+        future endpoint, an admin script, a migration, a backfill, or somebody at
+        a psql prompt. This writes raw SQL for exactly that reason: going through
+        the service would only prove the service behaves, which is the weaker
+        claim and the one that has failed repeatedly this month.
+        """
+        _, order_id = await self._settled_order(db, client)
+        await self._exclude(db, order_id, "first decision")
+
+        with pytest.raises(Exception) as caught:
+            await db.execute(
+                sa.text(
+                    "UPDATE orders SET reputation_excluded_at = NULL,"
+                    " reputation_exclusion_reason = NULL WHERE id = :id"
+                ),
+                {"id": order_id},
+            )
+            await db.flush()
+        assert "cannot be lifted" in str(caught.value), (
+            f"the database allowed an exclusion to be lifted: {caught.value}"
+        )
+
+    async def test_the_database_refuses_to_rewrite_the_decision(self, client, db) -> None:
+        """A rewritable reason is a reversible decision wearing a different hat.
+
+        Somebody able to change the stated reason afterwards can make a contested
+        exclusion look routine, so the record has to be as fixed as the flag.
+        """
+        _, order_id = await self._settled_order(db, client)
+        await self._exclude(db, order_id, "first decision")
+
+        with pytest.raises(Exception) as caught:
+            await db.execute(
+                sa.text(
+                    "UPDATE orders SET reputation_exclusion_reason = :reason"
+                    " WHERE id = :id"
+                ),
+                {"id": order_id, "reason": "a better story"},
+            )
+            await db.flush()
+        assert "reason cannot be rewritten" in str(caught.value), caught.value
+
+    async def test_an_exclusion_cannot_improve_a_score(self, client, db) -> None:
+        """The direction that would turn this into a laundering tool.
+
+        Cancellations and disputes count whether an order is excluded or not. If
+        excluding also erased those, an operator could clear a real dispute
+        history by excluding the orders it came from, which is adding standing by
+        subtraction.
+        """
+        _, slug, service_id = await build_provider(client)
+        buyer_token, _ = await sign_in(client)
+        buyer = (await client.get("/api/v1/auth/me", headers=auth(buyer_token))).json()
+        agent = (
+            await db.execute(
+                sa.text("SELECT id FROM agents WHERE slug = :slug"), {"slug": slug}
+            )
+        ).one()
+
+        await db.execute(
+            sa.text(
+                "INSERT INTO orders (id, reference, buyer_id, provider_agent_id,"
+                " service_id, status, quantity, unit_price, subtotal,"
+                " platform_fee, total_amount, currency, platform_fee_bps,"
+                " created_at, updated_at, cancelled_at,"
+                " reputation_excluded_at, reputation_exclusion_reason)"
+                " VALUES (:id, :ref, :buyer, :agent, :service, 'cancelled', 1,"
+                " 100, 100, 2.5, 102.5, 'USDC', 250, now(), now(), now(),"
+                " now(), :reason)"
+            ),
+            {
+                "id": uuid.uuid4(),
+                "ref": f"EXCC-{uuid.uuid4().hex[:6]}",
+                "buyer": buyer["id"],
+                "agent": agent.id,
+                "service": service_id,
+                "reason": "excluded while cancelled",
+            },
+        )
+        await db.flush()
+
+        inputs = await reputation.gather_inputs(db, agent_id=agent.id)
+        assert inputs.cancelled_orders == 1, (
+            "excluding an order erased a cancellation, so the mechanism can "
+            "improve a score rather than only reduce one"
+        )

@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DisputeQueueItem(BaseModel):
@@ -30,3 +30,22 @@ class SuppressionView(BaseModel):
     reason: str
     detail: str | None
     created_at: datetime
+
+
+class ReputationExclusionRequest(BaseModel):
+    """Why an order must not count toward its provider's standing.
+
+    The reason is required and has a floor length on purpose. This decision is
+    irreversible by construction, so the only thing a future reader has to go on
+    is what was written at the time, and "test" would leave them nothing.
+    """
+
+    reason: str = Field(min_length=12, max_length=2000)
+
+
+class ReputationExclusionView(BaseModel):
+    order_id: uuid.UUID
+    order_reference: str
+    provider_agent_id: uuid.UUID
+    reputation_excluded_at: datetime
+    reputation_exclusion_reason: str

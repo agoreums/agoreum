@@ -7,6 +7,7 @@ own wallet through the orders API.
 """
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
@@ -14,7 +15,12 @@ from fastapi import APIRouter, Query, status
 from app.api.deps import CurrentUser, DbSession
 from app.core.errors import PermissionDeniedError
 from app.modules.admin import service
-from app.modules.admin.schemas import DisputeQueueItem, SuppressionView
+from app.modules.admin.schemas import (
+    DisputeQueueItem,
+    ReputationExclusionRequest,
+    ReputationExclusionView,
+    SuppressionView,
+)
 from app.modules.notifications import service as notifications
 from app.modules.orders import service as orders
 
@@ -81,3 +87,45 @@ async def lift_suppression(email: str, user: CurrentUser, db: DbSession) -> None
     """
     _require_admin(user)
     await notifications.unsuppress_email(db, email=email)
+
+
+@router.post(
+    "/orders/{order_id}/exclude-from-reputation",
+    response_model=ReputationExclusionView,
+    summary="Stop a settled order counting toward its provider's standing",
+)
+async def exclude_from_reputation(
+    order_id: uuid.UUID,
+    payload: ReputationExclusionRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> ReputationExclusionView:
+    """For a real settlement that must not become standing.
+
+    The case this exists for is one the platform cannot detect for itself. An
+    order between two accounts sharing no organization, no wallet and nothing
+    else visible is indistinguishable from arm's length trade, however well the
+    operator knows otherwise. The first instance was the settlement exercise of
+    2026-08-16, which proved the receipt path against production and left behind
+    exactly such an order.
+
+    **There is deliberately no route that lifts one.** The absence is not an
+    oversight to be filled in later, and filling it in would not work: a database
+    trigger refuses to clear an exclusion, to rewrite its timestamp, or to
+    rewrite its reason. A reversible flag is a way of handing out standing, so
+    the only safe version of this power is one that can only ever subtract.
+
+    Nothing about the order changes. The payment happened, the escrow settled,
+    and the receipt still points at a transaction anybody can follow on chain.
+    """
+    _require_admin(user)
+    order = await service.exclude_order_from_reputation(
+        db, order_id=order_id, actor=user, reason=payload.reason
+    )
+    return ReputationExclusionView(
+        order_id=order.id,
+        order_reference=order.reference,
+        provider_agent_id=order.provider_agent_id,
+        reputation_excluded_at=order.reputation_excluded_at,
+        reputation_exclusion_reason=order.reputation_exclusion_reason,
+    )

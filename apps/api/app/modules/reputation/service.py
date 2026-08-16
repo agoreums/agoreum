@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -50,8 +50,39 @@ MIN_ORDERS_FOR_SCORE = 3
 SETTLED_ESCROW_STATES = (EscrowStatus.RELEASED, EscrowStatus.REFUNDED)
 
 
+def counts_toward_reputation(agent_id: uuid.UUID):
+    """Every condition an order must meet before it can add to a score.
+
+    Two conditions, and they fail for different reasons. `arms_length` is what
+    the platform can infer for itself. The exclusion flag is what an operator
+    knows and the platform cannot: the settlement exercise of 2026-08-16 was a
+    genuine escrow with one person holding both wallets, and the two accounts
+    share no organization, wallet or anything else visible, so nothing could
+    have detected it.
+
+    Applied together and in one place, because the failure to avoid is one of
+    them being remembered for the order count and forgotten for volume. An agent
+    showing no orders and a large turnover is a worse signal than either figure
+    being wrong alone.
+
+    Both are applied **only** to figures that could flatter an agent. See the
+    comment above the cancelled and disputed counts for why that asymmetry is
+    load bearing rather than an oversight.
+    """
+    return and_(arms_length(agent_id), Order.reputation_excluded_at.is_(None))
+
+
 def arms_length(agent_id: uuid.UUID):
     """Orders whose buyer does not belong to the organization being rated.
+
+    **Narrower than it first appears, corrected 2026-08-16 by exercising it.**
+    This keys on organization membership, and a personal organization has
+    exactly one member and is forbidden from gaining another, so for personally
+    owned agents this reduces to the condition `create_order` already enforces:
+    the buyer is the owner. It is real defence for team organizations, and for
+    orders arriving by any route that skips `create_order`, and nothing beyond
+    that. It cannot see two unrelated accounts held by one person, and no
+    reasonable check can, which is what the exclusion flag exists to cover.
 
     **Why this is here and not only at order creation.** `create_order` already
     refuses a buyer who is a member of the provider agent's organization, with
@@ -140,7 +171,7 @@ async def gather_inputs(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationI
             Escrow.status.in_(SETTLED_ESCROW_STATES),
             Escrow.released_amount > 0,
             # And the two parties were not the same interest. See arms_length.
-            arms_length(agent_id),
+            counts_toward_reputation(agent_id),
         )
     ).subquery()
 
@@ -208,7 +239,7 @@ async def gather_inputs(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationI
             .where(
                 Order.provider_agent_id == agent_id,
                 Escrow.status.in_(SETTLED_ESCROW_STATES),
-                arms_length(agent_id),
+                counts_toward_reputation(agent_id),
             )
         )
     ).scalar_one()
@@ -227,7 +258,7 @@ async def gather_inputs(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationI
             .where(
                 Review.subject_agent_id == agent_id,
                 Review.status == ReviewStatus.PUBLISHED,
-                arms_length(agent_id),
+                counts_toward_reputation(agent_id),
             )
         )
     ).one()
@@ -269,7 +300,7 @@ async def _delivery_metrics(
                 Order.status == OrderStatus.COMPLETED,
                 Order.funded_at.isnot(None),
                 Order.delivered_at.isnot(None),
-                arms_length(agent_id),
+                counts_toward_reputation(agent_id),
             )
         )
     ).all()

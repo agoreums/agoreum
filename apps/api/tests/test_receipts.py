@@ -542,3 +542,84 @@ def test_only_terminal_escrow_states_count_as_settled() -> None:
         assert not_settled not in receipts.SETTLED_ESCROW_STATUSES, (
             f"{not_settled} would issue a receipt for money that has not finished moving"
         )
+
+class TestTheCanonicalFormIsUnambiguous:
+    """A verifier in another language must compute the same bytes.
+
+    The published instruction is the entire specification a third party has.
+    Anything it leaves open becomes a verifier that computes a different digest
+    and concludes a genuine receipt is forged, and the reasonable reaction to a
+    signature that does not verify is to stop checking signatures at all.
+
+    One thing was open from the first day and unreachable until now: Python
+    escapes non-ASCII to \\uXXXX by default and JavaScript does not, so the same
+    parsed payload canonicalised differently here than in a browser. Every
+    receipt so far is pure ASCII, where the two agree exactly, which is why
+    nothing caught it.
+    """
+
+    def test_non_ascii_is_not_escaped(self) -> None:
+        """The specific divergence, asserted against the bytes rather than a flag."""
+        payload = {"note": "café", "tick": "✓"}
+        produced = receipts.canonical(payload)
+
+        assert produced == '{"note":"café","tick":"✓"}'.encode(), produced
+        assert b"\\u" not in produced, (
+            "the canonical form escaped a non-ASCII character, which no other "
+            "language's JSON encoder does by default, so a verifier following "
+            "the published instructions would compute a different digest"
+        )
+
+    def test_it_matches_what_javascript_would_produce(self) -> None:
+        """JSON.stringify over a recursively key-sorted object, byte for byte.
+
+        Written as the literal expected string rather than by calling a JS
+        engine, because the point is to pin the bytes a browser produces so a
+        change here fails loudly rather than quietly diverging from the page
+        that verifies these receipts.
+        """
+        payload = {"b": "ü", "a": {"y": 2, "x": "日本"}}
+        assert receipts.canonical(payload) == (
+            '{"a":{"x":"日本","y":2},"b":"ü"}'.encode()
+        )
+
+    def test_ascii_payloads_are_unaffected(self) -> None:
+        """Why the fix could be made safely rather than needing a key rotation.
+
+        Every receipt issued before this change carries only ASCII, and for
+        those the two encodings are identical, so nothing already signed became
+        unverifiable.
+        """
+        payload = {
+            "type": receipts.RECEIPT_TYPE,
+            "issuer": "agoreum.xyz",
+            "settlement": {"amount": "100.000000", "chain_id": 84532},
+        }
+        import json as _json
+
+        escaped = _json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        assert receipts.canonical(payload) == escaped
+
+    def test_the_published_instructions_name_the_encoding(self) -> None:
+        """The sentence is the specification, so it has to carry the detail.
+
+        Asserted rather than trusted because this text is the only thing a
+        third-party verifier ever reads, and it drifted from the implementation
+        once already by being silent about escaping.
+        """
+        from app.core.config import settings
+
+        key = _fresh_key()
+        original = getattr(settings, "RECEIPT_SIGNING_KEY", None)
+        settings.RECEIPT_SIGNING_KEY = key
+        try:
+            instructions = receipts.public_key_document()["verification"].lower()
+        finally:
+            settings.RECEIPT_SIGNING_KEY = original
+
+        assert "sorted" in instructions
+        assert "utf-8" in instructions
+        assert "escap" in instructions, (
+            "the published instructions do not mention escaping, which is the "
+            "ambiguity that made Python and JavaScript disagree"
+        )
