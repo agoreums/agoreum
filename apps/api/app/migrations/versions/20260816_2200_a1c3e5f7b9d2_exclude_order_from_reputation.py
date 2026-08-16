@@ -89,8 +89,14 @@ def upgrade() -> None:
 
     # An exclusion with no reason is an exclusion nobody can audit later, and the
     # whole point of the record is that somebody can ask why afterwards.
+    # The bare name, not the final one. The metadata naming convention is
+    # `ck_%(table_name)s_%(constraint_name)s`, so passing the already-prefixed
+    # name produced `ck_orders_ck_orders_...` in the database while the model
+    # declared `ck_orders_...`, and the two disagreed forever after. Caught by
+    # `alembic check` in CI against a fresh database, which is the environment
+    # that has no history to hide the difference.
     op.create_check_constraint(
-        "ck_orders_reputation_exclusion_has_a_reason",
+        "reputation_exclusion_has_a_reason",
         "orders",
         "(reputation_excluded_at IS NULL) = (reputation_exclusion_reason IS NULL)",
     )
@@ -118,8 +124,10 @@ def downgrade() -> None:
     op.drop_index("ix_orders_reputation_excluded", table_name="orders")
     op.execute("DROP TRIGGER IF EXISTS agoreum_reputation_exclusion_is_one_way ON orders;")
     op.execute("DROP FUNCTION IF EXISTS agoreum_reputation_exclusion_is_one_way();")
-    op.drop_constraint(
-        "ck_orders_reputation_exclusion_has_a_reason", "orders", type_="check"
-    )
+    # The bare name here too. An earlier version of this comment claimed
+    # drop_constraint takes the name the database actually uses; running the
+    # downgrade proved otherwise, since alembic expands the same convention on
+    # the way down and the drop failed looking for ck_orders_ck_orders_...
+    op.drop_constraint("reputation_exclusion_has_a_reason", "orders", type_="check")
     op.drop_column("orders", "reputation_exclusion_reason")
     op.drop_column("orders", "reputation_excluded_at")
