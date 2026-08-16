@@ -305,6 +305,31 @@ jobs:
           sys.exit(0 if passed == 6 and skipped == 0 else 1)
           "
 
+      - name: The no-payment-channel decision still follows from the numbers
+        working-directory: contracts
+        env:
+          ALCHEMY_BASE_URL_MAINNET: ${{ secrets.ALCHEMY_BASE_URL_MAINNET }}
+        run: |
+          # docs/micropayment-settlement-cost.md concludes that no payment
+          # channel should be built, because a direct settlement on Base costs
+          # about 253 micro-USD. That conclusion expires if Base ever gets
+          # expensive, and a document asserting an outcome is unproven until
+          # something checks it, so this checks it.
+          forge test --match-path "test/MicropaymentGas.fork.t.sol" -vv
+          # Same silent-skip guard as above, for the same reason: this file
+          # skips itself without an RPC, and a skip reported as a pass would
+          # leave the decision unchecked while the job stayed green.
+          forge test --match-path "test/MicropaymentGas.fork.t.sol" --json 2>/dev/null \
+            | python3 -c "
+          import json,sys
+          data = json.load(sys.stdin)
+          results = [t for f in data.values() for t in f.get('test_results', {}).values()]
+          passed = sum(1 for t in results if t.get('status') == 'Success')
+          skipped = sum(1 for t in results if t.get('status') == 'Skipped')
+          print(f'{passed} passed, {skipped} skipped of {len(results)}')
+          sys.exit(0 if passed == 1 and skipped == 0 else 1)
+          "
+
   # The official client SDKs. They are independent artifacts, so they gate pull
   # requests and keep main green, but deliberately do not gate the deploy job
   # below: an SDK regression must never hold back an application release.
