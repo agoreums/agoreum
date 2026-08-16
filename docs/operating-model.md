@@ -131,7 +131,8 @@ this section.
 | Containers | `agoreum-<service>-1`, ten of them, all up | `docker ps` |
 | API health | database, Redis and chain all ok, chain ~1.5s behind head | `/api/v1/health/ready` inside the container |
 | Workers | subscription indexer, webhooks, emails, all heartbeating within 3s | `/api/v1/health/workers` |
-| Receipts | **signing live**, kid `rVl3VOYAtNY4LW0J`, key document public and 200 | fetched from the public URL, and a production signature verified against it by an independent client |
+| Receipts | **signing live and proven end to end**, kid `rVl3VOYAtNY4LW0J` | a real settled order's receipt verified against the published key, then its transaction confirmed on chain |
+| Settled orders in production | One, `AGO-TMMR2TWH`, self-dealt by construction. It **does** count toward its agent's reputation, because the platform cannot see the relationship. Agent paused and unlisted | the exercise below |
 | Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
 | Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
 | SDKs | Python, TypeScript, Go all at 0.2.0 | verified from the registries, not the local build |
@@ -152,8 +153,9 @@ this section.
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| No escrow has ever settled in production | Open, and harder than it looked | See "the settlement exercise" below |
-| Receipt path unproven over real data | Open | Follows from the row above |
+| An order excluded from reputation by operator decision | Open, next | The exercise left one settled order the platform cannot tell was self-dealt. Needs a flag that can only ever remove a contribution, never add one, so the mechanism cannot itself manufacture standing |
+| The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
+| A public page for verifying a receipt | Open, and the highest value item on this list | A person handed a receipt currently has to write code to check it. A paste-and-check page would make the honesty feature legible to somebody who is not a developer, which is what turns it from an engineering property into a product one |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
 | `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
 | Three Safe multisigs on Base | Blocked | Owner action |
@@ -161,7 +163,75 @@ this section.
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
 
-### The settlement exercise, and why it is not simply "go and run it"
+### The settlement exercise, run 2026-08-16
+
+**Done, and the receipt path is proven end to end for the first time.** Order
+`AGO-TMMR2TWH` on Base Sepolia: escrow funded, delivered, released, indexed, and
+a signed receipt issued over real database rows rather than a fake session.
+
+Verified the way somebody who trusts nothing would, with no credential except a
+public RPC endpoint:
+
+- the key was fetched from the public URL, and its kid matches the one the
+  receipt names
+- the canonical form was rebuilt from the sentence the key document publishes
+  rather than imported from our code, so the check does not inherit our
+  assumptions
+- the signature verifies, and altering the released amount breaks it
+- the named transaction `0x340f7bfc...` at block 45568344 succeeded, went to the
+  escrow contract the receipt names, and emitted `EscrowReleased` for exactly
+  the escrow id derived from the order
+
+That last step is the one that matters. The signature only proves Agoreum made a
+claim. Following the transaction is what proves the claim is true, and until
+this run nothing had ever done it against real data.
+
+**The self-dealing half did not work as planned, and that is the most useful
+thing the exercise produced.** The intention was to add the buyer to the
+provider's organization so the arm's-length filter would exclude the order. The
+API refused: `personal_org_immutable`, a personal organization cannot have its
+team changed. Correct behaviour, and it exposes a limit in the fix shipped hours
+earlier that the tests could not have shown.
+
+**The filter is narrower than it was described as being.** It keys on
+organization membership. An agent in a *personal* organization has exactly one
+member and can never gain another, so for those agents the filter reduces to
+precisely the condition `create_order` already enforces: buyer is the owner. It
+adds real defence for team organizations, and for orders arriving by any route
+that does not pass through `create_order`, and it adds nothing else for the
+default case. The claim that it defends against "the buyer joining the
+provider's organization later" is true only where such joining is possible,
+which is not personal organizations.
+
+That was written in the same batch as the fix and before anything exercised it.
+Being wrong in a document about the thing just built is the ordinary case rather
+than the surprising one, which is the argument for exercises like this.
+
+**What the exercise therefore left in production.** One settled order that the
+platform cannot tell was self-dealt, because the two accounts share nothing it
+can see: different wallets, different users, no common organization. That is
+exactly the Sybil case the fix explicitly does not cover, now demonstrated
+rather than theorised.
+
+Exposure measured rather than assumed: the agent is paused, holds no services,
+and appears in neither the marketplace agent nor service listings, which both
+return zero items. Its page and reputation resolve at a direct URL to a reader
+who knows the slug, showing one completed order, 1.025 USDC of volume and no
+score, since three settled orders are needed before a score is published.
+
+**Open, and the honest resolution.** Reputation should be excludable for an
+order known to be non-arm's-length even where the platform cannot infer it. The
+safe shape is a flag that can only ever remove a contribution, never add one, so
+the mechanism cannot become a way to manufacture standing. Recorded in the open
+threads rather than improvised at the end of a batch.
+
+**The listing was withdrawn immediately.** The verification service was, briefly,
+the only item in the public marketplace, which is the closest thing to fake
+marketplace data this exercise could produce. Service archived, agent paused,
+catalogue back to zero items. The order and escrow stay, because they are real
+and the receipt points at them, which is also why archiving is not deletion.
+
+### Why it was not simply "go and run it"
 
 Authorised on 2026-08-16 as a low cost, reversible testnet action, which it is.
 Preparing it surfaced something that changes the shape of the task, recorded
@@ -185,10 +255,10 @@ a member, so the membership has to be established after the order exists rather
 than before. That is not a workaround: the trade genuinely was between related
 parties, and the record ends up saying so.
 
-**Not yet run.** The path above is sound and the exercise is worth doing, but it
-writes real rows to production and the design only became clear at the end of a
-long batch. Doing it carefully at the start of a batch is better than doing it
-tired at the end of one.
+Kept because the reasoning is what made the run safe, and because the next
+person to propose an end-to-end exercise on any new rail will face the same
+question: what does driving both sides of a real transaction do to the numbers
+this platform publishes.
 
 ### Decisions taken, and why
 
@@ -211,6 +281,11 @@ durable ones are in `## Standing constraints`; the archive of findings is in
 Terse, most recent first. One line per batch, enough to know what happened
 without reading the commits.
 
+- **2026-08-16, latest.** Ran the settlement exercise. Receipt path proven end
+  to end for the first time: a real settled order's receipt verified against the
+  published key, then its transaction confirmed on chain by following the hash.
+  The exercise also disproved part of what had been written about the
+  arm's-length filter hours earlier, which is the argument for running it.
 - **2026-08-16, later.** Found that the only thing preventing self-dealt
   reputation was one untested branch of `create_order`, and that reputation
   itself re-established nothing. Fixed structurally at computation time, filter
@@ -1172,6 +1247,15 @@ is that a score cannot exist without a settled payment behind it, against
 records where between 98.7% and 100% carry no proof of payment. A settled
 payment from yourself to yourself satisfies that sentence perfectly and means
 nothing, so the claim was true in letter and hollow where it mattered.
+
+**Narrower than first described**, corrected the same day by running the
+settlement exercise against it. The filter keys on organization membership, and
+a personal organization has exactly one member and is forbidden from gaining
+another, so for agents owned personally it reduces to the condition
+`create_order` already enforces. It is real defence for team organizations and
+for orders arriving by any route that skips `create_order`, and nothing beyond
+that. The original write-up claimed it covered a buyer joining the organization
+later, which cannot happen where joining is impossible.
 
 **Fixed structurally rather than procedurally.** `arms_length()` in the
 reputation service excludes orders whose buyer belongs to the rated agent's
