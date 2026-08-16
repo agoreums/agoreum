@@ -192,23 +192,26 @@ fi
 # quietly stops attesting to anything. That is precisely the shape this project
 # keeps finding, where absence is indistinguishable from success.
 #
-# Asserted from the public URL rather than from inside the container, so one
-# check covers both halves: a missing key and a document being answered by the
-# web application both come back without a kid. Failing the deploy is the right
-# response, since shipping a build that silently stopped signing is worse than
-# not shipping.
-log "confirm settlement receipts are signed and the key is publicly reachable"
-receipt_kid=$(curl -fsS --max-time 10 https://agoreum.xyz/.well-known/agoreum-receipts.json 2>/dev/null \
-  | python3 -c "import sys,json;d=json.load(sys.stdin);k=d.get('keys') or [];print(k[0].get('kid','') if k else '')" 2>/dev/null || true)
-if [ -z "$receipt_kid" ]; then
-  echo "DEPLOY FAILED: /.well-known/agoreum-receipts.json served no signing key"
-  echo "  either nginx is not routing that path to the api, or RECEIPT_SIGNING_KEY"
-  echo "  is missing from the droplet .env and receipts are being issued unsigned"
-  curl -s -o /dev/null -w "  status: %{http_code}  content-type: %{content_type}\n" \
-    --max-time 10 https://agoreum.xyz/.well-known/agoreum-receipts.json || true
+# A third way to fail was found the day after this check was written, and it is
+# why the assertion moved out of here into its own script. The first version
+# used curl, which the edge was happy to serve. A verifier written with a
+# standard library was getting 403 from Cloudflare's browser integrity check the
+# whole time, so the guard was passing while the property it existed to protect
+# was broken for the client most likely to exercise it.
+#
+# The lesson is the one this project keeps relearning: a check passes for the
+# client it happens to use. check_public_verifiability.py therefore asserts with
+# the exact user agent that was refused, and asserts the exemption did not
+# spread past /.well-known/, since an exemption covering the whole zone would
+# look identical from these documents alone.
+log "confirm a stranger's software can still verify a receipt"
+if ! python3 scripts/check_public_verifiability.py; then
+  echo "DEPLOY FAILED: the receipts key document is not publicly verifiable"
+  echo "  either nginx is not routing that path to the api, RECEIPT_SIGNING_KEY"
+  echo "  is missing so receipts are issued unsigned, or the edge is refusing"
+  echo "  the plain client a third-party verifier would use"
   exit 1
 fi
-log "  receipts signed, key ${receipt_kid} publicly reachable"
 
 # Every deploy leaves BuildKit cache behind and nothing else ever removes it.
 # Left alone it grew to 88GB, 76 percent of the disk, at roughly a gigabyte per
