@@ -179,6 +179,37 @@ if [ "$served" != true ]; then
   exit 1
 fi
 
+# A settlement receipt is only worth anything to somebody who trusts nothing we
+# say, and that person needs two things at once: the key document reachable from
+# the open internet, and a key actually in it. Both have already failed here.
+#
+# The routing half failed for a week and is what the location blocks above fix.
+# The signing half is the more dangerous of the two, because nothing about it
+# fails. An unsigned receipt is a deliberate, documented mode: the API still
+# issues one, it still carries every coordinate needed to check the chain, and
+# the only difference is "signature": null. So a droplet that loses
+# RECEIPT_SIGNING_KEY keeps serving 200s, keeps passing every health check, and
+# quietly stops attesting to anything. That is precisely the shape this project
+# keeps finding, where absence is indistinguishable from success.
+#
+# Asserted from the public URL rather than from inside the container, so one
+# check covers both halves: a missing key and a document being answered by the
+# web application both come back without a kid. Failing the deploy is the right
+# response, since shipping a build that silently stopped signing is worse than
+# not shipping.
+log "confirm settlement receipts are signed and the key is publicly reachable"
+receipt_kid=$(curl -fsS --max-time 10 https://agoreum.xyz/.well-known/agoreum-receipts.json 2>/dev/null \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);k=d.get('keys') or [];print(k[0].get('kid','') if k else '')" 2>/dev/null || true)
+if [ -z "$receipt_kid" ]; then
+  echo "DEPLOY FAILED: /.well-known/agoreum-receipts.json served no signing key"
+  echo "  either nginx is not routing that path to the api, or RECEIPT_SIGNING_KEY"
+  echo "  is missing from the droplet .env and receipts are being issued unsigned"
+  curl -s -o /dev/null -w "  status: %{http_code}  content-type: %{content_type}\n" \
+    --max-time 10 https://agoreum.xyz/.well-known/agoreum-receipts.json || true
+  exit 1
+fi
+log "  receipts signed, key ${receipt_kid} publicly reachable"
+
 # Every deploy leaves BuildKit cache behind and nothing else ever removes it.
 # Left alone it grew to 88GB, 76 percent of the disk, at roughly a gigabyte per
 # deploy-day, and the first anyone would have heard of it was a full disk taking
