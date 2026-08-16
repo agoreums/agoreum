@@ -84,8 +84,30 @@ def canonical(payload: dict[str, Any]) -> bytes:
     form, a receipt that is genuinely valid fails verification for anybody whose
     JSON library orders keys differently, and the natural response to that is to
     stop checking signatures.
+
+    **`ensure_ascii=False` is load bearing, and its absence was a latent break.**
+    Python's `json.dumps` escapes every non-ASCII character to `\\uXXXX` by
+    default. JavaScript's `JSON.stringify` does not, and neither do most other
+    languages, so the same parsed payload canonicalises to different bytes here
+    than in the browser. Every receipt issued so far is pure ASCII, where the two
+    settings produce identical output, which is exactly why nothing caught it:
+    the ambiguity was real from the first day and unreachable until some field
+    carried an accented character or a symbol.
+
+    The failure it would have caused is the worst available. A verifier doing
+    precisely what the published instructions say would compute a different
+    digest and conclude the signature was invalid, on a receipt that was
+    genuinely valid, and the reasonable reaction to a signature that does not
+    verify is to stop trusting signatures.
+
+    Changing it now is free and cannot invalidate anything already issued,
+    because for ASCII-only payloads the output is byte-identical. Found while
+    building the public verification page, by asking what the browser would
+    actually compute rather than assuming it would agree.
     """
-    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
 
 
 def _signing_key():
@@ -126,11 +148,17 @@ def public_key_document() -> dict[str, Any]:
                 "x": _b64(raw),
             }
         ],
+        # Every ambiguity left in this sentence becomes a verifier that computes
+        # a different digest and concludes a valid receipt is forged. "Sorted
+        # keys, no whitespace" left the encoding open, and Python escapes
+        # non-ASCII by default while JavaScript does not, so the two disagreed
+        # on any payload carrying an accent. Stated explicitly now.
         "verification": (
-            "Verify the signature over the canonical JSON of the receipt object "
-            "(sorted keys, no whitespace). Then verify the settlement itself on "
-            "chain using transaction_hash and chain_id. The signature attests "
-            "that Agoreum made this claim; the chain is what makes it true."
+            "Verify the signature over the canonical JSON of the receipt object: "
+            "keys sorted at every level, no whitespace between tokens, UTF-8, and "
+            "no \\u escaping of non-ASCII characters. Then verify the settlement "
+            "itself on chain using transaction_hash and chain_id. The signature "
+            "attests that Agoreum made this claim; the chain is what makes it true."
         ),
     }
 

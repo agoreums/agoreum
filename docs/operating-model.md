@@ -145,7 +145,7 @@ this section.
 | Security | Found the platform's central claim rested on one untested branch, and made it structural. Verified receipts sign in production against the deployed artifact | Continue the sweep for the "looks covered, never exercised" shape; it has produced a real finding every time |
 | Backend and API | Found `build()`, the function that issues a receipt, had no test at all, and that the one test named for the settlement refusal passed a random uuid and never reached it. Eleven tests added, four mutations | Prove the receipt path over a real settled order rather than a fake session |
 | Contracts | Fixed the two failures that had kept `Contracts` red on every open branch, and corrected a gas measurement that read nothing back from a transfer that can return false | Settlement cost measurement is recorded; no open work |
-| Frontend and web | Mark sizing corrected at its two definitions so every placement moves together. Social cards and OG images now name Base Sepolia | Continue raising the interface to the standard set for this phase |
+| Frontend and web | Built `/verify`, where anyone can check a receipt in their own browser without an account and without trusting us. Mark sizing corrected at its two definitions; social cards name Base Sepolia | Continue raising the interface to the standard set for this phase |
 | Infrastructure | Added a deploy assertion that fails when the receipts key document stops carrying a key, exercised in both directions against production before shipping | Cloudflare refuses `/.well-known/*` to one common client, see open threads |
 | Product and growth | Discord read in full, nothing unanswered; the only recent messages are members talking to each other, and posting into that would be manufactured activity | Keep inbound answered as a standing responsibility |
 
@@ -155,7 +155,7 @@ this section.
 | --- | --- | --- |
 | Apply the exclusion to `AGO-TMMR2TWH` | Waiting on deploy | The mechanism is built. The production order still counts until the migration runs and the admin call is made |
 | The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
-| A public page for verifying a receipt | Open, and the highest value item on this list | A person handed a receipt currently has to write code to check it. A paste-and-check page would make the honesty feature legible to somebody who is not a developer, which is what turns it from an engineering property into a product one |
+| Cross-language verifier conformance beyond the browser | Open | The API and the browser are now pinned to identical canonical bytes by tests on both sides. The three published SDKs do not verify receipts at all yet, and adding it would make the canonical form a contract with four implementations rather than two |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
 | `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
 | Three Safe multisigs on Base | Blocked | Owner action |
@@ -281,6 +281,13 @@ durable ones are in `## Standing constraints`; the archive of findings is in
 Terse, most recent first. One line per batch, enough to know what happened
 without reading the commits.
 
+- **2026-08-16, latest+2.** Built the public receipt verification page at
+  `/verify`, which checks a pasted receipt in the reader's own browser and
+  reports attribution and chain evidence as two separate findings rather than
+  one tick. Building it found that the canonical form was under-specified:
+  Python escaped non-ASCII and JavaScript does not, so a verifier following the
+  published sentence would have computed a different digest on any receipt
+  carrying an accent. Fixed on both sides and pinned to identical literals.
 - **2026-08-16, latest+1.** Built the reputation exclusion as a one-way
   mechanism enforced by a database trigger rather than by the service layer, so
   a future endpoint, a script, a migration or a psql prompt all meet it equally.
