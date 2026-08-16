@@ -19,10 +19,7 @@ interface IGasPriceOracle {
 
 interface IAggregatorV3 {
     function decimals() external view returns (uint8);
-    function latestRoundData()
-        external
-        view
-        returns (uint80, int256, uint256, uint256, uint80);
+    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80);
 }
 
 /// @notice Measures the real cost of settling a payment on Base, to decide
@@ -137,10 +134,7 @@ contract MicropaymentGasForkTest is Test {
         microUsd = ((l1FeeWei + l2FeeWei) * ethUsd8) / 1e20;
     }
 
-    function _report(string memory label, uint256 gasUsed, bytes memory callData)
-        internal
-        view
-    {
+    function _report(string memory label, uint256 gasUsed, bytes memory callData) internal view {
         (uint256 microUsd, uint256 l1, uint256 l2) = _costMicroUsd(gasUsed, callData);
         console2.log("---", label);
         console2.log("  l2 gas (incl. intrinsic):", gasUsed + INTRINSIC_GAS);
@@ -160,8 +154,7 @@ contract MicropaymentGasForkTest is Test {
         //    zero to non-zero. This is the honest case for a new counterparty
         //    and costs far more than paying somebody you have paid before.
         address coldPayee = makeAddr("coldPayee");
-        bytes memory transferData =
-            abi.encodeCall(IERC20.transfer, (coldPayee, 10_000));
+        bytes memory transferData = abi.encodeCall(IERC20.transfer, (coldPayee, 10_000));
         vm.prank(buyer);
         uint256 g0 = gasleft();
         usdc.transfer(coldPayee, 10_000);
@@ -186,9 +179,7 @@ contract MicropaymentGasForkTest is Test {
         );
         vm.prank(buyer);
         g0 = gasleft();
-        escrow.createEscrow(
-            id, provider, USDC, 1_000e6, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW
-        );
+        escrow.createEscrow(id, provider, USDC, 1_000e6, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW);
         uint256 createGas = g0 - gasleft();
         _report("escrow createEscrow + fund", createGas, createData);
 
