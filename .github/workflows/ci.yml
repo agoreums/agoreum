@@ -97,6 +97,21 @@ jobs:
       - name: Install the Python SDK, so the integration test can run
         run: pip install -e ./sdks/python
 
+      # Runs here rather than in the nginx job because it needs the application
+      # importable to read what it actually registers, and those dependencies
+      # are already installed above. A hand-kept list of paths would be another
+      # thing to forget to update, and forgetting is the failure being closed.
+      - name: Every root-level API document is routed to the API by nginx
+        run: |
+          # Found in production twice. The API served the /.well-known/ document
+          # correctly and the edge returned the web app's HTML, because nginx
+          # sends everything outside /api/ to the web app and the path was not
+          # named in the config. Green suite, green deploy, and a URL that was
+          # broken for everybody who was not us. The first fix added a single
+          # location, which closed the instance and left the category open, and
+          # the very next route to be added reopened it.
+          python scripts/check_well_known_routes.py
+
       - name: Lint
         working-directory: apps/api
         run: ruff check .
@@ -303,6 +318,31 @@ jobs:
           skipped = sum(1 for t in results if t.get('status') == 'Skipped')
           print(f'{passed} passed, {skipped} skipped of {len(results)}')
           sys.exit(0 if passed == 6 and skipped == 0 else 1)
+          "
+
+      - name: The no-payment-channel decision still follows from the numbers
+        working-directory: contracts
+        env:
+          ALCHEMY_BASE_URL_MAINNET: ${{ secrets.ALCHEMY_BASE_URL_MAINNET }}
+        run: |
+          # docs/micropayment-settlement-cost.md concludes that no payment
+          # channel should be built, because a direct settlement on Base costs
+          # about 253 micro-USD. That conclusion expires if Base ever gets
+          # expensive, and a document asserting an outcome is unproven until
+          # something checks it, so this checks it.
+          forge test --match-path "test/MicropaymentGas.fork.t.sol" -vv
+          # Same silent-skip guard as above, for the same reason: this file
+          # skips itself without an RPC, and a skip reported as a pass would
+          # leave the decision unchecked while the job stayed green.
+          forge test --match-path "test/MicropaymentGas.fork.t.sol" --json 2>/dev/null \
+            | python3 -c "
+          import json,sys
+          data = json.load(sys.stdin)
+          results = [t for f in data.values() for t in f.get('test_results', {}).values()]
+          passed = sum(1 for t in results if t.get('status') == 'Success')
+          skipped = sum(1 for t in results if t.get('status') == 'Skipped')
+          print(f'{passed} passed, {skipped} skipped of {len(results)}')
+          sys.exit(0 if passed == 1 and skipped == 0 else 1)
           "
 
   # The official client SDKs. They are independent artifacts, so they gate pull
