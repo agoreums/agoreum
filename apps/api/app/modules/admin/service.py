@@ -13,12 +13,14 @@ second, weaker truth about who is in charge.
 """
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.db.enums import OrderStatus
 from app.modules.notifications.models import EmailSuppression
@@ -107,3 +109,57 @@ async def list_suppressions(db: AsyncSession, *, limit: int = 100) -> list[dict]
         }
         for r in rows
     ]
+
+
+async def exclude_order_from_reputation(
+    db: AsyncSession, *, order_id: uuid.UUID, actor, reason: str
+):
+    """Stop a settled order from counting toward its provider's standing.
+
+    **One direction only, and enforced below this function.** There is no
+    counterpart that lifts an exclusion, and adding one would not work: a
+    database trigger refuses to clear the timestamp, to rewrite it, or to
+    rewrite the reason. That is deliberate. A flag that can be set and cleared is
+    a mechanism for handing out standing, since somebody could exclude a rival's
+    orders or exclude their own through a bad month and restore them after, so
+    the safe version of this feature is the one that can only ever subtract.
+
+    Enforced in the database rather than here because every defect worth
+    recording this month had the same shape: a guarantee living in one branch of
+    one function, correct there, and absent from every other route to the same
+    table. A future endpoint, a script, a migration or somebody at a psql prompt
+    all meet the trigger equally.
+
+    Nothing about the order changes. The payment happened, the escrow settled,
+    and the receipt still attests to it with a transaction hash anybody can
+    follow. This is a statement about reputation and about nothing else.
+    """
+    from app.modules.orders.models import Order
+
+    order = (
+        await db.execute(select(Order).where(Order.id == order_id))
+    ).scalar_one_or_none()
+    if order is None:
+        raise NotFoundError("No such order.")
+
+    if order.reputation_excluded_at is not None:
+        # Refused rather than treated as a no-op. Two operators excluding the
+        # same order for different stated reasons is a disagreement worth
+        # surfacing, and the second reason cannot be recorded anyway.
+        raise ConflictError(
+            "This order is already excluded from reputation, and an exclusion "
+            "cannot be changed once made.",
+            code="already_excluded",
+        )
+
+    order.reputation_excluded_at = datetime.now(UTC)
+    order.reputation_exclusion_reason = reason
+    await db.flush()
+
+    logger.info(
+        "reputation_exclusion_recorded",
+        order_id=str(order.id),
+        actor_id=str(getattr(actor, "id", None)),
+        reason=reason,
+    )
+    return order

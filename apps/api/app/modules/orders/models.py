@@ -132,6 +132,19 @@ class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     cancellation_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
+    # A settled order that must not become standing. Set once, never cleared:
+    # a database trigger refuses to lift an exclusion, to rewrite its timestamp,
+    # or to rewrite its reason, so the one-way property does not depend on any
+    # application code path being written correctly. See the migration
+    # a1c3e5f7b9d2 for why that asymmetry is the whole point.
+    #
+    # This says nothing about the order itself. The payment happened, the escrow
+    # settled, and the receipt still attests to it. Only reputation looks away.
+    reputation_excluded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    reputation_exclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     buyer: Mapped[User] = relationship(back_populates="orders", foreign_keys=[buyer_id])
     provider_agent: Mapped[Agent] = relationship(foreign_keys=[provider_agent_id])
     service: Mapped[Service] = relationship(back_populates="orders")
@@ -178,9 +191,25 @@ class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             "completed_at IS NULL OR funded_at IS NOT NULL",
             name="completion_requires_funding",
         ),
+        # An exclusion must carry its reason, or nobody can audit the decision
+        # later, and the decision cannot be revisited. The one-way property
+        # itself is a trigger rather than a constraint, because a CHECK sees only
+        # the row it is given and this rule is about the transition.
+        CheckConstraint(
+            "(reputation_excluded_at IS NULL) = (reputation_exclusion_reason IS NULL)",
+            name="reputation_exclusion_has_a_reason",
+        ),
         # A buyer cannot purchase from an agent they own. Enforced in the service
         # layer (it requires a join); noted here as an intentional invariant.
         Index("ix_orders_buyer_id_created_at", "buyer_id", "created_at"),
+        # Reputation filters on this for every agent it scores, and the excluded
+        # set should stay tiny, so a partial index keeps that filter from
+        # growing into a sequential scan as the table does.
+        Index(
+            "ix_orders_reputation_excluded",
+            "provider_agent_id",
+            postgresql_where=text("reputation_excluded_at IS NOT NULL"),
+        ),
         Index(
             "ix_orders_provider_agent_id_status", "provider_agent_id", "status"
         ),

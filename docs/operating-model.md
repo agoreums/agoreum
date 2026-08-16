@@ -153,7 +153,7 @@ this section.
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| An order excluded from reputation by operator decision | Open, next | The exercise left one settled order the platform cannot tell was self-dealt. Needs a flag that can only ever remove a contribution, never add one, so the mechanism cannot itself manufacture standing |
+| Apply the exclusion to `AGO-TMMR2TWH` | Waiting on deploy | The mechanism is built. The production order still counts until the migration runs and the admin call is made |
 | The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
 | A public page for verifying a receipt | Open, and the highest value item on this list | A person handed a receipt currently has to write code to check it. A paste-and-check page would make the honesty feature legible to somebody who is not a developer, which is what turns it from an engineering property into a product one |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
@@ -281,6 +281,10 @@ durable ones are in `## Standing constraints`; the archive of findings is in
 Terse, most recent first. One line per batch, enough to know what happened
 without reading the commits.
 
+- **2026-08-16, latest+1.** Built the reputation exclusion as a one-way
+  mechanism enforced by a database trigger rather than by the service layer, so
+  a future endpoint, a script, a migration or a psql prompt all meet it equally.
+  Proven by dropping the trigger and watching both one-way tests fail.
 - **2026-08-16, latest.** Ran the settlement exercise. Receipt path proven end
   to end for the first time: a real settled order's receipt verified against the
   published key, then its transaction confirmed on chain by following the hash.
