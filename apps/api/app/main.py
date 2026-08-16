@@ -11,6 +11,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.api.public_schema import public_openapi
 from app.api.v1 import api_router
 from app.core.config import settings
+from app.modules.mcp.router import well_known as mcp_well_known
 
 # Importing the registry configures every ORM mapper up front. Without it the
 # first query touching a cross-module relationship fails at runtime, because
@@ -98,6 +99,8 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    # Discovery metadata lives at the origin root by specification.
+    app.include_router(mcp_well_known)
 
     # The published contract. Served in every environment, including production,
     # because the repository is public and the SDKs name their paths, so

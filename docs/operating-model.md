@@ -432,10 +432,12 @@ work, and chosen so that every item is worth building whether Agoreum stays a
 marketplace or becomes a reputation oracle, which is an open question recorded in
 that document for the owner.
 
-1. **A remote MCP server exposing the marketplace as tools.** One connector
-   giving an agent the whole catalogue instead of one integration per seller.
-   MCP is where developer gravity actually is, by roughly two orders of
-   magnitude over the alternatives.
+1. **A remote MCP server exposing the marketplace as tools.** Shipped
+   2026-08-16. One connector giving an agent the whole catalogue instead of one
+   integration per seller. MCP is where developer gravity actually is, by
+   roughly two orders of magnitude over the alternatives. Seven tools at
+   `/api/v1/mcp`, scoped by the existing API keys, with RFC 9728 metadata at the
+   origin root.
 2. **Signed settlement receipts on escrow release.** Makes a settled order
    independently verifiable by a third party. The venue's honesty feature and
    the oracle's core primitive at the same time.
@@ -466,7 +468,7 @@ delegated spending is built:
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. 142 tests, 0 skipped, including an invariant that deadlines never move and coverage measured at 99% of escrow lines. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 718 tests, 718 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 744 tests, 744 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |

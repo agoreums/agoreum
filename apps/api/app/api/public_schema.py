@@ -59,6 +59,12 @@ EXCLUDED_TAGS: dict[str, str] = {
     # Publishing them would document a surface that answers 401 to every reader
     # of the document, which is worse than omitting them.
     "organizations": "session only; account and team management, not an integration surface",
+    # Both MCP routes are already `include_in_schema=False`, so this entry only
+    # satisfies the classification check. It is not a REST contract: MCP clients
+    # discover tools through `tools/list` and authentication through the RFC 9728
+    # metadata document, and an OpenAPI operation describing a JSON-RPC envelope
+    # would tell a generator nothing useful about what the endpoint accepts.
+    "mcp": "JSON-RPC endpoint; described by tools/list and RFC 9728 metadata, not by OpenAPI",
 }
 
 
