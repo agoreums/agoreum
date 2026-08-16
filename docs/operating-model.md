@@ -49,8 +49,22 @@ Facts about this machine that have cost time before:
 - Containers are named `agoreum-<service>-1`, not `agoreum-<service>`.
 - Local Postgres runs on port 55432, not 5432. Foundry lives in
   `C:\Users\Agoreum\foundry`, not on `PATH`.
-- CI runs only on push to `main`. There is no pull-request trigger, so a green
-  tick on a branch does not exist and merging is what actually tests and deploys.
+- CI runs on push to `main` **and on every pull request against it**. Corrected
+  on 2026-08-16, having read here for days as "there is no pull-request trigger,
+  so a green tick on a branch does not exist and merging is what actually tests
+  and deploys". `ci.yml` has carried `pull_request: branches: [main]`
+  throughout. Only `Deploy`, `Notify` and `Fork tests` skip on a pull request,
+  so eleven jobs really do report on a branch before anything is merged.
+
+  This one cost something rather than being a tidy-up. Believing no branch
+  signal existed, a previous session recorded PR #30 below as verified and ready
+  to merge while its `Contracts` job was failing, and it had never once been
+  green. Two separate causes were sitting in a log nobody opened, because this
+  file said the log did not exist.
+
+  **A note claiming a signal is unavailable is the most expensive kind of
+  stale**, because every other kind of stale note gets corrected by somebody
+  going to look, and this kind is specifically an instruction not to.
 
 ### Then read the rest of the state
 
@@ -485,7 +499,7 @@ re-reading the repository. It records what is true now and what is in flight,
 not the history, which is in the backlog and the git log. Anything here that has
 gone stale is a defect in this file.
 
-**Last updated:** 2026-08-15.
+**Last updated:** 2026-08-16.
 
 ### Roadmap, from evidence rather than instinct
 
@@ -540,10 +554,52 @@ delegated spending is built:
 
 ### In flight
 
-**PR #30, open and ready to merge.** The well-known routing fix and its guard,
-plus the Base settlement-cost measurement. Merging is what deploys, and the merge
-was blocked by the local permission gate rather than by anything about the
-change. Everything in it is verified locally and mutation tested.
+**Receipts are signing live in production, confirmed 2026-08-16.** The owner
+added `RECEIPT_SIGNING_KEY` to the droplet and restarted the API. Verified from
+the deployed artifact rather than from the deploy going green: inside the
+running container `_signing_key()` returns a key, the key document carries a JWK
+with kid `rVl3VOYAtNY4LW0J`, and a signature produced by that process verifies
+against the published public key while a tampered copy of the same payload is
+rejected. The value on the droplet hashes identically to the one in the local
+`.env`, so the two sources of truth for it agree.
+
+Two things were *not* proven, and saying which is the point of writing this
+down. No settled escrow exists in production, so `build()` has never run over a
+real order there and the database half of the path is unexercised; what was
+exercised is the signing tail on a synthetic payload, in the deployed process,
+with the deployed key. And the public URL still returns the web application's
+404 HTML, because the routing that fixes it is in PR #30 and has not landed, so
+a receipt is signed but not yet independently checkable by an outsider, which is
+the entire reason receipts exist.
+
+**PR #30 was recorded here as ready to merge and was red.** Its `Contracts` job
+had never passed, for two reasons that had nothing to do with the change's
+substance: `forge fmt --check` wanted four statements unwrapped to the
+configured width of 100, and `forge lint` refuses warnings under
+`deny_warnings`, of which the file carried three. Both are fixed on the branch
+now and `Contracts` is green.
+
+One of the three lint warnings was worth more than compliance. The gas
+measurement timed a bare `usdc.transfer` and read nothing back. USDC returns
+false instead of reverting, so a transfer that silently did nothing would still
+have produced a plausible gas figure, and that figure is what the payment
+channel decision rests on. The return value is now bound inside the timed window
+and asserted outside it, so the number is unchanged and a failed settlement can
+no longer look like a cheap one.
+
+The branch also now fails the deploy if the receipts key document stops carrying
+a key, asserted through the public URL so one check covers both a missing key
+and a document answered by the web app. Exercised in both directions against
+production before being committed.
+
+**One finding left open deliberately.** `RECEIPT_SIGNING_KEY` appears three
+times in the droplet's `.env`, on consecutive lines. All three values are byte
+identical and the container resolves the correct one, so nothing is wrong today.
+It is worth fixing anyway, because a rotation that edits one line leaves two
+stale copies and dotenv's last-wins rule would silently keep serving an old key.
+Deduplicating it was refused by the local permission gate, and per the standing
+rule a refused permission is not worked around, so it is recorded here rather
+than done. The same sweep found no other duplicated key in that file.
 
 Merged 2026-08-16:
 
