@@ -97,6 +97,21 @@ jobs:
       - name: Install the Python SDK, so the integration test can run
         run: pip install -e ./sdks/python
 
+      # Runs here rather than in the nginx job because it needs the application
+      # importable to read what it actually registers, and those dependencies
+      # are already installed above. A hand-kept list of paths would be another
+      # thing to forget to update, and forgetting is the failure being closed.
+      - name: Every root-level API document is routed to the API by nginx
+        run: |
+          # Found in production twice. The API served the /.well-known/ document
+          # correctly and the edge returned the web app's HTML, because nginx
+          # sends everything outside /api/ to the web app and the path was not
+          # named in the config. Green suite, green deploy, and a URL that was
+          # broken for everybody who was not us. The first fix added a single
+          # location, which closed the instance and left the category open, and
+          # the very next route to be added reopened it.
+          python scripts/check_well_known_routes.py
+
       - name: Lint
         working-directory: apps/api
         run: ruff check .
