@@ -93,6 +93,27 @@ export function localizedAlternates(
  * `twitter.title`, so the same link showed the page's name on one network and
  * the site's name on another.
  */
+/**
+ * Appended to every social description, on every page and in every locale.
+ *
+ * The landing page states the network in four places, and none of them travel.
+ * A shared link is read as a card far more often than it is clicked, so the
+ * card was the one surface describing a marketplace that "settles payments in
+ * USDC on Base" to someone with no way to learn it is a test network. The page
+ * was honest and the thing representing it was not.
+ *
+ * Applied here rather than passed in by each caller for the same reason the MCP
+ * tools carry their settlement notice in the server instead of in each handler:
+ * a disclosure that depends on every future author remembering it is a
+ * disclosure that will eventually be missing, and it will be missing on the
+ * surface that reaches people who never visited the site.
+ *
+ * Deliberately in English in every locale, matching the mainnet-versus-testnet
+ * distinction elsewhere in the product. It names a specific network, and the
+ * name is not translated.
+ */
+export const NETWORK_NOTICE = "Base Sepolia testnet. Test funds, no real value.";
+
 export function socialCard(options: {
   locale: Locale;
   path?: string;
@@ -102,12 +123,15 @@ export function socialCard(options: {
 }) {
   const { locale, path = "", title, description, type = "website" } = options;
   const clean = path === "/" ? "" : path;
+  const disclosed = description
+    ? `${description} ${NETWORK_NOTICE}`
+    : NETWORK_NOTICE;
   return {
     openGraph: {
       type,
       siteName: siteConfig.name,
       title,
-      description,
+      description: disclosed,
       url: absoluteUrl(`/${locale}${clean}`),
       locale: localeHreflang[locale],
       images: [
@@ -115,14 +139,14 @@ export function socialCard(options: {
           url: "/icons/og-image.png",
           width: 1200,
           height: 630,
-          alt: `${siteConfig.name}, ${title}`,
+          alt: `${siteConfig.name}, ${title}. ${NETWORK_NOTICE}`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image" as const,
       title,
-      description,
+      description: disclosed,
       images: ["/icons/twitter-image.png"],
     },
   };

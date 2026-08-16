@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
-import { LogoMark } from "@/components/brand/logo";
+import { LogoWordmark } from "@/components/brand/logo";
 import {
   DiscordIcon,
   GitHubIcon,
@@ -54,12 +54,11 @@ export async function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-12 md:grid-cols-[1.5fr_repeat(3,1fr)]">
           <div className="max-w-xs">
-            <div className="flex items-center gap-2.5">
-              <LogoMark size={28} className="rounded-md" />
-              <span className="text-[1.0625rem] font-semibold tracking-[-0.02em]">
-                {siteConfig.name}
-              </span>
-            </div>
+            {/* Was a hand-rolled copy of the same mark-plus-name pattern, at a
+                different size and gap to the one in the shell. Two definitions
+                of one lockup is how they drift, and drift is why the mark ended
+                up too small in some places and not others. There is one now. */}
+            <LogoWordmark />
             <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
               {t("tagline")}
             </p>

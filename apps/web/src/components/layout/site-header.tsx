@@ -31,7 +31,11 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface-base)_82%,transparent)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      {/* 64px on a phone, 72px from sm up. The bar grew with the mark rather
+          than the mark being capped by the bar: at 52px the mark needs the extra
+          height to keep its optical margin, and a 72px bar is also simply more
+          confident than the 64px default every framework ships with. */}
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:h-18 sm:px-6 lg:px-8">
         <Link
           href="/"
           className="rounded-lg transition-opacity hover:opacity-85"
