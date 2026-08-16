@@ -719,6 +719,40 @@ have meant telling a user their criticism was entirely correct and changing the
 page on a false premise. Following the redirect shows four mentions. The site
 was fine; the fetch was not.
 
+### Open: the MCP discovery document is not reachable in production
+
+Found 2026-08-16 by following the authentication challenge exactly as a client
+would, rather than by testing the application.
+
+`POST /api/v1/mcp` correctly answers 401 with
+`WWW-Authenticate: Bearer resource_metadata="https://agoreum.xyz/.well-known/oauth-protected-resource"`.
+Following that URL returns the web application's 404 page rather than the
+metadata document.
+
+**What is established, and what is not.** The application serves the document
+correctly: it is asserted by test and returns 200 locally. The API's own 404s are
+JSON, and this response is Next.js HTML, so the request is reaching the web
+application and not the API. An nginx `location =` block routing that exact path
+to the API was added, merged and deployed, and the behaviour did not change.
+Every other `/.well-known/` path returns the same 404, so nothing about that
+prefix is being routed to the API.
+
+What is **not** established is why. Candidates not yet distinguished: the
+droplet's mounted config not carrying the change despite a successful deploy,
+nginx reloading without re-reading the bind mount, or Cloudflare handling the
+`/.well-known/` prefix at the edge before the origin sees it. Guessing between
+them is what this project has repeatedly found to be the expensive move, so it
+is written down instead.
+
+**Impact, stated plainly.** The MCP endpoint works and is usable by any client
+given a key. Automatic authentication discovery does not: a client that does
+exactly what the challenge tells it to do gets an HTML page. That is a real
+defect for well-behaved clients and it is the next thing to fix.
+
+It is also a clean instance of the standing rule. Every test passed, because the
+tests speak to the application. Only the edge disagreed, and the edge is what an
+outside client actually meets.
+
 ### Open, blocked
 
 | Item | Blocked on | What unblocks it |
