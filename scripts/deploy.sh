@@ -107,6 +107,38 @@ fi
 log "apply any nginx mount or service changes"
 $COMPOSE up -d nginx
 
+# A single-file bind mount points at an inode, not a path. `git pull` replaces
+# these files rather than editing them in place, so the container keeps serving
+# the copy it started with, and `up -d` sees an unchanged service definition and
+# does nothing. `nginx -s reload` then re-reads the same stale file and succeeds,
+# which is why the recreate fallback below never fired.
+#
+# The effect, measured on 2026-08-16: every nginx configuration change since the
+# container was created on 2026-08-09 had silently not taken effect, including
+# routing and rate limiting. Nothing failed. The deploy went green each time.
+#
+# So the running config is compared against disk rather than assumed to follow
+# it, and the container is recreated only when they actually differ, which keeps
+# an ordinary deploy free of an unnecessary blip.
+log "check the running nginx config against the files on disk"
+nginx_stale=false
+for pair in "infra/nginx/agoreum.conf:/etc/nginx/conf.d/default.conf"             "infra/nginx/nginx.conf:/etc/nginx/nginx.conf"             "infra/nginx/proxy_headers.conf:/etc/nginx/conf.d/proxy_headers.conf"             "infra/nginx/cloudflare_realip.conf:/etc/nginx/conf.d/cloudflare_realip.conf"; do
+    host_file="${pair%%:*}"
+    container_file="${pair##*:}"
+    on_disk=$(md5sum "$host_file" | cut -d' ' -f1)
+    in_container=$($COMPOSE exec -T nginx md5sum "$container_file" 2>/dev/null | cut -d' ' -f1)
+    if [ "$on_disk" != "$in_container" ]; then
+        log "  stale: $host_file"
+        nginx_stale=true
+    fi
+done
+
+if [ "$nginx_stale" = true ]; then
+    log "recreating nginx so it picks up the changed configuration"
+    $COMPOSE up -d --force-recreate nginx
+    sleep 3
+fi
+
 # nginx resolves upstream container IPs once, at load time. Recreating api/web
 # gives them new IPs, so nginx must re-read its config or it keeps proxying to the
 # old, now-dead containers and every request 502s. A reload re-resolves without a
@@ -117,6 +149,22 @@ $COMPOSE exec -T nginx nginx -s reload 2>/dev/null || $COMPOSE up -d --force-rec
 # The real test: does the public site actually serve? This traverses Cloudflare
 # and nginx back to web, so it catches exactly the 502 a stale upstream causes, 
 # which an api-only health check would miss.
+# Assert rather than trust. If the running config still does not match disk
+# after a recreate, the deploy has not applied what it was asked to apply, and
+# saying so loudly is better than a green deploy serving yesterday's routing.
+log "confirm the running nginx config is the one in this commit"
+for pair in "infra/nginx/agoreum.conf:/etc/nginx/conf.d/default.conf"             "infra/nginx/nginx.conf:/etc/nginx/nginx.conf"             "infra/nginx/proxy_headers.conf:/etc/nginx/conf.d/proxy_headers.conf"             "infra/nginx/cloudflare_realip.conf:/etc/nginx/conf.d/cloudflare_realip.conf"; do
+    host_file="${pair%%:*}"
+    container_file="${pair##*:}"
+    on_disk=$(md5sum "$host_file" | cut -d' ' -f1)
+    in_container=$($COMPOSE exec -T nginx md5sum "$container_file" 2>/dev/null | cut -d' ' -f1)
+    if [ "$on_disk" != "$in_container" ]; then
+        log "FAILED: nginx is still serving a different $container_file than this commit"
+        exit 1
+    fi
+done
+log "  nginx configuration matches"
+
 log "verify the public site serves end to end"
 served=false
 for i in $(seq 1 18); do
