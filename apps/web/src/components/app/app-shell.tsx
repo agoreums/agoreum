@@ -104,7 +104,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Content column, offset by the sidebar on desktop. */}
       <div className="flex min-h-dvh flex-col lg:ms-64">
         <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface-base)_82%,transparent)] backdrop-blur-xl">
-          <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+          {/* Matches the marketing header so the two bars are the same height
+              on the same device, rather than the app quietly sitting 8px
+              shorter once the mark grew. */}
+          <div className="flex h-16 items-center gap-3 px-4 sm:h-18 sm:px-6">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}

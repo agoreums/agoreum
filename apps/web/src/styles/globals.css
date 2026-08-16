@@ -383,12 +383,12 @@
   }
 
   /* --- Ambient site background ------------------------------------------------
-     A premium, slow aurora: three softly-drifting light pools in the brand triad
-     (indigo, cyan, a whisper of settlement amber) over a fine engineered grid.
-     Everything animates on transform/opacity only, so it stays GPU-cheap, and it
-     sits at -z-10 behind all content. Deliberately low-contrast so body text keeps
-     full legibility on top of it. */
-  .aurora-field {
+     Loop geometry taken from the mark, not a generic aurora. See
+     components/landing/background.tsx for the reasoning. Everything animates on
+     transform/opacity only, so it stays on the compositor, and it sits at -z-10
+     behind all content at low enough contrast that body text keeps full
+     legibility on top of it. */
+  .brand-field {
     position: fixed;
     inset: 0;
     z-index: -10;
@@ -397,65 +397,103 @@
     background-color: var(--surface-base);
   }
 
-  .aurora-blob {
+  /* One light source, warm-cool, anchored where the hero headline sits so the
+     type has a slightly brighter field behind it without a visible pool. */
+  .brand-wash {
     position: absolute;
-    border-radius: 50%;
-    will-change: transform;
-    /* Radial fill gives soft edges without an expensive blur filter. */
-    opacity: 0.55;
+    inset: 0;
+    background-image:
+      radial-gradient(
+        ellipse 90% 62% at 50% -8%,
+        color-mix(in oklab, var(--color-brand-500) 30%, transparent) 0%,
+        transparent 72%
+      ),
+      radial-gradient(
+        ellipse 62% 48% at 88% 12%,
+        color-mix(in oklab, var(--color-signal-500) 15%, transparent) 0%,
+        transparent 70%
+      );
   }
-  :root[data-theme="light"] .aurora-blob,
-  :root[data-theme="system"] .aurora-blob {
-    opacity: 0.4;
+  :root[data-theme="light"] .brand-wash,
+  :root[data-theme="system"] .brand-wash {
+    opacity: 0.5;
   }
   @media (prefers-color-scheme: dark) {
-    :root[data-theme="system"] .aurora-blob {
-      opacity: 0.55;
+    :root[data-theme="system"] .brand-wash {
+      opacity: 1;
     }
   }
 
-  .aurora-indigo {
-    inset-block-start: -18%;
-    inset-inline-start: -12%;
-    width: min(70vw, 900px);
-    height: min(70vw, 900px);
-    background-image: radial-gradient(
-      circle at center,
-      color-mix(in oklab, var(--color-brand-500) 55%, transparent) 0%,
-      transparent 68%
+  /* The rings are centred on the hero rather than the viewport: at 50% they
+     halo the headline like a target, which is exactly the cliche being avoided.
+     Pushed up and oversized, only their lower arcs cross the content. */
+  .brand-rings {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: max(1400px, 130vw);
+    block-size: max(1400px, 130vw);
+    translate: -50% -62%;
+    opacity: 0.85;
+    -webkit-mask-image: radial-gradient(
+      ellipse 62% 62% at 50% 50%,
+      transparent 0%,
+      #000 46%,
+      #000 72%,
+      transparent 92%
     );
-    animation: aurora-a 26s var(--ease-out-brand) infinite;
+    mask-image: radial-gradient(
+      ellipse 62% 62% at 50% 50%,
+      transparent 0%,
+      #000 46%,
+      #000 72%,
+      transparent 92%
+    );
+  }
+  :root[data-theme="light"] .brand-rings,
+  :root[data-theme="system"] .brand-rings {
+    opacity: 0.5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] .brand-rings {
+      opacity: 0.85;
+    }
   }
 
-  .aurora-cyan {
-    inset-block-start: -12%;
-    inset-inline-end: -14%;
-    width: min(62vw, 760px);
-    height: min(62vw, 760px);
-    background-image: radial-gradient(
-      circle at center,
-      color-mix(in oklab, var(--color-signal-500) 42%, transparent) 0%,
-      transparent 70%
-    );
-    animation: aurora-b 32s var(--ease-out-brand) infinite;
+  .ring-group {
+    transform-origin: 600px 600px;
+    will-change: transform;
+  }
+  /* 150s and 190s, and in opposite directions. Deliberately not a round ratio,
+     so the two groups do not resynchronise into a repeating pattern the eye can
+     latch onto. */
+  .ring-group--cw {
+    animation: ring-turn-cw 150s linear infinite;
+  }
+  .ring-group--ccw {
+    animation: ring-turn-ccw 190s linear infinite;
   }
 
-  .aurora-amber {
-    inset-block-end: -22%;
-    inset-inline-start: 38%;
-    width: min(58vw, 720px);
-    height: min(58vw, 720px);
-    background-image: radial-gradient(
-      circle at center,
-      color-mix(in oklab, var(--color-accent-500) 24%, transparent) 0%,
-      transparent 72%
-    );
-    animation: aurora-c 38s var(--ease-out-brand) infinite;
+  @keyframes ring-turn-cw {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes ring-turn-ccw {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(-360deg);
+    }
   }
 
   /* Fine engineered grid, masked to fade out toward the edges. Reads as precision
      scaffolding rather than decoration. */
-  .aurora-grid {
+  .brand-grid {
     position: absolute;
     inset: 0;
     background-image:
@@ -477,8 +515,8 @@
     );
     mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 0%, transparent 78%);
   }
-  :root[data-theme="light"] .aurora-grid,
-  :root[data-theme="system"] .aurora-grid {
+  :root[data-theme="light"] .brand-grid,
+  :root[data-theme="system"] .brand-grid {
     background-image:
       linear-gradient(
         to right,
@@ -492,33 +530,6 @@
       );
   }
 
-  @keyframes aurora-a {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(6%, 5%, 0) scale(1.12);
-    }
-  }
-  @keyframes aurora-b {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(-5%, 7%, 0) scale(1.08);
-    }
-  }
-  @keyframes aurora-c {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(4%, -6%, 0) scale(1.16);
-    }
-  }
 
   /* --- Technology logo tile --------------------------------------------------
      Each mark rests in the muted text tone and warms to its own true brand hue on

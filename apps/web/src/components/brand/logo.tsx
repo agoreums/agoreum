@@ -37,12 +37,16 @@ export function LogoMark({
  *
  * The site header carries no wordmark: the name is already the tab title, the
  * domain, and the first line of the footer, so repeating it beside the mark only
- * shrinks the one element that actually carries the identity. Freed of it, the
- * mark takes 40px on a phone and 44px in a 64px-tall bar, roughly two thirds of
- * the header's height, and reads as a deliberate mark rather than a favicon that
- * wandered onto the page.
+ * shrinks the one element that actually carries the identity.
  *
- * The intrinsic size is deliberately larger than either rendered size so the
+ * Freed of it, the mark takes 44px on a phone and 52px in the 72px desktop bar,
+ * a little over 70% of the header's height. The previous 40/44 in a 64px bar was
+ * reviewed against the rest of the header and read as an afterthought: at that
+ * size it sat below the visual weight of the wallet button beside it, so the
+ * first thing the eye found on the page was a control rather than the identity.
+ * A mark this size is the deliberate anchor of the bar.
+ *
+ * The intrinsic size is deliberately far larger than either rendered size so the
  * image stays sharp on a phone's 2x or 3x display; CSS controls what is shown.
  *
  * `label` is not decoration. `LogoMark` is `aria-hidden`, so a home link built
@@ -59,15 +63,29 @@ export function LogoMarkStandalone({
   return (
     <span className="inline-flex items-center">
       <LogoMark
-        size={132}
+        size={160}
         priority={priority}
-        className="h-10 w-10 shrink-0 sm:h-11 sm:w-11"
+        className="h-11 w-11 shrink-0 sm:h-13 sm:w-13"
       />
       <span className="sr-only">{label}</span>
     </span>
   );
 }
 
+/**
+ * Mark and name together, for the places a bare mark is not enough context:
+ * the application shell and the authenticated sidebar.
+ *
+ * The mark and the wordmark are set as two separate elements with real space
+ * between them rather than a locked-up unit. Previously a 30px mark sat 10px from
+ * 17px text, which is close enough that the two read as one crowded blob and the
+ * mark loses its own silhouette. The standing decision on this build is that the
+ * mark has to be able to stand alone, and it cannot do that while it is being
+ * used as a bullet point in front of a word.
+ *
+ * So the mark is 38px, the gap is 14px, and the name is set slightly lighter in
+ * weight. The mark leads, the name follows it.
+ */
 export function LogoWordmark({
   className = "",
   priority = false,
@@ -76,9 +94,9 @@ export function LogoWordmark({
   priority?: boolean;
 }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark size={30} priority={priority} className="shrink-0 rounded-md" />
-      <span className="text-[1.0625rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
+    <span className={`inline-flex items-center gap-3.5 ${className}`}>
+      <LogoMark size={120} priority={priority} className="h-9.5 w-9.5 shrink-0" />
+      <span className="text-[1.125rem] font-semibold tracking-[-0.022em] text-[var(--text-primary)]">
         {siteConfig.name}
       </span>
     </span>
