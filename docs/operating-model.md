@@ -66,12 +66,169 @@ Facts about this machine that have cost time before:
   stale**, because every other kind of stale note gets corrected by somebody
   going to look, and this kind is specifically an instruction not to.
 
-### Then read the rest of the state
+### Then read the running record
 
-`## Current state`, `### In flight`, and `## Backlog` below are maintained so
-that starting a session means reading them rather than rediscovering them. If
-something in them turns out to be stale, fixing the record is part of the work,
-not an aside.
+`## Running record` immediately below is the state of the project as of the last
+batch of work. It is the part written for a cold start: what is true now, what
+each strand did last, what is open, and what was decided and why. Everything
+after it is durable doctrine and the archive of findings, which is worth reading
+but does not change week to week.
+
+### And update it before you stop
+
+The record is only worth reading if it is true, and a rule to keep it true is
+worth nothing on its own. This project has spent a month proving that a stated
+invariant with no check under it drifts, in the SDK version constants, in the
+scope catalogue, in two documents quoting test counts maintained by hand.
+
+So: **before reporting a batch of work or moving to the next one, update the
+running record in the same commit as the work.** Not afterwards, not at the end
+of a session, because the moment the work feels finished is exactly the moment
+the record stops feeling urgent.
+
+`scripts/check_state_record.py` enforces it. If a commit changes code and the
+record's `Last updated` line is older than that commit, CI fails and names the
+commits that landed without the record moving. That check exists because
+"remember to update the document" is the same class of instruction as every
+other one that rotted, and the fix for those was never a stronger reminder.
+
+**Forgetting something already established is a failure to read this file, not
+an ordinary cost of working across sessions.** Claiming access is missing when
+it sits in `.env` is the same failure. Both are treated as defects with a root
+cause, and the root cause is never "should have tried harder".
+
+## Running record
+
+**Last updated:** 2026-08-16, after `8dab8c3`.
+
+Written so that a session starting cold, whether that is a fresh instance or the
+same one resuming, can act from this section rather than reconstruct it.
+
+### Where the project is right now
+
+Testnet only, on Base Sepolia, in the hardening and expansion phase set on
+2026-08-16. The platform is live at `agoreum.xyz` and usable end to end:
+identities, published services, orders, on-chain escrow, disputes with an
+arbiter path, native USDC subscriptions, three published SDKs, a remote MCP
+server, a published OpenAPI contract, and signed settlement receipts. Nine
+locales. Nothing is deployed to mainnet and nothing may be without an explicit
+instruction naming it.
+
+The single structural advantage, and the thing every decision defends: reputation
+is computed only from orders that settled through escrow, against an ERC-8004
+landscape where between 98.7% and 100% of on-chain reputation records carry no
+proof of payment at all.
+
+### Live production facts
+
+Verified against the running artifact rather than the repository, on the date
+shown. Anything here that cannot be re-derived from production is a defect in
+this section.
+
+| Fact | Value | How it was checked |
+| --- | --- | --- |
+| Origin | Droplet `209.97.186.80`, repo at `/root/agoreum`, locked to Cloudflare ranges | SSH, direct shell |
+| Containers | `agoreum-<service>-1`, ten of them, all up | `docker ps` |
+| API health | database, Redis and chain all ok, chain ~1.5s behind head | `/api/v1/health/ready` inside the container |
+| Workers | subscription indexer, webhooks, emails, all heartbeating within 3s | `/api/v1/health/workers` |
+| Receipts | **signing live**, kid `rVl3VOYAtNY4LW0J`, key document public and 200 | fetched from the public URL, and a production signature verified against it by an independent client |
+| Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
+| Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
+| SDKs | Python, TypeScript, Go all at 0.2.0 | verified from the registries, not the local build |
+| Suites | API 744+ passing with 0 skipped, asserted; contracts 142 with 0 skipped; fork suite runs in CI | CI |
+
+### What each strand did last, and what is next
+
+| Strand | Last action | Next |
+| --- | --- | --- |
+| Security | Found the platform's central claim rested on one untested branch, and made it structural. Verified receipts sign in production against the deployed artifact | Continue the sweep for the "looks covered, never exercised" shape; it has produced a real finding every time |
+| Backend and API | Found `build()`, the function that issues a receipt, had no test at all, and that the one test named for the settlement refusal passed a random uuid and never reached it. Eleven tests added, four mutations | Prove the receipt path over a real settled order rather than a fake session |
+| Contracts | Fixed the two failures that had kept `Contracts` red on every open branch, and corrected a gas measurement that read nothing back from a transfer that can return false | Settlement cost measurement is recorded; no open work |
+| Frontend and web | Mark sizing corrected at its two definitions so every placement moves together. Social cards and OG images now name Base Sepolia | Continue raising the interface to the standard set for this phase |
+| Infrastructure | Added a deploy assertion that fails when the receipts key document stops carrying a key, exercised in both directions against production before shipping | Cloudflare refuses `/.well-known/*` to one common client, see open threads |
+| Product and growth | Discord read in full, nothing unanswered; the only recent messages are members talking to each other, and posting into that would be manufactured activity | Keep inbound answered as a standing responsibility |
+
+### Open threads
+
+| Item | State | What it needs |
+| --- | --- | --- |
+| No escrow has ever settled in production | Open, and harder than it looked | See "the settlement exercise" below |
+| Receipt path unproven over real data | Open | Follows from the row above |
+| Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
+| `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
+| Three Safe multisigs on Base | Blocked | Owner action |
+| Security audit engagement | Blocked | Owner action |
+| Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
+| PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The settlement exercise, and why it is not simply "go and run it"
+
+Authorised on 2026-08-16 as a low cost, reversible testnet action, which it is.
+Preparing it surfaced something that changes the shape of the task, recorded
+here because the next session will otherwise re-derive it.
+
+Driving a real order to settlement in production means one person controlling
+both sides. That is self-dealing, and until this was found, a settled self-dealt
+order counted toward the provider's reputation in full. So the exercise as
+originally imagined would have manufactured exactly the wash-traded reputation
+this platform exists to be structurally free of, in the production database, as
+its first settled order.
+
+The fix landed first, and it changes what is possible. Reputation now excludes
+orders whose buyer belongs to the provider agent's organization, at computation
+time rather than only at order creation. So an exercise where the two accounts
+share an organization produces a genuine settled escrow, a genuine receipt over
+real rows, and no reputation at all, which is the correct outcome on every axis.
+
+The remaining wrinkle is ordering. `create_order` refuses a buyer who is already
+a member, so the membership has to be established after the order exists rather
+than before. That is not a workaround: the trade genuinely was between related
+parties, and the record ends up saying so.
+
+**Not yet run.** The path above is sound and the exercise is worth doing, but it
+writes real rows to production and the design only became clear at the end of a
+long batch. Doing it carefully at the start of a batch is better than doing it
+tired at the end of one.
+
+### Decisions taken, and why
+
+Recorded here when the reasoning would not survive being rediscovered. The
+durable ones are in `## Standing constraints`; the archive of findings is in
+`## Backlog`.
+
+- **Reputation is escrow only, permanently.** Any cheap high-frequency
+  settlement rail is, read adversarially, a machine for manufacturing settled
+  volume at gas prices. Wiring one into reputation would sell the only
+  differentiator for the price of gas. Decoupling costs nothing.
+- **A payment channel is not being built yet.** The premise was that settling
+  each call on chain is too expensive, and nobody had measured it. It is now
+  measured against a real fork rather than assumed, in
+  `docs/micropayment-settlement-cost.md`.
+- **The record gets a check, not a reminder.** See the section above.
+
+### Session log
+
+Terse, most recent first. One line per batch, enough to know what happened
+without reading the commits.
+
+- **2026-08-16, later.** Found that the only thing preventing self-dealt
+  reputation was one untested branch of `create_order`, and that reputation
+  itself re-established nothing. Fixed structurally at computation time, filter
+  applied to every figure that could flatter an agent and deliberately not to
+  the ones that count against it. Made the running record enforceable rather
+  than aspirational, and the guard for that was itself wrong when written and
+  caught by mutation. Fixed the Cloudflare browser integrity check refusing the
+  well-known documents to a plain client, scoped to that path, with the rule in
+  the repository rather than a console.
+- **2026-08-16.** Confirmed receipts sign live in production and closed the loop
+  from outside: a production signature verified against the key fetched from the
+  public URL by a client that reimplemented the canonical rules from the
+  published instructions rather than importing ours. Merged #30, #31 and #32.
+  Found and fixed two Contracts failures that had never been green, a gas
+  measurement that could report a plausible number for a transfer that did
+  nothing, an operating model note asserting CI had no branch signal, and a
+  receipts feature whose issuing function had no test. Measured a Cloudflare
+  403 against one common client on the well-known documents.
 
 ## Standing constraints
 
@@ -86,7 +243,7 @@ These are not defaults to be weighed against other factors. They are settled.
 | Honest reporting | Failures reported as failures, with the evidence. A thing is "done" when it has been verified, not when it has been written |
 | No manufactured activity | No giveaways, points programmes, airdrops, engagement campaigns or paid promotion, and no KOL or influencer arrangements. Reputation on the platform comes only from orders that settled on chain, and a community inflated by campaigns would contradict the one claim the product rests on |
 | Not hiring until after the audit | Applications and partnership pitches of that shape are declined directly, with the reason, and without checking first. Settled on 2026-08-15 rather than decided per message |
-| Reputation is escrow only | Reputation is computed only from orders that settled through escrow. No other settlement rail may ever feed it, whatever gets built later. Settled 2026-08-16 |
+| Reputation is escrow only, and arm's length | Reputation is computed only from orders that settled through escrow, and only where the buyer is not a member of the provider agent's organization. No other settlement rail may ever feed it, whatever gets built later. Escrow-only settled 2026-08-16; the arm's-length half added the same day, after finding a settled payment from yourself to yourself counted in full |
 | No unreleased work in public | Upcoming features, internal roadmap and research stay in this repository. Discord, the website and the documentation only ever show what has shipped |
 
 **Why reputation is escrow only, since it will look like an arbitrary
@@ -492,14 +649,20 @@ more expensive than waiting for it.
 Research is the exception and runs ahead of everything, because it is the only
 strand whose output changes what the others should build rather than how.
 
-## Current state
+## Roadmap and delivery history
 
-Maintained so a session starting cold can act from this section rather than
-re-reading the repository. It records what is true now and what is in flight,
-not the history, which is in the backlog and the git log. Anything here that has
-gone stale is a defect in this file.
+Superseded as the place to start. `## Running record` near the top of this file
+is what a cold session reads; this section is the roadmap and the archive of
+what has already been delivered.
 
-**Last updated:** 2026-08-16.
+It used to be called "Current state" and carried its own `Last updated` line,
+which is how `scripts/check_state_record.py` came to have a real defect on the
+day it was written. The check searched the file for the first `Last updated`
+line, and with two of them it would happily read this one while the running
+record's line was missing entirely, reporting the record current when nothing
+was maintaining it. Found by mutation testing the guard rather than by trusting
+it, which is the only reason it is not still there. There is now exactly one
+such line, and the check refuses to run if that stops being true.
 
 ### Roadmap, from evidence rather than instinct
 
@@ -974,7 +1137,70 @@ of the four initially did not land at all, because this working copy is CRLF and
 the replacement strings were not, and the harness reported that rather than
 reporting a pass. That guard is the reason the result means anything.
 
-### 22. Cloudflare refuses the key document to one common client (open)
+### 23. Reputation could be manufactured by paying yourself (done)
+
+Found on 2026-08-16 while preparing the settlement exercise, by asking what
+would happen to reputation if one person controlled both sides of a real order.
+That is not an idle question: it is what the exercise requires.
+
+The answer was that it counted, in full.
+
+**What existed.** `create_order` refuses a buyer who is a member of the provider
+agent's organization, with code `self_dealing`. The escrow contract separately
+refuses `provider == msg.sender`, so one address cannot be both sides on chain.
+Both correct, and together they were the entire defence.
+
+**What was missing, in two ways.** The API guard had **no test anywhere**. Not
+one, and it is not mentioned in any document either, so nothing would have
+noticed it regressing. And reputation re-established nothing: `gather_inputs`
+counted settled orders, volume, delivery times and reviews with no reference to
+who the buyer was.
+
+That arrangement fails quietly. A creation-time check answers "may this order be
+created" and reputation asks "did money move". Nobody asks "were these parties
+at arm's length" at the moment a score is computed, so the guarantee lives in
+one branch of one function and anything arriving by another route inherits none
+of it: an admin action, a backfill, an import, a future endpoint, or simply the
+buyer joining the provider's organization after placing the order, which the
+creation check cannot see because it has already run. That last case needs no
+mistake by anybody at all.
+
+**Why it is the most serious thing found this month.** Every other finding was
+about a mechanism not doing its job. This one was about the single claim the
+product is built on. The argument for this platform over the ERC-8004 landscape
+is that a score cannot exist without a settled payment behind it, against
+records where between 98.7% and 100% carry no proof of payment. A settled
+payment from yourself to yourself satisfies that sentence perfectly and means
+nothing, so the claim was true in letter and hollow where it mattered.
+
+**Fixed structurally rather than procedurally.** `arms_length()` in the
+reputation service excludes orders whose buyer belongs to the rated agent's
+organization, applied to every figure that could flatter an agent: settled
+order count, volume, delivery metrics and published reviews. Reviews are joined
+back to their order for this, since a review is only creatable by the buyer of a
+settled order and would otherwise carry a self-written five stars as a
+customer's opinion.
+
+**Deliberately asymmetric**, which is the part worth keeping. Cancellations,
+disputes and disputes lost are *not* filtered. Filtering those too would let an
+agent dispute its own orders from inside its own organization and launder a real
+dispute history into a clean one. Leaving them makes the guarantee directional:
+self-dealing can never improve a score in any combination, without anybody
+having to enumerate what somebody might try.
+
+**What this does not buy**, stated so nobody later assumes more than it does. It
+is not Sybil resistance. Two unrelated accounts controlled by one person still
+pass, and no reasonable check catches that. What survives is the honest version
+of the claim: manufacturing reputation here costs real money at real fee rates
+on real settled volume, rather than fractions of a cent with no payment at all,
+and where the platform can see the parties are one interest it does not count.
+
+Four mutations, each caught by the test that claims to cover it: removing the
+filter, making it always true, making it always false, which is the control that
+proves it is not silently deleting genuine reputation, and removing the
+`self_dealing` refusal from `create_order`.
+
+### 22. Cloudflare refuses the key document to one common client (done)
 
 Measured on 2026-08-16 while verifying a production signature the way an
 outsider would. `GET /.well-known/agoreum-receipts.json` returns 403 to the

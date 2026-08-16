@@ -523,6 +523,25 @@ jobs:
       - name: Every compose service must be reachable by the deploy script
         run: python scripts/check_deploy_coverage.py
 
+  # The running record is what a session starting cold acts on, so a record that
+  # has stopped following the code is worse than no record: it is confidently
+  # wrong about what is true. Keeping it current was an instruction for weeks,
+  # and an instruction with no check under it is the exact shape that rotted the
+  # SDK version constants, the duplicated scope catalogue and two documents
+  # quoting hand-maintained test counts.
+  state-record:
+    name: Running record
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The check compares the record's date against the commits that landed
+          # after it, so it needs history rather than the default single commit.
+          fetch-depth: 0
+      - name: The running record must move when the code moves
+        run: python scripts/check_state_record.py
+
   nginx:
     name: Nginx config
     runs-on: ubuntu-24.04

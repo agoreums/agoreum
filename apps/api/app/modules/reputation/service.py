@@ -33,6 +33,7 @@ from app.db.enums import EscrowStatus, OrderStatus, ReviewStatus
 from app.modules.agents.models import Agent
 from app.modules.orders.models import Escrow, Order
 from app.modules.organizations.authz import is_member
+from app.modules.organizations.models import OrganizationMembership
 from app.modules.reputation.models import ReputationSnapshot, Review
 from app.modules.services.models import Service
 from app.modules.users.models import User
@@ -47,6 +48,52 @@ MIN_ORDERS_FOR_SCORE = 3
 
 # Escrow states that mean money actually moved to the provider.
 SETTLED_ESCROW_STATES = (EscrowStatus.RELEASED, EscrowStatus.REFUNDED)
+
+
+def arms_length(agent_id: uuid.UUID):
+    """Orders whose buyer does not belong to the organization being rated.
+
+    **Why this is here and not only at order creation.** `create_order` already
+    refuses a buyer who is a member of the provider agent's organization, with
+    code `self_dealing`. That check is correct and it was, until this was
+    written, the only thing in the entire system standing between the product's
+    central claim and manufactured reputation. It had no test of any kind, and
+    nothing downstream re-established the property.
+
+    That arrangement fails in a specific and quiet way. A creation-time check
+    answers "may this order be created", and reputation asks "did money move".
+    Neither asks "were these two parties at arm's length" at the moment the
+    score is computed, so the guarantee lives entirely in one branch of one
+    function. Anything that produces an order by another route inherits none of
+    it: a future endpoint, an admin action, a backfill, an import, a migration,
+    or membership changing after the order was placed, which the creation check
+    cannot see because it has already run.
+
+    The last of those is worth stating plainly because it needs no mistake by
+    anybody. Order placed legitimately, buyer later joins the provider's
+    organization, and the order silently becomes self-dealt history that still
+    counts. Nothing was bypassed and no code was wrong.
+
+    **What this does and does not buy.** It removes self-dealing between
+    accounts that are visibly related. It does not make reputation Sybil proof,
+    because two unrelated accounts controlled by one person still pass, and no
+    reasonable check catches that. What it does is keep the honest version of
+    the claim true: reputation here requires a settled payment, and where the
+    platform can see the parties are the same interest, it does not count. The
+    residual cost of faking it is real money at real fee rates rather than
+    fractions of a cent, which is the actual difference from the ERC-8004
+    records where between 98.7% and 100% carry no proof of payment at all.
+
+    Written as a reusable condition rather than inlined because it has to hold
+    for every figure a score is built from. Applying it to the order count and
+    forgetting volume would leave a self-dealt agent showing no orders and a
+    large turnover, which is a worse signal than either alone.
+    """
+    return ~select(OrganizationMembership.id).where(
+        OrganizationMembership.user_id == Order.buyer_id,
+        OrganizationMembership.org_id == Agent.org_id,
+        Agent.id == agent_id,
+    ).exists()
 
 
 @dataclass(frozen=True)
@@ -92,6 +139,8 @@ async def gather_inputs(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationI
             # The order says complete *and* the chain says the money moved.
             Escrow.status.in_(SETTLED_ESCROW_STATES),
             Escrow.released_amount > 0,
+            # And the two parties were not the same interest. See arms_length.
+            arms_length(agent_id),
         )
     ).subquery()
 
@@ -99,6 +148,20 @@ async def gather_inputs(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationI
         await db.execute(select(func.count()).select_from(settled))
     ).scalar_one()
 
+    # The three figures below deliberately do NOT filter on arms_length, and the
+    # asymmetry is the point rather than an oversight.
+    #
+    # Every figure that could flatter an agent is filtered: settled orders,
+    # volume, delivery times, ratings. Every figure that counts against one is
+    # not. That makes the guarantee directional and therefore easy to reason
+    # about: self-dealing can never improve a score, in any combination, without
+    # anybody having to enumerate the ways somebody might try.
+    #
+    # Filtering these too would create the opposite hole. An agent could dispute
+    # its own orders from an account inside its own organization and have those
+    # disputes disappear from the record, laundering a real dispute history into
+    # a clean one. Nobody outside the organization can place these orders at all,
+    # so anything they count against is self-inflicted and should stand.
     cancelled_orders = (
         await db.execute(
             select(func.count())
@@ -145,17 +208,26 @@ async def gather_inputs(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationI
             .where(
                 Order.provider_agent_id == agent_id,
                 Escrow.status.in_(SETTLED_ESCROW_STATES),
+                arms_length(agent_id),
             )
         )
     ).scalar_one()
 
+    # Joined to the order rather than read from the review alone. A review is
+    # only creatable by the buyer of a completed, settled order, so the review
+    # table inherits whatever the order table allowed, and a self-dealt order
+    # yields a self-written five star review that would otherwise be counted as
+    # a customer's opinion. That is the most visible form of this manipulation
+    # and the one a human reader would weigh most heavily.
     review_stats = (
         await db.execute(
             select(func.count(), func.coalesce(func.sum(Review.rating), 0))
             .select_from(Review)
+            .join(Order, Order.id == Review.order_id)
             .where(
                 Review.subject_agent_id == agent_id,
                 Review.status == ReviewStatus.PUBLISHED,
+                arms_length(agent_id),
             )
         )
     ).one()
@@ -197,6 +269,7 @@ async def _delivery_metrics(
                 Order.status == OrderStatus.COMPLETED,
                 Order.funded_at.isnot(None),
                 Order.delivered_at.isnot(None),
+                arms_length(agent_id),
             )
         )
     ).all()

@@ -473,3 +473,181 @@ class TestDashboards:
     ) -> None:
         for path in ("buyer", "provider", "admin"):
             assert (await client.get(f"/api/v1/dashboard/{path}")).status_code == 401
+
+
+class TestReputationCannotBeSelfDealt:
+    """The one property the whole product rests on.
+
+    Agoreum's claim against the rest of the ecosystem is narrow and entirely
+    structural: a score here cannot exist without a settled payment behind it,
+    measured against ERC-8004 records where between 98.7% and 100% carry no
+    proof of payment at all. That claim survives only if the payment was
+    between two parties who are not the same interest. A settled payment from
+    yourself to yourself is a real transaction and a fake reputation.
+
+    Until these tests were written, one branch of `create_order` was the only
+    thing in the entire system enforcing it, and nothing exercised that branch.
+    Reputation itself did not re-establish the property, so any order arriving
+    by another route counted in full: an admin action, a backfill, an import, a
+    future endpoint, or simply the buyer joining the provider's organization
+    after placing an order, which the creation check has no way to see because
+    it has already run.
+    """
+
+    async def test_ordering_from_your_own_agent_is_refused(
+        self, client: AsyncClient
+    ) -> None:
+        """The guard that had no test.
+
+        Refused with a named code rather than a generic conflict, because the
+        SDKs and the interface both need to explain this to somebody who is
+        very likely not attacking anything and simply wants to test their own
+        service.
+        """
+        token, _, service_id = await build_provider(client)
+
+        resp = await client.post(
+            "/api/v1/orders",
+            json={"service_id": service_id, "quantity": 1},
+            headers=auth(token),
+        )
+
+        assert resp.status_code == 409, resp.text
+        assert resp.json()["error"]["code"] == "self_dealing"
+
+    async def test_a_settled_order_from_inside_the_org_earns_nothing(
+        self, client: AsyncClient, db: AsyncSession
+    ) -> None:
+        """Defence in depth, written as the attack rather than as a unit test.
+
+        The order is inserted directly, which is the whole point: it models
+        every route that does not pass through `create_order`, and asserts the
+        score does not move rather than asserting that some function was
+        called.
+        """
+        token, slug, service_id = await build_provider(client)
+        me = (await client.get("/api/v1/auth/me", headers=auth(token))).json()
+
+        agent = (
+            await db.execute(
+                sa.text("SELECT id, org_id FROM agents WHERE slug = :slug"),
+                {"slug": slug},
+            )
+        ).one()
+
+        # Three settled orders, which is MIN_ORDERS_FOR_SCORE, so a score would
+        # be published if any of this counted.
+        for i in range(reputation.MIN_ORDERS_FOR_SCORE):
+            order_id = uuid.uuid4()
+            await db.execute(
+                sa.text(
+                    "INSERT INTO orders (id, reference, buyer_id, provider_agent_id,"
+                    " service_id, status, quantity, unit_price, subtotal,"
+                    " platform_fee, total_amount, currency, platform_fee_bps,"
+                    " created_at, updated_at, funded_at, delivered_at, completed_at)"
+                    " VALUES (:id, :ref, :buyer, :agent, :service, 'completed', 1,"
+                    " 100, 100, 2.5, 102.5, 'USDC', 250, now(), now(), now(), now(), now())"
+                ),
+                {
+                    "id": order_id,
+                    "ref": f"SELF-{i}-{uuid.uuid4().hex[:6]}",
+                    "buyer": me["id"],
+                    "agent": agent.id,
+                    "service": service_id,
+                },
+            )
+            await db.execute(
+                sa.text(
+                    "INSERT INTO escrows (id, order_id, status, chain_id,"
+                " token_address, token_symbol, token_decimals, amount,"
+                " released_amount, refunded_amount, fee_amount,"
+                " buyer_address, provider_address,"
+                " funded_at, released_at, created_at, updated_at)"
+                " VALUES (:id, :order_id, 'released', 84532,"
+                " '0x036cbd53842c5426634e7929541ec2318f3dcf7e', 'USDC', 6,"
+                " 100, 97.5, 0, 2.5,"
+                " '0x00000000000000000000000000000000000000b0',"
+                " '0x00000000000000000000000000000000000000a1',"
+                " now(), now(), now(), now())"
+                ),
+                {"id": uuid.uuid4(), "order_id": order_id},
+            )
+        await db.flush()
+
+        inputs = await reputation.gather_inputs(db, agent_id=agent.id)
+
+        assert inputs.completed_orders == 0, (
+            "orders placed by a member of the agent's own organization counted "
+            "toward its reputation, which is the wash trading this platform "
+            "exists to be structurally free of"
+        )
+        assert inputs.total_volume == 0, (
+            "self-dealt settlements counted as turnover, so an agent with no "
+            "arm's length trade could still advertise volume"
+        )
+        assert not inputs.has_enough_history
+
+    async def test_an_arms_length_order_still_counts(
+        self, client: AsyncClient, db: AsyncSession
+    ) -> None:
+        """The control, and the half that makes the test above mean anything.
+
+        An exclusion that also removed genuine trade would pass the assertion
+        above perfectly while destroying the product, so the same construction
+        is repeated with an unrelated buyer and must produce the opposite
+        answer.
+        """
+        _, slug, service_id = await build_provider(client)
+        buyer_token, _ = await sign_in(client)
+        buyer = (await client.get("/api/v1/auth/me", headers=auth(buyer_token))).json()
+
+        agent = (
+            await db.execute(
+                sa.text("SELECT id, org_id FROM agents WHERE slug = :slug"),
+                {"slug": slug},
+            )
+        ).one()
+
+        order_id = uuid.uuid4()
+        await db.execute(
+            sa.text(
+                "INSERT INTO orders (id, reference, buyer_id, provider_agent_id,"
+                " service_id, status, quantity, unit_price, subtotal,"
+                " platform_fee, total_amount, currency, platform_fee_bps,"
+                " created_at, updated_at, funded_at, delivered_at, completed_at)"
+                " VALUES (:id, :ref, :buyer, :agent, :service, 'completed', 1,"
+                " 100, 100, 2.5, 102.5, 'USDC', 250, now(), now(), now(), now(), now())"
+            ),
+            {
+                "id": order_id,
+                "ref": f"ARMS-{uuid.uuid4().hex[:6]}",
+                "buyer": buyer["id"],
+                "agent": agent.id,
+                "service": service_id,
+            },
+        )
+        await db.execute(
+            sa.text(
+                "INSERT INTO escrows (id, order_id, status, chain_id,"
+                " token_address, token_symbol, token_decimals, amount,"
+                " released_amount, refunded_amount, fee_amount,"
+                " buyer_address, provider_address,"
+                " funded_at, released_at, created_at, updated_at)"
+                " VALUES (:id, :order_id, 'released', 84532,"
+                " '0x036cbd53842c5426634e7929541ec2318f3dcf7e', 'USDC', 6,"
+                " 100, 97.5, 0, 2.5,"
+                " '0x00000000000000000000000000000000000000b0',"
+                " '0x00000000000000000000000000000000000000a1',"
+                " now(), now(), now(), now())"
+            ),
+            {"id": uuid.uuid4(), "order_id": order_id},
+        )
+        await db.flush()
+
+        inputs = await reputation.gather_inputs(db, agent_id=agent.id)
+
+        assert inputs.completed_orders == 1, (
+            "a genuine order from an unrelated buyer was excluded, so the "
+            "self-dealing filter is destroying real reputation"
+        )
+        assert inputs.total_volume == Decimal("97.5")
