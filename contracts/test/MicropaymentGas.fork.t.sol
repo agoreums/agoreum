@@ -117,6 +117,10 @@ contract MicropaymentGasForkTest is Test {
         require(feed.decimals() == 8, "unexpected feed decimals");
         (, int256 answer,,,) = feed.latestRoundData();
         require(answer > 100e8 && answer < 1_000_000e8, "implausible ETH price");
+        // casting to 'uint256' is safe because the require directly above refuses
+        // any answer that is not strictly greater than 100e8, so a negative value
+        // reverts before reaching here rather than wrapping to an enormous price.
+        // forge-lint: disable-next-line(unsafe-typecast)
         return uint256(answer);
     }
 
@@ -157,8 +161,17 @@ contract MicropaymentGasForkTest is Test {
         bytes memory transferData = abi.encodeCall(IERC20.transfer, (coldPayee, 10_000));
         vm.prank(buyer);
         uint256 g0 = gasleft();
-        usdc.transfer(coldPayee, 10_000);
+        bool coldOk = usdc.transfer(coldPayee, 10_000);
         uint256 coldTransfer = g0 - gasleft();
+        // Asserted outside the measured window on purpose. The return value has
+        // to be read, both because an unchecked ERC20 transfer is a real defect
+        // pattern and because a silently failing transfer would produce a
+        // perfectly plausible gas figure for a payment that never happened,
+        // which is the worst outcome for a measurement meant to settle a design
+        // question. Binding it to a local costs a stack slot rather than a
+        // branch, since the compiler already decodes the return value whether or
+        // not anybody looks at it, so the number below is unaffected.
+        assertTrue(coldOk, "cold USDC transfer returned false");
         _report("USDC transfer, new payee (cold)", coldTransfer, transferData);
 
         // Warm: the payee already holds USDC. The repeat-business case, and the
@@ -166,8 +179,9 @@ contract MicropaymentGasForkTest is Test {
         // calls the same provider many times.
         vm.prank(buyer);
         g0 = gasleft();
-        usdc.transfer(coldPayee, 10_000);
+        bool warmOk = usdc.transfer(coldPayee, 10_000);
         uint256 warmTransfer = g0 - gasleft();
+        assertTrue(warmOk, "warm USDC transfer returned false");
         _report("USDC transfer, repeat payee (warm)", warmTransfer, transferData);
 
         // 2. The current model, for contrast. Escrow is not what a micropayment
