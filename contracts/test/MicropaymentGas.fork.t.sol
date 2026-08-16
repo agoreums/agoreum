@@ -19,10 +19,7 @@ interface IGasPriceOracle {
 
 interface IAggregatorV3 {
     function decimals() external view returns (uint8);
-    function latestRoundData()
-        external
-        view
-        returns (uint80, int256, uint256, uint256, uint80);
+    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80);
 }
 
 /// @notice Measures the real cost of settling a payment on Base, to decide
@@ -120,6 +117,10 @@ contract MicropaymentGasForkTest is Test {
         require(feed.decimals() == 8, "unexpected feed decimals");
         (, int256 answer,,,) = feed.latestRoundData();
         require(answer > 100e8 && answer < 1_000_000e8, "implausible ETH price");
+        // casting to 'uint256' is safe because the require directly above refuses
+        // any answer that is not strictly greater than 100e8, so a negative value
+        // reverts before reaching here rather than wrapping to an enormous price.
+        // forge-lint: disable-next-line(unsafe-typecast)
         return uint256(answer);
     }
 
@@ -137,10 +138,7 @@ contract MicropaymentGasForkTest is Test {
         microUsd = ((l1FeeWei + l2FeeWei) * ethUsd8) / 1e20;
     }
 
-    function _report(string memory label, uint256 gasUsed, bytes memory callData)
-        internal
-        view
-    {
+    function _report(string memory label, uint256 gasUsed, bytes memory callData) internal view {
         (uint256 microUsd, uint256 l1, uint256 l2) = _costMicroUsd(gasUsed, callData);
         console2.log("---", label);
         console2.log("  l2 gas (incl. intrinsic):", gasUsed + INTRINSIC_GAS);
@@ -160,12 +158,20 @@ contract MicropaymentGasForkTest is Test {
         //    zero to non-zero. This is the honest case for a new counterparty
         //    and costs far more than paying somebody you have paid before.
         address coldPayee = makeAddr("coldPayee");
-        bytes memory transferData =
-            abi.encodeCall(IERC20.transfer, (coldPayee, 10_000));
+        bytes memory transferData = abi.encodeCall(IERC20.transfer, (coldPayee, 10_000));
         vm.prank(buyer);
         uint256 g0 = gasleft();
-        usdc.transfer(coldPayee, 10_000);
+        bool coldOk = usdc.transfer(coldPayee, 10_000);
         uint256 coldTransfer = g0 - gasleft();
+        // Asserted outside the measured window on purpose. The return value has
+        // to be read, both because an unchecked ERC20 transfer is a real defect
+        // pattern and because a silently failing transfer would produce a
+        // perfectly plausible gas figure for a payment that never happened,
+        // which is the worst outcome for a measurement meant to settle a design
+        // question. Binding it to a local costs a stack slot rather than a
+        // branch, since the compiler already decodes the return value whether or
+        // not anybody looks at it, so the number below is unaffected.
+        assertTrue(coldOk, "cold USDC transfer returned false");
         _report("USDC transfer, new payee (cold)", coldTransfer, transferData);
 
         // Warm: the payee already holds USDC. The repeat-business case, and the
@@ -173,8 +179,9 @@ contract MicropaymentGasForkTest is Test {
         // calls the same provider many times.
         vm.prank(buyer);
         g0 = gasleft();
-        usdc.transfer(coldPayee, 10_000);
+        bool warmOk = usdc.transfer(coldPayee, 10_000);
         uint256 warmTransfer = g0 - gasleft();
+        assertTrue(warmOk, "warm USDC transfer returned false");
         _report("USDC transfer, repeat payee (warm)", warmTransfer, transferData);
 
         // 2. The current model, for contrast. Escrow is not what a micropayment
@@ -186,9 +193,7 @@ contract MicropaymentGasForkTest is Test {
         );
         vm.prank(buyer);
         g0 = gasleft();
-        escrow.createEscrow(
-            id, provider, USDC, 1_000e6, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW
-        );
+        escrow.createEscrow(id, provider, USDC, 1_000e6, DELIVERY_WINDOW, AUTO_RELEASE_WINDOW);
         uint256 createGas = g0 - gasleft();
         _report("escrow createEscrow + fund", createGas, createData);
 
