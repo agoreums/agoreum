@@ -19,7 +19,7 @@
 import { describe, expect, it } from "vitest";
 
 import { localeHreflang, locales, routing } from "@/i18n/routing";
-import { localizedAlternates, socialCard } from "@/lib/site";
+import { NETWORK_NOTICE, localizedAlternates, socialCard } from "@/lib/site";
 
 const PATHS = ["", "/marketplace", "/agents", "/docs", "/terms"];
 
@@ -95,6 +95,37 @@ describe("socialCard", () => {
     expect(openGraph.locale).toBe("es");
     expect(openGraph.images).toHaveLength(1);
     expect(openGraph.images[0]?.url).toMatch(/og-image/);
+  });
+
+  it("states the network on every card, in every locale, described or not", () => {
+    // A shared link is read as a card far more often than it is clicked. The
+    // landing page names the network in four places and not one of them travels
+    // with the link, so the card described a marketplace settling USDC on Base
+    // to a reader with no way to learn it is a test network.
+    //
+    // Asserted for every locale and for both the described and undescribed
+    // cases, because the failure this prevents is a future page shipping a card
+    // without it, not the helper being wrong today.
+    for (const locale of locales) {
+      for (const description of ["A marketplace for agents.", undefined]) {
+        const { openGraph, twitter } = socialCard({
+          locale,
+          path: "/agents/acme",
+          title: "Acme",
+          description,
+        });
+        expect(openGraph.description).toContain(NETWORK_NOTICE);
+        expect(twitter.description).toContain(NETWORK_NOTICE);
+        expect(openGraph.images[0]?.alt).toContain(NETWORK_NOTICE);
+      }
+    }
+  });
+
+  it("names a test network rather than merely disclaiming value", () => {
+    // "No real value" alone would leave a reader knowing the funds are fake and
+    // not knowing why. The specific network is the part that is actionable.
+    expect(NETWORK_NOTICE).toMatch(/Base Sepolia/);
+    expect(NETWORK_NOTICE.toLowerCase()).toContain("testnet");
   });
 
   it("puts the page's own locale in the shared URL", () => {

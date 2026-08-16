@@ -115,6 +115,49 @@ def social_image(mark, out, w, h):
     d.text((tx, int(h * 0.34)), "Agoreum", font=title_font, fill=(245, 245, 255, 255))
     d.text((tx, int(h * 0.56)), "The Autonomous Agent Commerce Hub",
            font=sub_font, fill=(170, 176, 210, 255))
+
+    # The network, stated on the card itself.
+    #
+    # A shared link is seen as a card far more often than it is clicked. Without
+    # this, the most widely travelled representation of the product described a
+    # marketplace settling USDC on Base and gave a reader no way to learn it is a
+    # test network. The landing page says so in four places and not one of them
+    # travels with the image.
+    #
+    # Drawn as a bordered pill rather than another line of grey text so it reads
+    # as a status rather than as marketing copy that can be skimmed past.
+    #
+    # Two things the first attempt got wrong, both caught by looking at the
+    # output rather than at the file size. The pill ran off the right edge and
+    # the text was clipped mid-word, and the translucent fill came out solid,
+    # because ImageDraw writes pixels directly instead of compositing alpha. So
+    # the badge is drawn on its own layer and composited, and the font is
+    # stepped down until the whole pill fits inside the card with a real margin.
+    label = "BASE SEPOLIA TESTNET  ·  NO REAL VALUE"
+    bx, by = tx, int(h * 0.70)
+    margin = int(w * 0.04)
+    pad_x, pad_y = int(h * 0.028), int(h * 0.020)
+
+    size = int(h * 0.040)
+    while size > 8:
+        badge_font = load_font(size)
+        left, top, right, bottom = d.textbbox((bx, by), label, font=badge_font)
+        if right + pad_x <= w - margin:
+            break
+        size -= 1
+
+    badge = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(badge)
+    bd.rounded_rectangle(
+        [left - pad_x, top - pad_y, right + pad_x, bottom + pad_y],
+        radius=int((bottom - top + 2 * pad_y) / 2),
+        fill=(224, 160, 74, 30),
+        outline=(224, 160, 74, 165),
+        width=max(1, int(h * 0.003)),
+    )
+    bd.text((bx, by), label, font=badge_font, fill=(243, 194, 120, 255))
+    card.alpha_composite(badge)
+
     card.convert("RGB").save(out, "PNG")
 
 def main():
