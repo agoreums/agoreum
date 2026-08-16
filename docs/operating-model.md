@@ -497,6 +497,10 @@ fourteen CI jobs green including Deploy and Fork tests:
 - `d9e7d1d` (PR #16), the landing page testnet status line. Verified live in
   English, German, Japanese, Arabic and Chinese, following redirects, which is
   the check the first attempt at this got wrong.
+- `5c94b1e` (PR #24), the published OpenAPI contract and the ecosystem
+  research. Verified live: 63 paths, 120 component schemas, ten public tags, and
+  no admin or organization paths, so the scoping holds in production and not
+  only in the test.
 - `b9c79f7` (PR #22), the subscriptions unpause tests, measured coverage, and
   the removal of two stale test counts from the auditor-facing docs. All
   fourteen jobs green including the fork suite.
