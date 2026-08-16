@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+from app.api.public_schema import public_openapi
 from app.api.v1 import api_router
 from app.core.config import settings
 
@@ -97,6 +98,22 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+    # The published contract. Served in every environment, including production,
+    # because the repository is public and the SDKs name their paths, so
+    # withholding it hid nothing while costing integrators the ability to
+    # generate a client or check their code against the contract.
+    #
+    # Scoped rather than complete: operator endpoints are excluded, since
+    # "an attacker can find this" and "we advertise this as supported" are
+    # different statements. See app/api/public_schema.py.
+    @app.get(
+        f"{settings.API_V1_PREFIX}/openapi.json",
+        include_in_schema=False,
+        summary="The published OpenAPI contract",
+    )
+    async def public_schema() -> dict:
+        return public_openapi(app)
 
     return app
 

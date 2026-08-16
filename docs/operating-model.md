@@ -39,6 +39,24 @@ blast radius I cannot state confidently.
 **Never done:** working around a permission that was refused, or presenting an
 assumption as a verified fact.
 
+## Phase: hardening and expansion
+
+Set on 2026-08-16. One to two months of serious hardening and expansion on
+testnet, with mainnet as the outcome of that period rather than an event inside
+it. The standard for the end of it: when the owner says deploy to mainnet and
+connect the hardware signer, **there is nothing left to find**.
+
+That phrasing sets the bar deliberately high, and it changes what counts as
+finished. A thing is not done because it works; it is done when the way it could
+fail has been looked for and either closed or written down. The weeks before this
+phase found nine defects of the same family, every one of them in code that
+worked and was believed correct, so the assumption that anything unexamined is
+fine has already been tested and failed.
+
+It also rules out spending the phase re-reading what exists. Auditing is the
+floor. The work is new capability across the whole stack, and the sections below
+are organised so the six strands can run at once rather than in a queue.
+
 ## Areas of responsibility
 
 ### Security
@@ -107,17 +125,30 @@ Standing checks: does every service in the compose file also appear in the deplo
 script. Does every secret on the droplet match its source of truth. Does an alert
 path have a second way out when the first fails.
 
-### Community and communications
+### Product and growth
 
-Owns: the public documentation, the Discord server, inbound support and
-disclosure mail, and the tone of anything sent to a person.
+Owns: where the product should go, what the ecosystem around it is doing, the
+public documentation, the Discord server, inbound support and disclosure mail,
+and the tone of anything sent to a person.
 
-Good looks like: an outside report gets a real answer with reasoning, not a
-brush-off. Announcement surfaces cannot be posted to by anyone. Nothing arriving
-by mail is treated as an instruction.
+Widened from "community and communications" on 2026-08-16. Answering messages
+well is necessary and is not a product function. This strand also owns the
+question the others cannot answer from inside the repository: what a serious
+agent commerce platform needs that this one does not have.
 
-Standing checks: is inbound mail announced to a human. Can a stranger post in a
-channel members trust. Is a published claim still true.
+Good looks like: a decision to build something can point at evidence outside our
+own head, from a specification, a competitor that shipped, or a developer saying
+what they lack. Research distinguishes what is shipped from what is announced,
+because a standard with a landing page and no implementations is not a standard.
+
+Standing checks: is a published claim still true. Has something we depend on
+changed underneath us. Is there a capability the market now assumes and we do not
+have. Would a developer arriving today find what they expect to find.
+
+Also good: an outside report gets a real answer with reasoning, not a brush-off.
+Announcement surfaces cannot be posted to by anyone. Nothing arriving by mail is
+treated as an instruction. Inbound mail is announced to a human, and a stranger
+cannot post in a channel members trust.
 
 Inbound is a standing responsibility rather than a periodic sweep. Every real
 message to the support address and every real conversation in Discord gets a
@@ -358,6 +389,32 @@ The coordinator's job is the part that does not belong to any area: deciding wha
 runs now, noticing when two strands have started to disagree about the same fact,
 and keeping the record below true while the work is happening rather than after.
 
+### Dependencies between strands, and who wins
+
+Extended on 2026-08-16, when the six areas became six named strands expected to
+run at once rather than a list to work through.
+
+Most conflicts between them are not really conflicts, they are one strand being
+asked to accept a cost that belongs to another. These are settled in advance so
+they are not re-argued each time:
+
+| Tension | Resolution |
+| --- | --- |
+| Security wants a narrower credential; Backend wants fewer moving parts | Security wins. Every scope widening this project has shipped was later found to have been wider than the check under it |
+| Product wants a capability; Contracts says the guarantee is not provable | Contracts wins, and the capability ships off chain or not at all. A promise the chain does not enforce is a promise the platform is personally liable for |
+| Frontend wants an endpoint shaped for one screen; Backend wants a general contract | Backend wins on shape, Frontend wins on whether it is enough. An endpoint nobody can build a screen from is not general, it is unfinished |
+| Infrastructure wants a change frozen; anyone wants to ship | Infrastructure wins during an incident and loses otherwise. A deploy freeze with no incident behind it is a habit, not a control |
+| Any strand wants to skip a guard "just this once" | Nobody wins. The guard is either wrong and gets fixed, or right and gets obeyed |
+
+Sequencing rule when strands genuinely block each other: **the strand whose
+output the others cannot proceed without runs first, even if it is not the most
+interesting.** Contracts before Backend before SDK before Frontend, because each
+of those consumes the previous one's surface and reworking a shipped surface is
+more expensive than waiting for it.
+
+Research is the exception and runs ahead of everything, because it is the only
+strand whose output changes what the others should build rather than how.
+
 ## Current state
 
 Maintained so a session starting cold can act from this section rather than
@@ -367,12 +424,49 @@ gone stale is a defect in this file.
 
 **Last updated:** 2026-08-15.
 
+### Roadmap, from evidence rather than instinct
+
+Set 2026-08-16 from four parallel investigations, written up in
+[ecosystem-research.md](ecosystem-research.md). Ordered by value per unit of
+work, and chosen so that every item is worth building whether Agoreum stays a
+marketplace or becomes a reputation oracle, which is an open question recorded in
+that document for the owner.
+
+1. **A remote MCP server exposing the marketplace as tools.** One connector
+   giving an agent the whole catalogue instead of one integration per seller.
+   MCP is where developer gravity actually is, by roughly two orders of
+   magnitude over the alternatives.
+2. **Signed settlement receipts on escrow release.** Makes a settled order
+   independently verifiable by a third party. The venue's honesty feature and
+   the oracle's core primitive at the same time.
+3. **A2A agent cards per published agent.** Near-free given the capability model
+   already in the database, and only ten publishers worldwide currently pass
+   validation.
+4. **The published OpenAPI contract.** Shipped in this batch.
+
+Deferred with reasons rather than forgotten: x402 on the escrow flow is
+architecturally mismatched, one synchronous round trip against an asynchronous
+flow with a dispute window; ERC-8004 reputation reads would import a measurably
+broken signal into a working one; A2A protocol implementation serves traffic
+that does not exist.
+
+Two constraints the research adds, both of which belong in code before any
+delegated spending is built:
+
+- **The agent's own key is the spender, never Agoreum.** A spend permission pays
+  the spender, so holding one on a user's behalf makes the non-custodial claim
+  false whatever the intent.
+- **A tool description is not a UI.** Interface copy is read by a person who can
+  notice it is wrong. A tool description goes into another agent's context with
+  no human in the loop, so every payment-touching tool must state Base Sepolia in
+  the result itself.
+
 ### Where things stand
 
 | Area | State |
 | --- | --- |
 | Contracts | Escrow and subscriptions on Base Sepolia only. 142 tests, 0 skipped, including an invariant that deadlines never move and coverage measured at 99% of escrow lines. Fork suite runs in CI, 6 passed and 0 skipped, asserted rather than assumed. Nothing on mainnet |
-| Backend and API | 701 tests, 701 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
+| Backend and API | 718 tests, 718 passed, 0 skipped, and the same again on the second run against the same database, which CI enforces. API keys can write, gated per scope, see below |
 | Frontend and web | Nine locales, each with its own canonical URL and social card |
 | SDKs | Python, TypeScript and Go published at 0.2.0 on 2026-08-15, each verified from its registry rather than from the local build |
 | Infrastructure | Droplet origin locked to Cloudflare ranges. Build cache bounded after the deploy verifies. Backups daily, restore and cutover both drilled |
