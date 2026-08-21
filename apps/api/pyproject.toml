@@ -3,7 +3,7 @@ name = "agoreum-api"
 version = "0.1.0"
 description = "Agoreum, Autonomous Agent Commerce Hub API"
 requires-python = ">=3.12"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 
 dependencies = [
     "fastapi>=0.115",
@@ -69,6 +69,19 @@ ignore = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-q --strict-markers"
+# Run the suite at INFO, because the default is WARNING and that silently
+# disabled every logger.info call in the codebase.
+#
+# `Logger.info` checks `isEnabledFor` before doing any work, so at WARNING the
+# call returns before its arguments are ever used. A malformed one is therefore
+# invisible to the entire suite: it executes nothing, raises nothing, and looks
+# tested. Exactly that shipped a TypeError to production on 2026-08-18, in a
+# handler covered by tests that all passed, and the mutation restoring the bug
+# survived until this line existed.
+#
+# The blind spot covers every info and debug call in the project, not one, which
+# is why this is configuration rather than a fixture in one test.
+log_level = "INFO"
 
 [tool.mypy]
 python_version = "3.12"

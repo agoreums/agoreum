@@ -156,10 +156,18 @@ async def exclude_order_from_reputation(
     order.reputation_exclusion_reason = reason
     await db.flush()
 
+    # `extra=` rather than bare keyword arguments. get_logger returns a
+    # LoggerAdapter over the stdlib logger, which raises TypeError on unknown
+    # kwargs, and this line was written the other way and only failed when the
+    # endpoint was first called against production. The unit tests exercised the
+    # reputation filter and the database trigger and never this function, which
+    # is how a guard can be thoroughly proven and its one caller still broken.
     logger.info(
         "reputation_exclusion_recorded",
-        order_id=str(order.id),
-        actor_id=str(getattr(actor, "id", None)),
-        reason=reason,
+        extra={
+            "order_id": str(order.id),
+            "actor_id": str(getattr(actor, "id", None)),
+            "reason": reason,
+        },
     )
     return order
