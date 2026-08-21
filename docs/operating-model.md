@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after `44cf45f`.
+**Last updated:** 2026-08-22, after `9f79868`.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -164,6 +164,7 @@ this section.
 | ~~A dispute has never been raised or settled~~ | **Closed 2026-08-22** | Run end to end. Three latent defects found and fixed, one of them a live outage |
 | A refund has never been run in production | Open, next exercise | The same never-exercised path family. The empty-address defect that crash-looped settlement would have hit refunds identically, and is now fixed, but nothing has ever exercised the path |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
+| ~~A divergence could be reported but never closed~~ | **Closed 2026-08-22** | `reconcile` named the first real divergence and nothing could act on it. Repair added, admin gated, copying only what the contract holds and refusing to paper over a structural one |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |

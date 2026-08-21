@@ -163,3 +163,31 @@ async def recompute_reputation(
         total_volume=snapshot.total_volume,
         score=snapshot.score,
     )
+
+
+@router.post(
+    "/orders/{order_id}/repair-from-chain",
+    summary="Make an order's recorded amounts match the chain",
+)
+async def repair_from_chain(
+    order_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> dict:
+    """Closes a divergence that `reconcile` can only report.
+
+    The chain is authoritative here, which the reconciliation already says, so
+    this copies its figures into the database and writes nothing that did not
+    come from the contract in the same call. There is no argument that could
+    carry a number, so the only reachable outcome is the database agreeing with
+    the chain.
+
+    Needed because a detector without a repair leaves an operator reading a true
+    report they cannot act on. The first settled dispute recorded the provider's
+    net where the chain holds the gross, and fixing the indexer did nothing for
+    the row already written, since events are processed once.
+
+    Status is not rewritten. Amounts are facts the contract holds; status is a
+    projection this application derives, with order state, notifications and
+    reputation hanging off it.
+    """
+    _require_admin(user)
+    return await service.repair_order_from_chain(db, order_id=order_id, actor=user)
