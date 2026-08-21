@@ -166,6 +166,48 @@ this section.
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
 
+### Sweeping for claims that were true once, 2026-08-21
+
+Made deliberate after the service counter defect, because that one is the
+sharpest instance of the month's pattern and the least likely to be found by
+accident. The false confidence did not come from a missing test. It came from a
+**true statement that stopped being true**, checked against one code path,
+while a second path quietly started touching the same data.
+
+This is the inverse of the hedged-language sweep already recorded here. That one
+looked for uncertainty: "not tested", "worth confirming", "we assume". A hedge
+invites a check. A confident claim closes the question, and goes on closing it
+long after the code underneath has moved.
+
+`scripts/sweep_invariant_claims.py` lists them: 89 across 281 files, grouped by
+the phrase that makes them a claim. The highest-yield shapes are the ones a
+second code path can invalidate: "kept in sync", "cannot drift", "the only
+thing", "nothing else reads", "one source of truth". It produces a worklist and
+never a verdict, which is the only honest output for something a person has to
+go and check.
+
+**What the first pass found.** The highest-stakes claim was
+`agents.payout_address` being "kept in sync with payout_wallet_id by the service
+layer": a denormalised field that decides where money goes. It holds, and it
+holds more strongly than the comment says. One code path writes both together,
+no path mutates a wallet address after creation, the foreign key is `RESTRICT`
+so a referenced wallet cannot be deleted, and a database constraint already
+forces any payout wallet to be verified. The comment credits the service layer
+for something the schema enforces.
+
+**What the audit did not prove, which matters more than what it did.**
+`scripts/audit_invariant_claims.py` checks eight of these against a real
+database. Run against production it passed all eight, and that is close to
+worthless: production holds one agent, one order and no reviews, so most of the
+checks are satisfied vacuously. The local database has 200 users and zero
+agents, because the tests that create them roll back.
+
+So the script now refuses to let a pass read as a result. Below twenty rows in
+the smallest table it prints a warning saying the run is close to no evidence at
+all. The instrument is worth having for when there is data to measure; today it
+measures almost nothing, and saying "8 of 8 claims hold" without that caveat
+would be exactly the kind of confident sentence this sweep exists to catch.
+
 ### The marketplace rating disagreed with the reputation, 2026-08-21
 
 Found by asking, after the snapshot fix, what else caches a figure the filtered
