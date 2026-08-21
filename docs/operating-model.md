@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-21, after `d6ca8a0`.
+**Last updated:** 2026-08-22, after `44cf45f`.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -161,12 +161,136 @@ this section.
 | Chain health is not in `required_components` | Deliberate, now asserted at deploy | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
-| A dispute has never been raised or settled in production | Open, next exercise | The contract half is proven; the operational half has never carried a real case. Design it before running it, as with the settlement exercise |
+| ~~A dispute has never been raised or settled~~ | **Closed 2026-08-22** | Run end to end. Three latent defects found and fixed, one of them a live outage |
+| A refund has never been run in production | Open, next exercise | The same never-exercised path family. The empty-address defect that crash-looped settlement would have hit refunds identically, and is now fixed, but nothing has ever exercised the path |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The dispute rehearsal, run 2026-08-21 into 2026-08-22
+
+**Three independent latent defects in one code path, and a live outage.** The
+highest-value exercise of the month, and every one of them was invisible to
+every test and every reading of the code. They existed only because the path had
+never run.
+
+**What worked, first, because it is not all failure.** Funding, raising a
+dispute and indexing both worked end to end. The arbiter queue carried a real
+case for the first time, showing the order with its on-chain reason and hours
+waiting. Both parties filed statements and both can see both. And `reconcile`,
+written so a disagreement between the database and the chain is discoverable
+rather than silent, had its first genuine disagreement to report.
+
+**One: an empty address crash-looped the indexer.** `to_address` was derived as
+`str(event.args.get("provider") or "")`, correct for `EscrowReleased` and wrong
+for the rest, because they do not all carry a `provider`. A settlement pays both
+parties and names neither. The empty string reached an address column that
+refuses it, the exception escaped the handler, and the container restarted into
+the same block forever. Fifty eight restarts, with **all** chain projection
+stopped, not only for disputes. A refund would have done the same thing. Both
+events were on the never-exercised map.
+
+**Two: a resolved timestamp with no resolution.** With the first crash cleared,
+the next one appeared behind it. The escrows table requires
+`(dispute_resolution IS NULL) = (dispute_resolved_at IS NULL)`, and the handler
+set only the timestamp. The constraint was right; the handler had been
+incomplete since it was written.
+
+**Three: the net recorded where the chain holds the gross.** The sharpest of the
+three precisely because nothing failed. The contract stores the gross and emits
+the net under a name that reads like the gross, so the database recorded
+0.999375 where the chain holds 1.025000, and would have misrecorded every
+settled dispute from then on with nothing anywhere to notice. Found by
+`reconcile`, not by a crash.
+
+That third one is the never-exercised class at its most dangerous: **not a
+failure, a silent wrong number that looks exactly like success.**
+
+**Two corrections to what was reported while it was happening**, recorded
+because the corrections matter as much as the findings.
+
+The `arbiter_is_party` guard was reported as untested. It was not:
+`test_an_arbiter_cannot_decide_their_own_case` had covered the buyer case since
+it was written, and the search that missed it looked for the error code string,
+which that test never uses. **A grep for a name is not a search for a
+behaviour.** What was genuinely wrong is worse: the provider half compared a
+user id against an organization id, so it could never fire, and an arbiter who
+owned the disputed agent could decide how much to pay their own side.
+
+And the first version of the test for that passed when it should have failed,
+because it set the agent's organization id to the arbiter's own user id, a state
+that cannot occur. The first version of the gross-versus-net test was thrown
+away for the same family of reason: it recomputed the formula inside the test
+file, which would have proved only that the test agreed with itself. Building
+the tool to catch that pattern in others is exactly when it is easiest to commit.
+
+**Design errors worth keeping.** The rehearsal assumed the arbiter could decide
+through the API. It cannot when one wallet is both buyer and arbiter, which is
+the guard working. It also ran during a deploy, producing a 502 initially
+mistaken for a crash. And the access token expired mid-exercise, which is
+sessions working correctly: any exercise longer than the token lifetime has to
+re-sign.
+
+**Not hand-patched during the outage**, deliberately, even at fifty eight
+restarts. Production held two orders, neither belonging to a real user mid-flow,
+and a manual edit diverging from git is the failure already paid for once with a
+week-old nginx config.
+
+### The dispute rehearsal, designed 2026-08-21
+
+Written before it is run, because the settlement exercise taught that the
+interesting part is never whether the happy path works. It is what the exercise
+does to the numbers the platform publishes, and that is worth knowing in advance
+rather than discovering afterwards.
+
+**Why this one matters most.** Disputes have never been raised or settled in
+production. The contract half is thoroughly proven, with the fork suite and the
+deadline invariant. The operational half, meaning the arbiter queue, the
+statements from both sides and the recorded decision, has never carried a real
+case. It was ranked first in the backlog when it was built, and building is not
+running.
+
+**The path.** Provider publishes a service. Buyer orders and funds the escrow on
+chain. Buyer raises `dispute(escrowId, reason)`, which the contract allows from
+either party while Funded. Both sides file statements through the API. The
+arbiter records a decision through `dispute-decision`, which deliberately does
+not settle: the platform holds no keys, so it returns the call to make and the
+arbiter's own wallet sends `settleDispute`. The indexer confirms the result.
+
+Recording the decision before settling is the property worth testing. It is what
+makes an unexpected settlement noticeable at all, and nothing has ever exercised
+that ordering against production.
+
+**The split.** A partial one rather than all-or-nothing, because an even split
+exercises arithmetic that a total refund does not: the fee is taken only from
+the provider's share, and any rounding dust stays with the buyer rather than
+accruing to the platform.
+
+**Reputation consequences, worked out in advance.**
+
+`EscrowSettled` maps to `EscrowStatus.RELEASED` and `OrderStatus.COMPLETED`, so
+a settled dispute looks like a completed order to every positive figure. It will
+count as settled trade and as volume unless excluded, exactly as the settlement
+exercise did, and for the same reason: one operator holding both wallets is
+invisible to the platform.
+
+`disputed_orders` and `disputes_lost` are **deliberately not filtered** by the
+arm's length rule or by the exclusion flag. That asymmetry was built so that
+self-dealing can never improve a score, and it means this rehearsal will leave a
+real dispute on the record for that agent. **That is correct and it stays.** The
+agent genuinely had a dispute; hiding it would be the laundering the asymmetry
+exists to prevent, and being able to remove a dispute from your own history is
+precisely the power that must not exist.
+
+So: exclude the order afterwards, which removes the positive contribution and
+leaves the negative one. The published result should be an agent with zero
+settled orders, zero volume, and one dispute. That is the honest description of
+what happened.
+
+**Cleanup.** The service is archived and the agent paused immediately after, as
+before, so the marketplace is not left holding a listing nobody can buy.
 
 ### What has never happened in production, 2026-08-21
 
@@ -181,8 +305,8 @@ First run against production, 5 of 12 capabilities exercised:
 | --- | --- |
 | an order funded on chain (1) | an account holding platform admin |
 | an order settled (1) | an order refunded |
-| a subscription taken out (2) | a dispute raised |
-| an API key created (3) | a dispute settled |
+| a subscription taken out (2) | ~~a dispute raised~~ **run 2026-08-21** |
+| an API key created (3) | ~~a dispute settled~~ **run 2026-08-21, three defects** |
 | an order excluded from reputation (1) | a review written |
 | | a webhook endpoint registered |
 | | an agent published |
