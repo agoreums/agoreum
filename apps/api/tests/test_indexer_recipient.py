@@ -154,3 +154,68 @@ class TestASettledDisputeIsDescribedAsWellAsRecorded:
             assert indexer.settlement_resolution(
                 provider_amount=provider, buyer_amount=buyer
             ) is not None, f"no resolution for provider={provider} buyer={buyer}"
+
+
+class TestASettledAmountMatchesTheChain:
+    """What the database records released must be what the contract holds.
+
+    The contract stores the gross and emits the net under a name that reads like
+    the gross:
+
+        escrow.released = providerAmount             gross, stored on chain
+        emit EscrowSettled(id, providerNet, ...)     net, emitted
+
+    Writing the emitted figure straight into `released_amount` made the database
+    disagree with the chain on the first dispute ever settled in production,
+    0.999375 against 1.025000. Nothing was lost. The platform's record of how
+    much was released was simply a different number from the contract's.
+
+    Found by `reconcile` against real data, which is the first time that
+    endpoint has caught a genuine divergence.
+    """
+
+    @staticmethod
+    def _settled(provider_net: Decimal, fee: Decimal, buyer: Decimal) -> Decimal:
+        """The gross the indexer records, computed by the indexer itself.
+
+        Deliberately not arithmetic rewritten here. A test that recomputes the
+        formula proves only that it agrees with itself, which is the shape this
+        whole sweep exists to catch, so it drives the real function over a real
+        event payload in base units.
+        """
+        gross, _refunded, _fee = indexer.settled_amounts(
+            FakeEvent("EscrowSettled", {
+                "providerAmount": int(provider_net * 10 ** 6),
+                "feeAmount": int(fee * 10 ** 6),
+                "buyerAmount": int(buyer * 10 ** 6),
+            })
+        )
+        return gross
+
+    def test_the_recorded_gross_matches_the_chain(self) -> None:
+        # The real figures from the first settled dispute, order AGO-DT2TPSZL.
+        gross = self._settled(Decimal("0.999375"), Decimal("0.025625"), Decimal("1.025000"))
+        assert gross == Decimal("1.025000"), gross
+
+    def test_the_parts_still_sum_to_the_escrow(self) -> None:
+        """The property that makes the figures trustworthy at all.
+
+        Released plus refunded must equal the escrow, or the record describes
+        money appearing or vanishing.
+        """
+        provider_net, fee, buyer = Decimal("0.999375"), Decimal("0.025625"), Decimal("1.025000")
+        gross = self._settled(provider_net, fee, buyer)
+        assert gross + buyer == Decimal("2.050000")
+
+    def test_a_full_award_records_the_whole_escrow(self) -> None:
+        """The boundary the net form gets most visibly wrong.
+
+        A provider awarded everything should show the entire escrow released,
+        not the escrow minus the fee.
+        """
+        amount, fee = Decimal("100.000000"), Decimal("2.500000")
+        gross = self._settled(amount - fee, fee, Decimal("0"))
+        assert gross == amount
+
+    def test_a_full_refund_releases_nothing(self) -> None:
+        assert self._settled(Decimal("0"), Decimal("0"), Decimal("100")) == Decimal("0")

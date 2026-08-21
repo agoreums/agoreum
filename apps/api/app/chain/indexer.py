@@ -389,11 +389,31 @@ async def _apply_to_escrow(
             escrow.disputed_at = now
             escrow.dispute_reason = str(event.args.get("reason", ""))[:2000] or None
         elif event.name == "EscrowSettled":
-            provider_amount = contract.from_base_units(event.args.get("providerAmount", 0))
-            buyer_amount = contract.from_base_units(event.args.get("buyerAmount", 0))
+            # `providerAmount` in this event is the provider's **net**, after
+            # the fee, while `escrow.released` on chain holds the **gross**. The
+            # contract computes `providerNet = providerAmount - fee` and emits
+            # the net under a name that reads like the gross:
+            #
+            #   escrow.released = providerAmount            (gross, stored)
+            #   emit EscrowSettled(id, providerNet, ...)    (net, emitted)
+            #
+            # Storing the emitted figure straight into `released_amount` made
+            # the database disagree with the chain for every settled dispute:
+            # 0.999375 against 1.025000 on the first one ever settled. Nothing
+            # was lost, and the record of how much was released was simply a
+            # different number from the one the contract holds.
+            #
+            # Gross is the convention here, which `EscrowReleased` follows by
+            # writing the whole escrow amount, so the fee is added back.
+            #
+            # Found by `reconcile`, which reported the divergence against real
+            # data. That endpoint exists so a disagreement between the database
+            # and the chain is discoverable rather than silent, and this is the
+            # first time it has caught one.
+            provider_amount, buyer_amount, fee_amount = settled_amounts(event)
             escrow.released_amount = provider_amount
             escrow.refunded_amount = buyer_amount
-            escrow.fee_amount = contract.from_base_units(event.args.get("feeAmount", 0))
+            escrow.fee_amount = fee_amount
             escrow.released_at = now
             escrow.dispute_resolved_at = now
             # Both or neither. The escrows table carries
@@ -468,6 +488,23 @@ async def _apply_to_escrow(
         await notification_events.order_disputed(
             db, order=order, raised_by_address=str(event.args.get("raisedBy", "")) or None
         )
+
+
+def settled_amounts(event: contract.DecodedEvent):
+    """The gross released, the refunded, and the fee, from an EscrowSettled event.
+
+    Extracted so it is testable against the real event shape rather than against
+    arithmetic rewritten in a test, which would prove only that the test agrees
+    with itself.
+
+    `providerAmount` in this event is the provider's net after the fee, while
+    `escrow.released` on chain holds the gross, so the fee is added back to
+    recover what the contract stores.
+    """
+    provider_net = contract.from_base_units(event.args.get("providerAmount", 0))
+    fee_amount = contract.from_base_units(event.args.get("feeAmount", 0))
+    buyer_amount = contract.from_base_units(event.args.get("buyerAmount", 0))
+    return provider_net + fee_amount, buyer_amount, fee_amount
 
 
 def settlement_resolution(*, provider_amount, buyer_amount) -> DisputeResolution:
