@@ -213,3 +213,100 @@ class TestStatements:
         assert len(db.added) == 1
         assert db.added[0].event_type == "order.dispute_statement"
         assert db.added[0].detail["text"] == "it never arrived"
+
+
+class TestAnArbiterCannotDecideTheirOwnCase:
+    """The guard that decides who may divide contested money.
+
+    Found by using the product rather than reading it: the dispute rehearsal on
+    2026-08-21 used one wallet as both buyer and arbiter, and the platform
+    correctly refused with `arbiter_is_party`.
+
+    It was reported at the time as having no test, which was wrong.
+    `test_an_arbiter_cannot_decide_their_own_case` above has covered the buyer
+    case since it was written; the search that missed it looked for the error
+    code string, which that test never uses. A grep for a name is not a search
+    for a behaviour, which is the same mistake in miniature as everything else
+    this sweep keeps finding.
+
+    What was genuinely missing is the other half, and writing it exposed that
+    the other half could never fire. `_dispute_parties`
+    returns the buyer's **user** id together with the provider agent's
+    **organization** id, and the caller compares the arbiter's user id against
+    that set. A user id and an organization id are separate identifiers from
+    separate tables, so the provider half can never match, whatever the
+    relationship actually is.
+
+    The buyer half works, which is why the rehearsal hit it. The provider half
+    is the more dangerous one to lose: an arbiter who owns the agent being
+    disputed decides how much to pay themselves.
+    """
+
+    async def test_the_buyer_cannot_arbitrate_their_own_dispute(self) -> None:
+        buyer = FakeUser()
+        order = FakeOrder(buyer_id=buyer.id)
+        with pytest.raises(PermissionDeniedError) as caught:
+            await service.record_dispute_decision(
+                FakeSession(), order=order, escrow=FakeEscrow(), arbiter=buyer,
+                provider_amount=Decimal("50"), reasoning="deciding my own case",
+            )
+        assert caught.value.code == "arbiter_is_party"
+
+    async def test_an_unrelated_arbiter_may_decide(self) -> None:
+        """The control. A guard that refused everybody would pass the test above."""
+        escrow = await service.record_dispute_decision(
+            FakeSession(), order=FakeOrder(), escrow=FakeEscrow(), arbiter=FakeUser(),
+            provider_amount=Decimal("50"), reasoning="an unrelated arbiter deciding",
+        )
+        assert escrow.dispute_provider_amount == Decimal("50")
+
+    async def test_the_provider_side_is_decided_by_membership(
+        self, monkeypatch
+    ) -> None:
+        """The half that could never fire, with a realistic organization id.
+
+        The first version of this test set the agent's org_id to the arbiter's
+        own user id, which made the old comparison match and the test pass. That
+        state cannot occur: the ids come from different tables. Written with a
+        distinct organization id, as reality has it, the old guard allowed the
+        decision and this now asks the question that actually decides it.
+
+        The conflict is the clearest one available. The arbiter belongs to the
+        organization behind the provider agent, so a decision in the provider's
+        favour pays their own side.
+        """
+        owner = FakeUser()
+        org_id = uuid.uuid4()
+        assert org_id != owner.id, "the point is that these are different ids"
+        order = FakeOrder(provider_agent=FakeAgent(org_id=org_id))
+
+        async def member_of_that_org(db, *, org_id: uuid.UUID, user_id: uuid.UUID):
+            return org_id == order.provider_agent.org_id and user_id == owner.id
+
+        monkeypatch.setattr(service, "is_member", member_of_that_org)
+
+        with pytest.raises(PermissionDeniedError) as caught:
+            await service.record_dispute_decision(
+                FakeSession(), order=order, escrow=FakeEscrow(), arbiter=owner,
+                provider_amount=Decimal("100"),
+                reasoning="awarding the whole escrow to my own side",
+            )
+        assert caught.value.code == "arbiter_is_party"
+
+    async def test_an_outsider_is_still_allowed_when_membership_is_checked(
+        self, monkeypatch
+    ) -> None:
+        """The control for the membership lookup itself.
+
+        Without this, a guard that treated everybody as a member would pass the
+        test above and refuse every arbiter on the platform.
+        """
+        async def never_a_member(db, *, org_id: uuid.UUID, user_id: uuid.UUID):
+            return False
+
+        monkeypatch.setattr(service, "is_member", never_a_member)
+        escrow = await service.record_dispute_decision(
+            FakeSession(), order=FakeOrder(), escrow=FakeEscrow(), arbiter=FakeUser(),
+            provider_amount=Decimal("40"), reasoning="an unrelated arbiter deciding",
+        )
+        assert escrow.dispute_provider_amount == Decimal("40")

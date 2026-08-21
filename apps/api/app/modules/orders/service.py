@@ -546,12 +546,32 @@ def is_arbiter(user: User) -> bool:
     return (user.primary_address or "").lower() == configured
 
 
-def _dispute_parties(order: Order) -> set[uuid.UUID]:
-    owners = {order.buyer_id}
+async def _arbiter_is_party(db: AsyncSession, *, order: Order, arbiter: User) -> bool:
+    """Whether this arbiter is one of the two sides of this dispute.
+
+    **The provider half of this could never fire before 2026-08-21.** The old
+    version returned a set containing the buyer's *user* id together with the
+    provider agent's *organization* id, and the caller compared an arbiter's
+    user id against it. Those are identifiers from different tables and never
+    collide, so an arbiter who owned the agent being disputed passed the check
+    every time.
+
+    The buyer half worked, which is how the guard looked alive: the dispute
+    rehearsal hit it immediately. The half that could not fire is the more
+    dangerous one, because an arbiter who owns the provider decides how much of
+    the contested escrow is paid to themselves.
+
+    Membership is the right question rather than identity. An agent belongs to
+    an organization, and anyone in that organization benefits from a decision in
+    the provider's favour, so the test is the same one `create_order` already
+    uses to refuse self-dealing.
+    """
+    if arbiter.id == order.buyer_id:
+        return True
     agent = order.provider_agent
     if agent is not None and agent.org_id is not None:
-        owners.add(agent.org_id)
-    return owners
+        return await is_member(db, org_id=agent.org_id, user_id=arbiter.id)
+    return False
 
 
 async def submit_dispute_statement(
@@ -633,7 +653,7 @@ async def record_dispute_decision(
 
     # An arbiter who is also a party decides their own case. Refused by the
     # system rather than left to their judgement.
-    if arbiter.id in _dispute_parties(order):
+    if await _arbiter_is_party(db, order=order, arbiter=arbiter):
         raise PermissionDeniedError(
             "An arbiter cannot decide a dispute they are party to.",
             code="arbiter_is_party",
