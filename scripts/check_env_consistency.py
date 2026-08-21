@@ -14,6 +14,11 @@ same secret to be written in three places and nothing compared them. The
 project's own rule already says two sources of truth for a secret is zero. This
 is the check under that rule.
 
+Compares every place a credential appears and requires them to agree. A
+deployment carrying only the URL and not the standalone key passes, because one
+occurrence cannot disagree with itself; production is configured exactly that
+way, and the first version of this check failed its deploy for it.
+
 Run against any env file. Exits non-zero and names the disagreement.
 """
 from __future__ import annotations
@@ -52,41 +57,53 @@ def main() -> int:
 
     values = read_env(path)
     problems: list[str] = []
-    checked = 0
+    present = 0
 
     for standalone, url_vars in EMBEDDED_SECRETS.items():
+        # Every place this credential appears, and what it says there.
+        occurrences: dict[str, str] = {}
+
         secret = values.get(standalone)
-        if not secret:
-            # Absent is not a disagreement. A deployment may legitimately not
-            # carry a key it does not use, and failing on that would make this
-            # check something people learn to skip.
-            continue
+        if secret:
+            present += 1
+            occurrences[standalone] = secret
+
         for url_var in url_vars:
             url = values.get(url_var)
             if not url:
                 continue
-            checked += 1
+            present += 1
             found = URL_SECRET.search(url)
             if not found:
                 problems.append(
                     f"{url_var} carries no recognisable key segment, so it cannot "
-                    f"be compared against {standalone}"
+                    f"be compared against the others"
                 )
-            elif found.group(1) != secret:
-                problems.append(
-                    f"{url_var} embeds a different key than {standalone}. "
-                    f"Rotating one and not the other is what took the indexer "
-                    f"down on 2026-08-21, silently, while every health check "
-                    f"reported ok."
-                )
+            else:
+                occurrences[url_var] = found.group(1)
 
-    # A check that compared nothing must not report success, which is the
-    # failure mode of every guard in this repository that was later found to be
-    # aimed at the wrong thing.
-    if checked == 0:
+        distinct = set(occurrences.values())
+        if len(distinct) > 1:
+            names = ", ".join(sorted(occurrences))
+            problems.append(
+                f"{names} do not all carry the same {standalone}. Rotating one "
+                "and not the others is what took the indexer down on 2026-08-21, "
+                "silently, while every health check reported ok."
+            )
+
+    # A deployment may legitimately carry only the URL and not the standalone
+    # key, which is how production is configured, and one occurrence cannot
+    # disagree with itself. That is a pass, not a gap to complain about.
+    #
+    # What must not pass is finding nothing at all, which means the variables
+    # were renamed and this check is no longer looking at what it thinks it is.
+    # The first version of this conflated the two and failed the deploy on a
+    # perfectly good production environment.
+    if present == 0:
         print(
-            f"{path.name}: found no embedded-secret pairs to compare. Either the "
-            "variables were renamed or this check is no longer looking at what "
+            f"{path.name}: none of the variables this checks are present at all "
+            f"({', '.join(sorted(EMBEDDED_SECRETS))} and the URLs embedding them). "
+            "Either they were renamed or this check is no longer looking at what "
             "it thinks it is.",
             file=sys.stderr,
         )
@@ -98,7 +115,7 @@ def main() -> int:
             print(f"  {problem}", file=sys.stderr)
         return 1
 
-    print(f"{path.name}: {checked} embedded credential(s) agree with their source")
+    print(f"{path.name}: {present} credential occurrence(s) checked, all agree")
     return 0
 
 
