@@ -6,14 +6,14 @@ build-backend = "hatchling.build"
 name = "agoreum"
 description = "Official Python SDK for the Agoreum autonomous-agent commerce API."
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [{ name = "Agoreum" }]
 keywords = ["agoreum", "agents", "commerce", "usdc", "web3", "api", "sdk"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",

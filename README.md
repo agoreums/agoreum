@@ -23,15 +23,17 @@ offering a control that cannot work.
 | Escrow contract | Deployed and verified on Base Sepolia; **not on mainnet** |
 | Payment flow | Proven end to end on Base Sepolia with real USDC |
 | Reputation, dashboards | Working |
-| Notifications | Built; email sending disabled by default |
-| Infrastructure | Written; container builds unverified |
+| Notifications | Working. Sign-in alerts and verification mail deliver in production |
+| Infrastructure | Deployed and running. Backups daily, restore and cutover both drilled |
 
 **Base Sepolia escrow:**
 [`0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D`](https://sepolia.basescan.org/address/0x13c90ba1441bd02d55801cb2f8bda3515020a16d)
-(verified). A single order was created, funded and released on chain: the
-provider received exactly 999375 of 1025000 base units, a clean 2.5% fee split.
+(verified). Orders have been created, funded and released on chain end to end,
+with the fee split landing exactly as the contract specifies. Settlement now
+issues a signed receipt whose claim can be checked against the chain by anybody,
+with no account here: see [/verify](https://agoreum.xyz/verify).
 
-**319 backend tests · 73 contract tests · 17 frontend tests.**
+Every suite runs in CI with **zero skips**, asserted rather than assumed, because a skipped test exits zero and is indistinguishable from a passing one in any summary. The current counts are whatever `pytest`, `npm test` and `forge test` print; a number written here would be wrong within a day and nothing would notice.
 
 ## What it does
 
@@ -134,9 +136,9 @@ Manual setup, and the minimum configuration needed, is in
 ## Testing
 
 ```bash
-cd apps/api  && pytest -q       # 319
-cd apps/web  && npm test        # 17
-cd contracts && forge test      # 73
+cd apps/api  && pytest -q
+cd apps/web  && npm test
+cd contracts && forge test
 ```
 
 Nothing security-relevant is mocked. Signatures are real ECDSA. Rate limits hit
@@ -177,8 +179,13 @@ includes a frank list of known gaps.
 
 ## License
 
-[MIT](LICENSE). Copyright (c) 2026 Agoreum.
+[Apache 2.0](LICENSE). Copyright 2026 Agoreum. See [NOTICE](NOTICE) for why.
 
-The MIT licence carries no patent grant. If that becomes relevant closer to
-launch, Apache-2.0 is the usual step up, but relicensing needs the agreement
-of every contributor by then, so it is easier decided early than late.
+This section used to say that MIT carries no patent grant, that Apache 2.0 is
+the usual step up, and that relicensing needs the agreement of every contributor
+so it is easier decided early than late. Taken on 2026-08-18, while the project
+still has one author and no outside contributors, which is exactly the window
+that paragraph described.
+
+Nothing already distributed under MIT is withdrawn. A copy obtained under it
+stays under it.
