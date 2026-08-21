@@ -161,11 +161,61 @@ this section.
 | Chain health is not in `required_components` | Deliberate, now asserted at deploy | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
+| A dispute has never been raised or settled in production | Open, next exercise | The contract half is proven; the operational half has never carried a real case. Design it before running it, as with the settlement exercise |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### What has never happened in production, 2026-08-21
+
+`scripts/audit_never_exercised.py` is the instrument for the second class in the
+taxonomy above. A decayed claim is found by re-reading it against the code. A
+never exercised one is invisible to code reading, because the code is correct,
+so the only way to find it is to ask what has actually happened.
+
+First run against production, 5 of 12 capabilities exercised:
+
+| Exercised | Never exercised |
+| --- | --- |
+| an order funded on chain (1) | an account holding platform admin |
+| an order settled (1) | an order refunded |
+| a subscription taken out (2) | a dispute raised |
+| an API key created (3) | a dispute settled |
+| an order excluded from reputation (1) | a review written |
+| | a webhook endpoint registered |
+| | an agent published |
+
+**A map, not a defect list.** On a testnet platform with six accounts most of
+these are legitimately unused, and calling that a problem would be noise. What
+it is for is refusing the sentence "that path works" when what is meant is "that
+path exists".
+
+**The one that matters most is disputes.** Neither raising nor settling one has
+ever happened in production. That is the operational half of the single
+situation this product exists to handle: money held between two parties who
+disagree. The contract half is thoroughly proven, with the fork suite and the
+invariants, and the operational half, meaning the arbiter queue, the statements
+from both sides and the recorded decision, has never carried a real case. It was
+ranked first in the backlog when it was built, and building it is not the same
+as running it.
+
+The refund path is second for the same reason: it returns a buyer's money and
+has never executed against production.
+
+**"An agent published" reading zero is correct rather than alarming**, and is a
+good example of why this needs a reader. The verification agent from the
+settlement exercise was paused deliberately, so the marketplace holds no active
+agent, which is the intended state.
+
+**Next exercise, designed before it is run.** A dispute rehearsal on Base
+Sepolia, following the settlement exercise's pattern: written up first, run
+against production, and with its reputation consequences worked out in advance
+rather than discovered afterwards. The settlement exercise taught that the
+interesting part is not whether the happy path works but what the exercise does
+to the numbers the platform publishes. Not started in this batch, because it
+writes real rows and deserves a fresh start rather than the end of a long one.
 
 ### Sweep worklist, and what has been checked
 
@@ -901,6 +951,36 @@ Nothing is sent to a channel that cannot be read. When the Discord bot lacked
 the message content intent it could see that conversations existed but not what
 they said, and the correct state was "unread", not "unanswered". Replying to
 messages nobody has read is worse than a delay.
+
+## Two ways a true statement stops protecting you
+
+Named on 2026-08-21 after the invariant sweep found one of each, and kept here
+rather than in a dated finding because the vocabulary is what makes the next
+instance easy to talk about.
+
+**Decayed.** True when written, checked against the code as it was, and made
+false later by a second path touching the same data. The author did nothing
+wrong. `recompute` said the fast read path and the authoritative computation
+could not drift apart; that was verified against the agent and was never true of
+the service, from the moment a second place started incrementing service
+counters.
+
+**Never exercised.** True the entire time and describing something nobody has
+done. Nothing decays and nothing is wrong, and the claim still hides a gap.
+`cli.py` said it was the only way an account becomes an admin, which was exactly
+correct, and no account had ever been granted it, so the surface behind it was
+reachable by nobody for its whole life.
+
+The two need different instruments, which is why separating them matters.
+Decayed claims are found by re-reading a claim against the code that exists now,
+which is what `scripts/sweep_invariant_claims.py` produces a worklist for. Never
+exercised claims are invisible to any amount of code reading, because the code
+is correct: they are found only by asking whether anybody has ever taken the
+path, and answering that against real data.
+
+**True and sufficient are different properties.** When a sentence asserts a
+guarantee, only the first is usually checked, because it is the only one that
+feels like the author's responsibility.
 
 ## Verification standard
 
