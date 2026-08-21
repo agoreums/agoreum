@@ -1035,3 +1035,127 @@ class TestReputationExclusionIsOneWay:
         assert second["completed_orders"] == 2, (
             f"the published score did not follow a second settlement: {second}"
         )
+
+    async def test_the_recompute_endpoint_repairs_a_stale_published_figure(
+        self, client, db
+    ) -> None:
+        """The remedy that did not exist, written from the case that needed it.
+
+        The exclusion of AGO-TMMR2TWH was recorded before recompute-on-exclusion
+        shipped. The write was durable, a repeat was correctly refused, and the
+        published figure stayed wrong with nothing able to correct it: the fix
+        covered every future exclusion and could not reach the one already made.
+
+        This reproduces that exactly. The order is excluded by writing the column
+        directly, which is what "already excluded before the fix existed" looks
+        like, so the snapshot is stale and no event will ever refresh it.
+        """
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        agent_id, order_id = await self._settled_order(db, client)
+        slug = (
+            await db.execute(
+                sa.text("SELECT slug FROM agents WHERE id = :id"), {"id": agent_id}
+            )
+        ).scalar_one()
+
+        stale = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert stale["completed_orders"] == 1
+
+        # Excluded without going through the endpoint, so nothing recomputes.
+        await self._exclude(db, order_id, "excluded before the recompute existed")
+
+        still_stale = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert still_stale["completed_orders"] == 1, (
+            "the fixture did not reproduce a stale snapshot, so this test would "
+            "pass without the endpoint doing anything"
+        )
+
+        admin = Account.create()
+        settings.ESCROW_ADMIN_ADDRESS = admin.address.lower()
+        challenge = (
+            await client.post(
+                "/api/v1/auth/nonce",
+                json={"address": admin.address.lower(), "chain_id": settings.CHAIN_ID},
+            )
+        ).json()
+        signed = admin.sign_message(encode_defunct(text=challenge["message"]))
+        token = (
+            await client.post(
+                "/api/v1/auth/signin",
+                json={
+                    "message": challenge["message"],
+                    "signature": signed.signature.hex(),
+                    "nonce": challenge["nonce"],
+                },
+            )
+        ).json()["tokens"]["access_token"]
+
+        repaired = await client.post(
+            f"/api/v1/admin/agents/{slug}/recompute-reputation", headers=auth(token)
+        )
+        assert repaired.status_code == 200, repaired.text
+        assert repaired.json()["completed_orders"] == 0, repaired.text
+
+        after = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert after["completed_orders"] == 0, (
+            f"the published figure is still stale after a recompute: {after}"
+        )
+
+    async def test_recompute_cannot_be_used_to_invent_standing(
+        self, client, db
+    ) -> None:
+        """The property that makes an operator-triggered recompute safe.
+
+        It derives every figure from orders and reviews and takes no argument
+        that could carry a score, so running it on an agent with no settled trade
+        cannot produce any. A repair tool that could author a number would be a
+        far worse thing than the stale figure it exists to fix.
+        """
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        _, slug, _ = await build_provider(client)
+
+        admin = Account.create()
+        settings.ESCROW_ADMIN_ADDRESS = admin.address.lower()
+        challenge = (
+            await client.post(
+                "/api/v1/auth/nonce",
+                json={"address": admin.address.lower(), "chain_id": settings.CHAIN_ID},
+            )
+        ).json()
+        signed = admin.sign_message(encode_defunct(text=challenge["message"]))
+        token = (
+            await client.post(
+                "/api/v1/auth/signin",
+                json={
+                    "message": challenge["message"],
+                    "signature": signed.signature.hex(),
+                    "nonce": challenge["nonce"],
+                },
+            )
+        ).json()["tokens"]["access_token"]
+
+        body = (
+            await client.post(
+                f"/api/v1/admin/agents/{slug}/recompute-reputation",
+                headers=auth(token),
+            )
+        ).json()
+        assert body["completed_orders"] == 0
+        assert body["score"] is None
+        assert Decimal(body["total_volume"]) == 0
+
+    async def test_a_non_admin_cannot_recompute(self, client, db) -> None:
+        _, slug, _ = await build_provider(client)
+        buyer_token, _ = await sign_in(client)
+        settings.ESCROW_ADMIN_ADDRESS = "0x000000000000000000000000000000000000adm1"
+
+        refused = await client.post(
+            f"/api/v1/admin/agents/{slug}/recompute-reputation",
+            headers=auth(buyer_token),
+        )
+        assert refused.status_code == 403, refused.text
+        assert refused.json()["error"]["code"] == "not_admin"

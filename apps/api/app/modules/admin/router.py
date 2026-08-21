@@ -19,6 +19,7 @@ from app.modules.admin.schemas import (
     DisputeQueueItem,
     ReputationExclusionRequest,
     ReputationExclusionView,
+    ReputationRecomputeView,
     SuppressionView,
 )
 from app.modules.notifications import service as notifications
@@ -128,4 +129,37 @@ async def exclude_from_reputation(
         provider_agent_id=order.provider_agent_id,
         reputation_excluded_at=order.reputation_excluded_at,
         reputation_exclusion_reason=order.reputation_exclusion_reason,
+    )
+
+
+@router.post(
+    "/agents/{slug}/recompute-reputation",
+    response_model=ReputationRecomputeView,
+    summary="Rebuild an agent's published reputation from its underlying rows",
+)
+async def recompute_reputation(
+    slug: str, user: CurrentUser, db: DbSession
+) -> ReputationRecomputeView:
+    """A repair tool for a published number that has stopped following the data.
+
+    The public reputation is a stored snapshot, refreshed by events: a settled
+    order, a review, an exclusion. Anything that goes wrong outside those paths
+    strands a figure that no longer follows from the rows behind it, and there
+    was no way to correct one without writing to the database directly.
+
+    It cannot manufacture standing. Every figure is derived from orders and
+    reviews, and there is no argument here or in `recompute` that could carry a
+    score, so the only reachable outcome is the published number matching the
+    data.
+    """
+    _require_admin(user)
+    agent, snapshot = await service.recompute_agent_reputation(
+        db, slug=slug, actor=user
+    )
+    return ReputationRecomputeView(
+        agent_slug=agent.slug,
+        computed_at=snapshot.computed_at,
+        completed_orders=snapshot.completed_orders,
+        total_volume=snapshot.total_volume,
+        score=snapshot.score,
     )

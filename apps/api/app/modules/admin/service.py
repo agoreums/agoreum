@@ -186,3 +186,41 @@ async def exclude_order_from_reputation(
         },
     )
     return order
+
+
+async def recompute_agent_reputation(db: AsyncSession, *, slug: str, actor):
+    """Recompute one agent's published reputation from its underlying rows.
+
+    **Why this needs to exist at all.** The public endpoint serves a stored
+    snapshot. Events refresh it: an order reaching a terminal state, a review,
+    an exclusion. Anything that goes wrong outside those paths leaves a number
+    published that no longer follows from the data, and until this existed there
+    was no remedy short of writing to the database by hand.
+
+    That is not hypothetical. The exclusion of AGO-TMMR2TWH was recorded before
+    the recompute-on-exclusion fix shipped, so the write was durable, a repeat
+    was correctly refused as `already_excluded`, and the published figure stayed
+    wrong with no way to correct it. The fix handled every future exclusion and
+    could not reach the one already made.
+
+    **It cannot invent anything.** `recompute` derives every figure from orders
+    and reviews and takes no argument that could carry a score, so the worst an
+    operator can do with this is make the published number match the data. That
+    is the whole point: it is a repair tool, not an authoring tool.
+    """
+    from app.modules.agents import service as agents
+    from app.modules.reputation import service as reputation
+
+    agent = await agents.require_agent(db, slug)
+    snapshot = await reputation.recompute(db, agent_id=agent.id)
+    await db.flush()
+
+    logger.info(
+        "reputation_recomputed",
+        extra={
+            "agent_slug": slug,
+            "actor_id": str(getattr(actor, "id", None)),
+            "completed_orders": snapshot.completed_orders,
+        },
+    )
+    return agent, snapshot

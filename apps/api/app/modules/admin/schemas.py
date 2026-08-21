@@ -49,3 +49,11 @@ class ReputationExclusionView(BaseModel):
     provider_agent_id: uuid.UUID
     reputation_excluded_at: datetime
     reputation_exclusion_reason: str
+
+
+class ReputationRecomputeView(BaseModel):
+    agent_slug: str
+    computed_at: datetime
+    completed_orders: int
+    total_volume: Decimal
+    score: Decimal | None
