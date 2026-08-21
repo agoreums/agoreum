@@ -153,7 +153,7 @@ this section.
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| Apply the exclusion to `AGO-TMMR2TWH` | Waiting on this batch to deploy | The mechanism works and is tested end to end. The first production attempt failed on the logging defect above; the order still counts until the fix ships and the admin call is made |
+| Apply the exclusion to `AGO-TMMR2TWH` | Recorded, awaiting a recompute | The exclusion is written and irreversible. The published figure still shows it until the recompute fix deploys, since the endpoint serves a snapshot |
 | The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
 | Cross-language verifier conformance beyond the browser | Open | The API and the browser are now pinned to identical canonical bytes by tests on both sides. The three published SDKs do not verify receipts at all yet, and adding it would make the canonical form a contract with four implementations rather than two |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
@@ -166,6 +166,47 @@ this section.
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
 
+### The exclusion was recorded and invisible, 2026-08-21
+
+Found by using the feature against production rather than by any test, which is
+the point.
+
+Excluding `AGO-TMMR2TWH` returned 200, wrote the timestamp and reason, and
+correctly refused a repeat with `already_excluded`. The agent's public
+reputation kept showing the excluded order.
+
+**The endpoint does not compute anything.** `/agents/{slug}/reputation` serves a
+stored `ReputationSnapshot` and computes one only when none exists. Excluding an
+order changes what a fresh computation would produce and changes nothing anybody
+can see.
+
+**Four tests passed throughout, because all four asked a question the endpoint
+does not ask.** Every one asserted `gather_inputs`, the internal computation.
+Not one asserted the number a visitor reads. That is the same shape as the
+`accepted_chain_ids` assertion that was true in both branches: coverage that is
+real, careful, mutation tested, and pointed slightly to one side of the thing
+that matters.
+
+**The broader half was worse.** Nothing recomputed a snapshot when an order
+settled. Only review activity did. So an agent's published figures were fixed at
+whichever read happened first and then refreshed only if somebody wrote a
+review: settle a second, third and tenth order and keep publishing the numbers
+from the first. That inverts the single claim this platform makes, which is that
+reputation follows settled trade.
+
+Both closed. The indexer recomputes when an order reaches a terminal state,
+swallowing failures because a stale score is a wrong number while a stalled
+indexer is orders that never leave pending. The exclusion recomputes without
+swallowing, because an operator told the exclusion succeeded while the number
+stays wrong is worse than an error.
+
+Two tests now assert the published figure rather than the internal one, and the
+mutation that removes the recompute fails the exclusion test with the exact
+production symptom.
+
+**The lesson, stated for the next time.** Ask what the user reads, not what the
+function returns. Every finding in this class has been a test that was correct
+about something adjacent to the thing that mattered.
 ### Production-only code was never executed by any test, 2026-08-21
 
 Found by pulling the same thread as the logging blind spot, deliberately rather

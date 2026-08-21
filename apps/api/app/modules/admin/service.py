@@ -156,6 +156,21 @@ async def exclude_order_from_reputation(
     order.reputation_exclusion_reason = reason
     await db.flush()
 
+    # Recomputed here, or the exclusion is real and invisible.
+    #
+    # The published reputation is a stored snapshot. Excluding an order changes
+    # what a fresh computation would produce and changes nothing anybody can
+    # see, which is exactly what happened the first time this was used against
+    # production: the write succeeded, a repeat was correctly refused, and the
+    # agent's page kept showing the excluded order.
+    #
+    # Not swallowed, unlike the indexer's call. This is a deliberate operator
+    # action on one order, and an operator told the exclusion succeeded while
+    # the number stayed wrong is worse than an error.
+    from app.modules.reputation import service as reputation
+
+    await reputation.recompute(db, agent_id=order.provider_agent_id)
+
     # `extra=` rather than bare keyword arguments. get_logger returns a
     # LoggerAdapter over the stdlib logger, which raises TypeError on unknown
     # kwargs, and this line was written the other way and only failed when the
