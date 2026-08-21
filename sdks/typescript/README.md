@@ -172,4 +172,4 @@ npm run build   # ESM + CJS + .d.ts via tsup
 
 ## License
 
-MIT
+Apache 2.0

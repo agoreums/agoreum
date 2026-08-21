@@ -187,6 +187,44 @@ def governance_events(from_block: int | None) -> tuple[list[str], int | None]:
     return alerts, head + 1
 
 
+# Half an hour. Generous, because this is watching for a clock that is wrong by
+# days rather than one that is drifting by seconds, and an alert that fires on
+# ordinary NTP correction is an alert people learn to ignore.
+MAX_CLOCK_SKEW_SECONDS = 1800
+
+
+def _clock_skew_seconds() -> float | None:
+    """This host's clock minus the network's, in seconds, or None if unknown.
+
+    Read from the Date header of the site the monitor already polls. Cloudflare
+    and nginx both stamp it, both take it from a synchronised clock, and it
+    arrives on a request this function does not have to make.
+
+    Returns None rather than zero when it cannot tell, so an unreadable header
+    reports "unknown" instead of "fine", which is the difference between a check
+    that abstains and one that lies.
+    """
+    import email.utils
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(SITE_URL, timeout=10) as response:
+            stamp = response.headers.get("Date")
+    except urllib.error.HTTPError as exc:
+        # An error page still carries a Date header, and a clock check has no
+        # reason to care whether the site returned 200 or 502.
+        stamp = exc.headers.get("Date") if exc.headers else None
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    if not stamp:
+        return None
+    try:
+        network = email.utils.parsedate_to_datetime(stamp).timestamp()
+    except (TypeError, ValueError):
+        return None
+    return time.time() - network
+
+
 def check() -> tuple[bool, list[str]]:
     """Return (healthy, list of problem descriptions)."""
     problems: list[str] = []
@@ -202,6 +240,34 @@ def check() -> tuple[bool, list[str]]:
         for name, comp in (body.get("components") or {}).items():
             if comp.get("status") == "down":
                 problems.append(f"api: {name} is down ({comp.get('error', 'unknown')})")
+
+    # Clock skew.
+    #
+    # This droplet's clock was three days behind real time during the session of
+    # 2026-08-21, corrected by NTP part way through, and nothing anywhere would
+    # have said so. It was noticed only because a backup filename disagreed with
+    # a commit date.
+    #
+    # It matters more here than on most servers. Every deadline this product
+    # enforces is a timestamp comparison: the funding window that freezes a
+    # price, the delivery window, the auto-release deadline after which anybody
+    # may release an escrow, and the dispute window a buyer relies on. A clock
+    # that jumps forward expires all of them at once, and a permissionless
+    # auto-release firing early pays a provider before the buyer's window to
+    # dispute has run. That is the exact property the deadline invariant in the
+    # contract suite exists to protect, defeated from outside the contract.
+    #
+    # Compared against the Date header of a response the monitor already makes,
+    # so this costs no extra request and needs no time service of its own.
+    if body is not None or code:
+        skew = _clock_skew_seconds()
+        if skew is not None and abs(skew) > MAX_CLOCK_SKEW_SECONDS:
+            problems.append(
+                f"clock: this host is {skew:+.0f}s from the network, which is "
+                f"past the {MAX_CLOCK_SKEW_SECONDS}s tolerance. Every funding, "
+                "delivery, auto-release and dispute deadline is a timestamp "
+                "comparison against this clock."
+            )
 
     code, body = _get(f"{API_BASE}/health/indexer")
     if body is not None:

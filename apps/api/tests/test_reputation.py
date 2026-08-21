@@ -830,3 +830,71 @@ class TestReputationExclusionIsOneWay:
             "excluding an order erased a cancellation, so the mechanism can "
             "improve a score rather than only reduce one"
         )
+
+    async def test_the_endpoint_excludes_a_real_order_end_to_end(
+        self, client, db
+    ) -> None:
+        """The only test here that reaches the whole handler.
+
+        Added after mutation testing showed the gap. The admin surface tests
+        drive this endpoint with a random uuid, which raises NotFoundError
+        before the service does any work, so every line after the lookup was
+        unexercised. Restoring the logging bug that took this endpoint down in
+        production left that suite completely green.
+
+        So this one builds a real settled order and excludes it through HTTP:
+        the admin gate, the body validation, the lookup, the write, the logging
+        call and the reputation read after it.
+        """
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        agent_id, order_id = await self._settled_order(db, client)
+
+        before = await reputation.gather_inputs(db, agent_id=agent_id)
+        assert before.completed_orders == 1, "the fixture produced no countable order"
+
+        admin = Account.create()
+        settings.ESCROW_ADMIN_ADDRESS = admin.address.lower()
+        challenge = (
+            await client.post(
+                "/api/v1/auth/nonce",
+                json={"address": admin.address.lower(), "chain_id": settings.CHAIN_ID},
+            )
+        ).json()
+        signed = admin.sign_message(encode_defunct(text=challenge["message"]))
+        token = (
+            await client.post(
+                "/api/v1/auth/signin",
+                json={
+                    "message": challenge["message"],
+                    "signature": signed.signature.hex(),
+                    "nonce": challenge["nonce"],
+                },
+            )
+        ).json()["tokens"]["access_token"]
+
+        response = await client.post(
+            f"/api/v1/admin/orders/{order_id}/exclude-from-reputation",
+            json={"reason": "settlement path verification, both wallets held by one operator"},
+            headers=auth(token),
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["order_id"] == str(order_id)
+        assert body["reputation_excluded_at"]
+
+        after = await reputation.gather_inputs(db, agent_id=agent_id)
+        assert after.completed_orders == 0
+        assert after.total_volume == 0
+
+        # Excluding twice is refused rather than silently accepted: two operators
+        # disagreeing about the same order is worth surfacing, and the second
+        # reason could not be recorded anyway.
+        again = await client.post(
+            f"/api/v1/admin/orders/{order_id}/exclude-from-reputation",
+            json={"reason": "a second decision that must not overwrite the first"},
+            headers=auth(token),
+        )
+        assert again.status_code == 409, again.text
+        assert again.json()["error"]["code"] == "already_excluded"

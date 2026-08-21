@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-16, after `8dab8c3`.
+**Last updated:** 2026-08-21, after `d6ca8a0`.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -146,22 +146,146 @@ this section.
 | Backend and API | Found `build()`, the function that issues a receipt, had no test at all, and that the one test named for the settlement refusal passed a random uuid and never reached it. Eleven tests added, four mutations | Prove the receipt path over a real settled order rather than a fake session |
 | Contracts | Fixed the two failures that had kept `Contracts` red on every open branch, and corrected a gas measurement that read nothing back from a transfer that can return false | Settlement cost measurement is recorded; no open work |
 | Frontend and web | Built `/verify`, where anyone can check a receipt in their own browser without an account and without trusting us. Mark sizing corrected at its two definitions; social cards name Base Sepolia | Continue raising the interface to the standard set for this phase |
-| Infrastructure | Added a deploy assertion that fails when the receipts key document stops carrying a key, exercised in both directions against production before shipping | Cloudflare refuses `/.well-known/*` to one common client, see open threads |
+| Infrastructure | Recovered production from a silent indexer outage caused by a half-rotated credential, and closed the class with a consistency check wired into the deploy | Decide whether the monitor should retain logs across a container recreate, since the fix destroyed the evidence of whether it paged |
 | Product and growth | Discord read in full, nothing unanswered; the only recent messages are members talking to each other, and posting into that would be manufactured activity | Keep inbound answered as a standing responsibility |
 
 ### Open threads
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| Apply the exclusion to `AGO-TMMR2TWH` | Waiting on deploy | The mechanism is built. The production order still counts until the migration runs and the admin call is made |
+| Apply the exclusion to `AGO-TMMR2TWH` | Waiting on this batch to deploy | The mechanism works and is tested end to end. The first production attempt failed on the logging defect above; the order still counts until the fix ships and the admin call is made |
 | The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
 | Cross-language verifier conformance beyond the browser | Open | The API and the browser are now pinned to identical canonical bytes by tests on both sides. The three published SDKs do not verify receipts at all yet, and adding it would make the canonical form a contract with four implementations rather than two |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
 | `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
+| Chain health is not in `required_components` | Open, deliberate | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
+| Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
+| Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The droplet clock was three days behind, 2026-08-21
+
+Found because the running-record guard failed CI, which is the only reason it
+was found at all.
+
+Every date I wrote during this batch came from the droplet, which reported
+2026-08-18 while GitHub, this workstation and the real world were on 2026-08-21.
+NTP corrected it part way through the session. Nothing anywhere reported the
+skew; the guard simply refused a record dated before the commits it was meant to
+describe, and chasing that disagreement is what surfaced it.
+
+**Why this matters more here than on most servers.** Every deadline this product
+enforces is a timestamp comparison against that clock: the funding window that
+freezes a price, the delivery window, the auto-release deadline after which
+anybody may release an escrow, and the dispute window a buyer relies on. A clock
+that jumps forward expires all of them at once. A permissionless auto-release
+firing early pays a provider before the buyer has had their window to dispute,
+which is exactly the property `invariant_deadlinesNeverMove` exists to protect,
+defeated from outside the contract entirely.
+
+**Blast radius was nil, and only by luck.** Production holds one order, already
+completed and released by hand, with no live auto-release or funding deadline.
+Checked rather than assumed.
+
+**Now watched.** The monitor compares its own clock against the `Date` header of
+a response it already fetches, so the check costs no extra request and needs no
+time service of its own. Tolerance is half an hour, generous on purpose, because
+this is looking for a clock wrong by days rather than drifting by seconds and an
+alert that fires on ordinary NTP correction is one people learn to ignore. It
+returns "unknown" rather than "fine" when it cannot read the header, which is
+the difference between a check that abstains and one that lies. Verified against
+the real skew of about three seconds, against a simulated three-day skew which
+alerts, and against a network failure which abstains.
+
+**The general shape.** A wrong clock is not a wrong answer, it is every
+time-dependent answer being wrong at once, quietly, while every component
+reports healthy. Worth asking of anything else the system trusts without
+measuring: not "is it configured", but "when did anything last check it".
+
+### The Alchemy rotation, 2026-08-21
+
+A rotated key, updated in one of the three places it lived, took the production
+indexer down silently. Worth writing up in full because every layer that should
+have caught it had a reason not to.
+
+**What happened.** `ALCHEMY_API_KEY` was rotated and updated.
+`ALCHEMY_BASE_URL_MAINNET` and `ALCHEMY_BASE_URL_SEPOLIA` embed the same key
+inside a URL and were not. The old key was revoked, so both URLs 401ed. The
+indexer raised `ChainUnavailableError` on every poll. Orders would have stopped
+being funded or settled.
+
+**Why nothing was obviously wrong.** `/health/ready` returned `status: ok` with
+`chain: down`, because only database and Redis are required components. That is
+a defensible choice, since making the chain required would take the API out of
+service on any RPC blip, but it means the top-level status word cannot be used
+to answer "is the product working".
+
+The monitor does iterate the components and would have flagged it. Whether it
+actually paged is **unknown**, and unknown because recreating the container
+during the fix destroyed its logs. Recorded as unknown rather than assumed
+either way.
+
+**The fix, and the class.** Production env corrected, all eight containers
+checked for the dead value rather than the four that were obviously affected,
+and two were still carrying it. Then `scripts/check_env_consistency.py`, which
+asserts a standalone credential matches every URL embedding it, wired into the
+deploy before migrations so a wrong configuration is refused rather than noticed
+later. It refuses to report success when it finds no pairs to compare.
+
+**A second outage, self-inflicted, during the fix.** Recreating the containers
+by hand gave them new IPs, and nginx resolves upstreams at load time, so the
+site 502ed until nginx was reloaded. `deploy.sh` documents exactly this and does
+the reload; working outside it meant not getting it. The lesson is narrow: use
+the deploy path, or repeat its steps deliberately.
+
+### The admin surface had never been reachable, 2026-08-21
+
+Production carried no `ESCROW_ADMIN_ADDRESS`, so `is_platform_admin` returned
+false for every account and every `_require_admin` endpoint answered 403 to
+everybody, for the whole life of the surface. The gate failing closed was
+correct. Nobody had ever checked that it opened.
+
+**A claim I made about this was wrong and is corrected here.** I first reported
+that the dispute queue was among the unreachable endpoints. It was not: the
+queue is gated on the arbiter, which production did have configured, and the two
+authorities are deliberately separate so that running the platform does not
+confer the power to decide who gets the money. I found this by writing a test
+asserting an admin could open the queue, which failed with `not_arbiter`. The
+code was right and the test was wrong.
+
+What was actually unreachable: email suppressions, and the new reputation
+exclusion endpoint.
+
+The tests around this surface asserted who *may* use it and that the routes
+exist in the schema. None called one, which is how both this and the logging
+defect below got through.
+
+### Every logger.info call was invisible to the test suite, 2026-08-21
+
+The most useful finding of the batch, and it was found by a mutation surviving.
+
+The exclusion endpoint raised `TypeError` in production on its own logging call,
+because it passed context as bare keyword arguments where this project's adapter
+wants `extra=`. After fixing it, restoring the bug as a mutation left the suite
+completely green, including a new end-to-end test that drives the endpoint over
+HTTP and reaches that exact line.
+
+**The cause is systemic.** pytest ran at the default WARNING level.
+`Logger.info` checks `isEnabledFor` before touching its arguments, so at WARNING
+every info call in the codebase returns before doing anything. A malformed one
+executes nothing, raises nothing, and looks tested. That covered all 106 logging
+calls in the project, not one.
+
+Fixed with `log_level = "INFO"` in the pytest configuration, after which the
+mutation fails with the exact production error. The full suite still passes, 738
+tests, and an AST audit of all 106 calls found no other offender.
+
+The shape is worth keeping: **a test environment configured more quietly than
+production does not test production.** The same question is worth asking of
+anything else the suite turns down or off.
 
 ### The settlement exercise, run 2026-08-16
 
@@ -281,6 +405,13 @@ durable ones are in `## Standing constraints`; the archive of findings is in
 Terse, most recent first. One line per batch, enough to know what happened
 without reading the commits.
 
+- **2026-08-21.** An Alchemy key rotation took the production indexer down and
+  nothing said so. Fixed, then closed the class with a check. Found the admin
+  surface had never been reachable in production, corrected a claim I made about
+  which endpoints that affected, and found that the entire test suite ran at
+  WARNING so every `logger.info` call in the project was never executed by any
+  test. Relicensed to Apache 2.0. Gave the landing field depth and motion that
+  describes settlement.
 - **2026-08-16, latest+2.** Built the public receipt verification page at
   `/verify`, which checks a pasted receipt in the reader's own browser and
   reports attribution and chain evidence as two separate findings rather than

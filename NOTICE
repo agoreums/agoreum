@@ -1,0 +1,21 @@
+Agoreum
+Copyright 2026 Agoreum
+
+This product includes software developed by Agoreum.
+
+Licensed under the Apache License, Version 2.0. See LICENSE for the full text.
+
+Relicensed from MIT on 2026-08-21. The project has had exactly one author and
+no outside contributors, so the change required no permission from anybody and
+nothing already distributed under MIT is withdrawn: a copy obtained under MIT
+stays under MIT. Apache 2.0 was chosen for the two things MIT does not say.
+
+It grants a patent licence explicitly, and terminates that grant for anybody who
+sues the project over patents. A marketplace that settles payments on chain is a
+more attractive target for that than most software, and MIT leaves the question
+open rather than answering it.
+
+It also requires modified files to be marked. This codebase is deliberately full
+of comments explaining why a guard exists and what it was found to be wrong
+about, and a fork that silently removes one of those guards while keeping the
+comment would be a genuine hazard to whoever runs it.
