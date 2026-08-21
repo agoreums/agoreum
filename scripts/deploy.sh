@@ -98,16 +98,37 @@ if ! git diff --quiet "${BEFORE}" "${AFTER}" -- infra/certs; then
   $COMPOSE up -d --force-recreate umami
 fi
 
-log "verify api health"
+# The chain is checked alongside the overall status, not folded into it.
+#
+# `status` covers the required components, which are the database and Redis. The
+# chain is deliberately not required, because making it so would take the API
+# out of service on any RPC blip. The consequence is that `status: ok` says
+# nothing about whether the chain is reachable, and on 2026-08-21 production sat
+# with a revoked key, an indexer 401ing on every poll, and a health endpoint
+# reporting ok. Orders would have stopped being funded or settled.
+#
+# So the deploy asserts it separately. A chain still unreachable after two
+# minutes of retries is worth failing a deploy over: the alternative is shipping
+# a build whose indexer cannot see the chain, which is silent, and silence is the
+# failure this project treats as most costly.
+log "verify api health, and that the chain is actually reachable"
 ok=false
+status=""
+chain=""
 for i in $(seq 1 24); do
-  status=$($COMPOSE exec -T api curl -fsS http://127.0.0.1:8000/api/v1/health/ready 2>/dev/null \
-    | python3 -c "import sys,json;print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)
-  if [ "$status" = "ok" ]; then ok=true; break; fi
+  body=$($COMPOSE exec -T api curl -fsS http://127.0.0.1:8000/api/v1/health/ready 2>/dev/null || true)
+  status=$(printf '%s' "$body" | python3 -c "import sys,json;print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)
+  chain=$(printf '%s' "$body" | python3 -c "import sys,json;print((json.load(sys.stdin).get('components') or {}).get('chain',{}).get('status',''))" 2>/dev/null || true)
+  if [ "$status" = "ok" ] && [ "$chain" = "ok" ]; then ok=true; break; fi
   sleep 5
 done
 if [ "$ok" != true ]; then
-  echo "DEPLOY FAILED: api did not report healthy after recreate"
+  echo "DEPLOY FAILED: api status='${status:-none}' chain='${chain:-none}' after recreate"
+  if [ "$status" = "ok" ] && [ "$chain" != "ok" ]; then
+    echo "  the app is up and the chain is not reachable. Check the RPC URL and"
+    echo "  whether its key is still live: a revoked key answers 401 on every"
+    echo "  poll while every other health signal stays green."
+  fi
   $COMPOSE ps
   exit 1
 fi
