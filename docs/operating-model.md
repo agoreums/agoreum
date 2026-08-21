@@ -158,7 +158,7 @@ this section.
 | Cross-language verifier conformance beyond the browser | Open | The API and the browser are now pinned to identical canonical bytes by tests on both sides. The three published SDKs do not verify receipts at all yet, and adding it would make the canonical form a contract with four implementations rather than two |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
 | `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
-| Chain health is not in `required_components` | Open, deliberate | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
+| Chain health is not in `required_components` | Deliberate, now asserted at deploy | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
 | Three Safe multisigs on Base | Blocked | Owner action |
@@ -231,9 +231,29 @@ either way.
 **The fix, and the class.** Production env corrected, all eight containers
 checked for the dead value rather than the four that were obviously affected,
 and two were still carrying it. Then `scripts/check_env_consistency.py`, which
-asserts a standalone credential matches every URL embedding it, wired into the
-deploy before migrations so a wrong configuration is refused rather than noticed
-later. It refuses to report success when it finds no pairs to compare.
+requires every place a credential appears to agree, wired into the deploy before
+migrations so a wrong configuration is refused rather than noticed later.
+
+**That guard was wrong on its first deploy, in an instructive way.** It assumed
+the standalone variable always exists and failed when it found no pair to
+compare. Production carries only the URL, so the very first deploy after it
+shipped was refused on a perfectly good environment. Two lessons, and the second
+matters more.
+
+A check must not confuse "nothing to compare" with "misconfigured": one
+occurrence cannot disagree with itself, and that is a pass. It now fails only
+when none of the named variables exist at all, which is what a rename looks
+like.
+
+And the guard could never have caught the actual incident where it happened.
+Consistency only exists between two occurrences, and production has one, so the
+protection it offers lives on the workstation rather than on the server that
+went down. **What would have caught it is a liveness check, not a consistency
+check.** The deploy now asserts the chain is genuinely reachable rather than
+reading the overall status word, which stays `ok` while the chain is down
+because the chain is deliberately not a required component. Verified against the
+exact JSON production served during the outage, where the old check read `ok`
+and passed.
 
 **A second outage, self-inflicted, during the fix.** Recreating the containers
 by hand gave them new IPs, and nginx resolves upstreams at load time, so the
