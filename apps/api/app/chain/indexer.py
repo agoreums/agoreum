@@ -330,7 +330,7 @@ async def _record_transaction(
             # Only reached past the confirmation frontier, so this is settled.
             status=TransactionStatus.CONFIRMED,
             from_address=str(event.args.get("buyer") or order.buyer.primary_address),
-            to_address=str(event.args.get("provider") or ""),
+            to_address=_recipient(event, order),
             amount=amount,
             token_address=str(event.args.get("token") or settings.usdc_address).lower(),
             block_number=event.block_number,
@@ -450,6 +450,43 @@ async def _apply_to_escrow(
         await notification_events.order_disputed(
             db, order=order, raised_by_address=str(event.args.get("raisedBy", "")) or None
         )
+
+
+def _recipient(event: contract.DecodedEvent, order: Order) -> str | None:
+    """Who received funds in this event, or None when it names nobody.
+
+    **This crashed the indexer in a loop the first time a dispute was ever
+    settled in production, on 2026-08-21.** The line read
+    `str(event.args.get("provider") or "")`, which is correct for
+    `EscrowReleased` and wrong for every other event, because they do not all
+    carry a `provider`:
+
+    - `EscrowReleased(escrowId, provider, providerAmount, feeAmount, releasedBy)`
+    - `EscrowRefunded(escrowId, buyer, amount, refundedBy)`
+    - `EscrowSettled(escrowId, providerAmount, buyerAmount, feeAmount, arbiter)`
+
+    A settlement pays both parties and names neither, so `get("provider")`
+    returned None, `or ""` turned that into an empty string, and the address
+    column refused it. The exception escaped the event handler, the process
+    died, and the container restarted into the same unprocessed block forever.
+    Twenty one restarts before anybody looked, with **all** chain projection
+    stopped, not only this event.
+
+    A refund would have done exactly the same thing for the same reason, and
+    neither event had ever been emitted in production, so both were latent from
+    the day the line was written.
+
+    The column is nullable, so the empty string was never necessary. Where the
+    event names a single recipient, use it. Where it does not, fall back to the
+    escrow's stored provider, and failing that record nothing rather than
+    something invalid.
+    """
+    named = event.args.get("provider") or event.args.get("buyer")
+    if named:
+        return str(named)
+    if order.escrow is not None and order.escrow.provider_address:
+        return str(order.escrow.provider_address)
+    return None
 
 
 async def _record_order_event(
