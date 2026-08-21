@@ -49,6 +49,24 @@ if [ "${EXPECTED}" != "${ACTUAL}" ]; then
 fi
 echo "  next ${ACTUAL} matches the lockfile"
 
+# A credential written in two places gets rotated in one.
+#
+# On 2026-08-18 the Alchemy key was rotated, ALCHEMY_API_KEY was updated and the
+# two ALCHEMY_BASE_URL_* variables embedding the same key were not. Production
+# kept serving, every health endpoint reported ok, and the indexer 401ed on
+# every poll. Orders would have stopped being funded or settled with nothing
+# saying so.
+#
+# Checked before migrations rather than after the app comes up, because the
+# point is to refuse to deploy onto a configuration that is already wrong rather
+# than to notice afterwards.
+log "check the environment does not disagree with itself"
+if ! python3 scripts/check_env_consistency.py .env; then
+  echo "DEPLOY FAILED: a credential in .env is defined twice with different values"
+  echo "  rotate every place it appears, not only the standalone variable"
+  exit 1
+fi
+
 log "run migrations"
 $COMPOSE run --rm api alembic upgrade head
 
