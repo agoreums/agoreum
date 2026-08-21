@@ -265,3 +265,68 @@ class TestTheSurfaceActuallyResponds:
             "running the platform started granting the power to decide who gets "
             "the money, which is the one separation this surface has"
         )
+
+
+class TestAnUnreachableSurfaceSaysSo:
+    """Two admin authorities, granted differently, and both silent when unset.
+
+    `is_platform_admin` compares an address to `ESCROW_ADMIN_ADDRESS`, granted by
+    configuration. `require_admin` reads `user.role`, granted only by an operator
+    running the CLI on the host. Both fail closed, which is correct, and neither
+    said anything when it did.
+
+    Production ran without either for the entire life of the surfaces they
+    guard. Every `/admin` endpoint answered 403 to everybody including the owner,
+    and the admin dashboard and subscription plan management were reachable by
+    nobody. Both were found by trying to use them, months in.
+    """
+
+    async def test_it_warns_when_no_account_holds_the_admin_role(
+        self, caplog, monkeypatch
+    ) -> None:
+        import logging
+
+        from app.main import _warn_if_no_surface_can_be_reached
+
+        monkeypatch.setattr(settings, "ESCROW_ADMIN_ADDRESS", ADMIN)
+        with caplog.at_level(logging.WARNING):
+            await _warn_if_no_surface_can_be_reached()
+
+        messages = [r.message for r in caplog.records]
+        assert "admin_surface_unreachable" in messages, (
+            f"a database with no admin account produced no warning: {messages}"
+        )
+
+    async def test_it_warns_when_the_platform_admin_address_is_unset(
+        self, caplog, monkeypatch
+    ) -> None:
+        import logging
+
+        from app.main import _warn_if_no_surface_can_be_reached
+
+        monkeypatch.setattr(settings, "ESCROW_ADMIN_ADDRESS", None)
+        with caplog.at_level(logging.WARNING):
+            await _warn_if_no_surface_can_be_reached()
+
+        reasons = " ".join(
+            str(getattr(r, "reason", "")) for r in caplog.records
+        )
+        assert "ESCROW_ADMIN_ADDRESS" in reasons, (
+            f"an unset admin address produced no warning naming it: {reasons}"
+        )
+
+    async def test_it_never_stops_the_application_booting(self, monkeypatch) -> None:
+        """A warning that can break startup is worse than the silence it fixes.
+
+        Asserted by making the database lookup raise, which is the realistic
+        failure: this runs during lifespan, before anything has proven the
+        database is reachable.
+        """
+        import app.db.session as session_module
+        from app.main import _warn_if_no_surface_can_be_reached
+
+        def explode(*args, **kwargs):
+            raise RuntimeError("database unreachable during startup")
+
+        monkeypatch.setattr(session_module, "SessionLocal", explode)
+        await _warn_if_no_surface_can_be_reached()

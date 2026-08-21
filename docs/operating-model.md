@@ -161,10 +161,97 @@ this section.
 | Chain health is not in `required_components` | Deliberate, now asserted at deploy | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
+| Grant `UserRole.ADMIN` to an account | Owner decision | No production account holds it, so the admin dashboard and subscription plan management are reachable by nobody. The obvious candidate is the account whose key I hold, so granting it would escalate my own privileges |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### A second admin authority nobody held, 2026-08-21
+
+The sweep's second finding, and the same defect as the first in a different
+costume.
+
+**There are two administrative authorities here and they are granted in
+completely different ways.** `is_platform_admin` compares an account's address
+to `ESCROW_ADMIN_ADDRESS`, so it is granted by configuration and gates `/admin`.
+`require_admin` reads `user.role`, granted only by an operator running the CLI
+on the host, and gates the admin dashboard and subscription plan management.
+
+Both are reasonable. Both fail closed when unset, which is correct. Neither said
+anything when it did.
+
+`ESCROW_ADMIN_ADDRESS` was unset in production for the whole life of the admin
+surface, found earlier this session. Checking the other half now: **no account
+in production holds `UserRole.ADMIN`.** All six users are `user`, so the admin
+dashboard and subscription plan management have been reachable by nobody,
+including the owner, since they were built. One plan exists, created outside the
+API.
+
+The claim in `cli.py` that it is "the only way an account becomes an admin" is
+true, and verified: `user.role` is assigned in exactly one place. The trap is not
+that the claim is false, it is that being the only path is worth nothing if
+nobody has walked it, and nothing was ever going to mention that.
+
+**Not granted, and the reason matters.** The account matching
+`ESCROW_ADMIN_ADDRESS` is the obvious candidate and I hold its private key.
+Granting it platform admin would be escalating my own privileges, whatever the
+intent, so it is the owner's call and is flagged rather than done.
+
+**What is done** is that startup now warns when either authority is reachable by
+nobody, naming the surface and how to grant it. A warning rather than a refusal,
+because a deployment may legitimately not have granted these yet and refusing to
+start would turn a dormant surface into an outage. The failure being fixed is
+silence, not permissiveness.
+
+Writing the test found a real flaw in the first version. It queried the database
+first and returned early when that failed, so a database hiccup silently
+suppressed the address warning, which needs no database at all. Two independent
+conditions must be able to fail independently. Three mutations each caught:
+removing either warning, and narrowing the exception so a database failure
+escapes and breaks startup.
+
+### Sweeping for claims that were true once, 2026-08-21
+
+Made deliberate after the service counter defect, because that one is the
+sharpest instance of the month's pattern and the least likely to be found by
+accident. The false confidence did not come from a missing test. It came from a
+**true statement that stopped being true**, checked against one code path,
+while a second path quietly started touching the same data.
+
+This is the inverse of the hedged-language sweep already recorded here. That one
+looked for uncertainty: "not tested", "worth confirming", "we assume". A hedge
+invites a check. A confident claim closes the question, and goes on closing it
+long after the code underneath has moved.
+
+`scripts/sweep_invariant_claims.py` lists them: 89 across 281 files, grouped by
+the phrase that makes them a claim. The highest-yield shapes are the ones a
+second code path can invalidate: "kept in sync", "cannot drift", "the only
+thing", "nothing else reads", "one source of truth". It produces a worklist and
+never a verdict, which is the only honest output for something a person has to
+go and check.
+
+**What the first pass found.** The highest-stakes claim was
+`agents.payout_address` being "kept in sync with payout_wallet_id by the service
+layer": a denormalised field that decides where money goes. It holds, and it
+holds more strongly than the comment says. One code path writes both together,
+no path mutates a wallet address after creation, the foreign key is `RESTRICT`
+so a referenced wallet cannot be deleted, and a database constraint already
+forces any payout wallet to be verified. The comment credits the service layer
+for something the schema enforces.
+
+**What the audit did not prove, which matters more than what it did.**
+`scripts/audit_invariant_claims.py` checks eight of these against a real
+database. Run against production it passed all eight, and that is close to
+worthless: production holds one agent, one order and no reviews, so most of the
+checks are satisfied vacuously. The local database has 200 users and zero
+agents, because the tests that create them roll back.
+
+So the script now refuses to let a pass read as a result. Below twenty rows in
+the smallest table it prints a warning saying the run is close to no evidence at
+all. The instrument is worth having for when there is data to measure; today it
+measures almost nothing, and saying "8 of 8 claims hold" without that caveat
+would be exactly the kind of confident sentence this sweep exists to catch.
 
 ### The marketplace rating disagreed with the reputation, 2026-08-21
 
