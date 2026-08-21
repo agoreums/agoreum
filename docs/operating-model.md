@@ -166,6 +166,49 @@ this section.
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
 
+### Production-only code was never executed by any test, 2026-08-21
+
+Found by pulling the same thread as the logging blind spot, deliberately rather
+than by accident: what else is configured more quietly in tests than in
+production.
+
+`APP_ENV` is `test` in CI and `development` locally, so every branch guarded by
+`settings.is_production` was dead code as far as the suite was concerned. Three
+of them are security controls.
+
+- **The sign-in chain policy.** Outside production the verifier also accepts
+  Base mainnet and Base Sepolia so the flow can be exercised; in production it
+  accepts exactly the configured chain. The only test asserted `CHAIN_ID in
+  accepted_chain_ids()`, which is true in both branches and could never have
+  caught the narrowing being lost. A deployment that kept the permissive set
+  would accept a signature produced for a different chain, which is the entire
+  reason the chain id is inside the signed message.
+- **Strict-Transport-Security**, added only in production and only at
+  construction time.
+- **TrustedHostMiddleware**, installed only in production. It fails loudly in
+  one direction: a hostname missing from the allowed set answers 400 for
+  everything reaching it. The internal names are the dangerous ones, because
+  the container healthcheck arrives as `127.0.0.1` and the web container calls
+  the API as `api`, so dropping either takes production down while every test
+  stays green.
+
+None of this needed a deployment to test. `create_app()` and the middleware are
+built at call time, so flipping the setting and constructing them executes the
+real branch. Eight tests, and three mutations each caught by the test that
+claims to cover it: dropping the narrowing, dropping HSTS, and commenting out
+one internal hostname.
+
+Each control was then checked against the live site rather than only in a test.
+Production serves `max-age=63072000; includeSubDomains; preload`, answers 403 to
+a forged `Host` header, and reports `accepted_chain_ids: [84532]`, exactly one
+chain.
+
+**Two controls were checked and found genuinely sound**, which is worth saying
+because a hunt that only ever reports problems is not measuring anything.
+`RATE_LIMIT_ENABLED` is false in CI, but `tests/test_security.py` forces it on
+through a fixture, requires Redis, and asserts real 429s, and the whole-suite
+skip assertion means it cannot quietly stop running.
+
 ### The droplet clock was three days behind, 2026-08-21
 
 Found because the running-record guard failed CI, which is the only reason it
