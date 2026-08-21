@@ -24,6 +24,28 @@
  * Deliberately not a canvas and not WebGL. This is decoration behind text; it
  * has no business shipping a renderer, blocking the main thread, or spending a
  * phone's battery. Inline SVG stays crisp at any density and costs one paint.
+ *
+ * **Depth, added 2026-08-18, without reversing that decision.** The field now
+ * sits on a perspective stage with a small rotateX, so the loops read as a plane
+ * receding rather than as flat circles printed on the page. That is genuine
+ * dimensionality from one CSS transform: no renderer, no main-thread cost, and
+ * it also breaks the perfect-circle read the original comment worried about,
+ * since a tilted ring is no longer a target symbol.
+ *
+ * **The travellers are the only motion here that says anything.** Short bright
+ * arcs ride the ring radii at their own periods, appearing, crossing, and fading
+ * out again. They are what the product does: value moving between two parties,
+ * and stopping. Each is a head and a dimmer tail in one rotating group, which is
+ * a comet built from two dashes and a rotation rather than from a filter, so it
+ * stays on the compositor like everything else.
+ *
+ * They are deliberately sparse and slow, and they fade rather than looping
+ * visibly, because a light that circles forever is an ornament. One that arrives
+ * and settles is a description.
+ *
+ * **The core is where value rests.** A soft centre breathing on opacity alone,
+ * at the point both ring groups turn around. Escrow is the still part of this
+ * product and it should be the still part of the picture.
  */
 export function LandingBackground() {
   return (
@@ -32,6 +54,7 @@ export function LandingBackground() {
           source is calmer, and calm is the whole register we are aiming at. */}
       <div className="brand-wash" />
 
+      <div className="brand-stage">
       <svg
         className="brand-rings"
         viewBox="0 0 1200 1200"
@@ -100,7 +123,86 @@ export function LandingBackground() {
           />
           <circle cx="600" cy="600" r="238" stroke="url(#ring-indigo)" strokeWidth="1.5" />
         </g>
+        {/* Settlement travellers. Each group turns at its own period so they
+            never line up, and each arc is a bright head with a dimmer tail
+            behind it, which is what makes it read as something moving along the
+            path rather than a dash that happens to be there. The opacity
+            animation is what turns a loop into an arrival. */}
+        <g className="ring-traveller ring-traveller--outer">
+          <circle
+            cx="600"
+            cy="600"
+            r="452"
+            className="traveller-tail"
+            stroke="var(--color-brand-400)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeDasharray="300 2540"
+          />
+          <circle
+            cx="600"
+            cy="600"
+            r="452"
+            className="traveller-head"
+            stroke="var(--color-brand-300)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray="90 2750"
+          />
+        </g>
+
+        <g className="ring-traveller ring-traveller--mid">
+          <circle
+            cx="600"
+            cy="600"
+            r="318"
+            className="traveller-tail"
+            stroke="var(--color-signal-400)"
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeDasharray="220 1778"
+          />
+          <circle
+            cx="600"
+            cy="600"
+            r="318"
+            className="traveller-head"
+            stroke="var(--color-signal-300)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray="70 1928"
+          />
+        </g>
+
+        <g className="ring-traveller ring-traveller--inner">
+          <circle
+            cx="600"
+            cy="600"
+            r="238"
+            className="traveller-tail"
+            stroke="var(--color-brand-400)"
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeDasharray="160 1335"
+          />
+          <circle
+            cx="600"
+            cy="600"
+            r="238"
+            className="traveller-head"
+            stroke="var(--color-brand-300)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray="56 1439"
+          />
+        </g>
       </svg>
+
+      </div>
+
+      {/* Where value rests. Both ring groups turn around this point, so it is
+          already the centre of the geometry; it just was not lit. */}
+      <div className="brand-core" />
 
       {/* The engineered grid stays. It was the one part of the old field that
           was doing real work: it reads as precision scaffolding and it gives

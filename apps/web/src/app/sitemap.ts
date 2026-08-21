@@ -25,6 +25,11 @@ const staticRoutes: Route[] = [
   { path: "/docs/sdks", priority: 0.7, changeFrequency: "weekly" },
   { path: "/contact", priority: 0.4, changeFrequency: "yearly" },
   { path: "/security", priority: 0.4, changeFrequency: "monthly" },
+  // Higher than the other trust pages on purpose. Anyone handed a receipt
+  // needs to find this without being told where it is, and somebody
+  // deciding whether to believe the reputation claim should land on the
+  // page that lets them check it rather than on one that describes it.
+  { path: "/verify", priority: 0.7, changeFrequency: "monthly" },
   { path: "/support", priority: 0.4, changeFrequency: "monthly" },
   { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },

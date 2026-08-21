@@ -491,6 +491,140 @@
     }
   }
 
+  /* The perspective stage.
+     A small rotateX is the whole 3D story here. It costs one transform, needs no
+     renderer, and does something the flat version could not: a tilted ring stops
+     reading as a target symbol centred on the headline, which is the cliche the
+     original field was written to avoid. Kept under 15 degrees, because past
+     that the circles read as ellipses and the geometry starts looking like a
+     logo for something else. */
+  .brand-stage {
+    position: absolute;
+    inset: 0;
+    perspective: 1400px;
+    perspective-origin: 50% 30%;
+    transform-style: preserve-3d;
+  }
+  .brand-stage > .brand-rings,
+  .brand-stage > .brand-grid {
+    transform: rotateX(12deg);
+  }
+  .brand-stage > .brand-rings {
+    /* The translate on .brand-rings is its own positioning; the tilt has to be
+       composed with it rather than replacing it, or the field jumps off centre. */
+    transform: translate(-50%, -62%) rotateX(12deg);
+    translate: none;
+  }
+
+  /* Settlement travellers.
+     The group rotates, which is a transform and therefore free. The arcs inside
+     it fade in and out on opacity, which is also free. Between them that is a
+     light that crosses part of the loop and settles, rather than a dash going
+     round forever.
+
+     Periods are 46s, 61s and 79s: all primes-ish and none a multiple of another,
+     so three travellers never arrive together and the field never resolves into
+     a pattern. */
+  .ring-traveller {
+    transform-origin: 600px 600px;
+    will-change: transform;
+  }
+  .ring-traveller--outer {
+    animation: ring-turn-cw 46s linear infinite;
+  }
+  .ring-traveller--mid {
+    animation: ring-turn-ccw 61s linear infinite;
+  }
+  .ring-traveller--inner {
+    animation: ring-turn-cw 79s linear infinite;
+  }
+
+  .traveller-head,
+  .traveller-tail {
+    will-change: opacity;
+  }
+  .traveller-head {
+    animation: traveller-pass 46s ease-in-out infinite;
+  }
+  .traveller-tail {
+    animation: traveller-pass 46s ease-in-out infinite;
+    opacity: 0.18;
+  }
+  .ring-traveller--mid .traveller-head,
+  .ring-traveller--mid .traveller-tail {
+    animation-duration: 61s;
+  }
+  .ring-traveller--inner .traveller-head,
+  .ring-traveller--inner .traveller-tail {
+    animation-duration: 79s;
+  }
+
+  /* Dark most of the cycle. A traveller that is visible the whole way round is
+     an ornament; one that appears, crosses and goes is an event. */
+  @keyframes traveller-pass {
+    0%,
+    62%,
+    100% {
+      opacity: 0;
+    }
+    12%,
+    46% {
+      opacity: 0.55;
+    }
+  }
+
+  :root[data-theme="light"] .ring-traveller,
+  :root[data-theme="system"] .ring-traveller {
+    opacity: 0.55;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] .ring-traveller {
+      opacity: 1;
+    }
+  }
+
+  /* Where value rests.
+     Escrow is the still part of this product, so the centre is the one thing
+     that does not move. It breathes on opacity only, slowly enough that you
+     would have to watch it to catch it changing. */
+  .brand-core {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: min(560px, 52vw);
+    block-size: min(560px, 52vw);
+    translate: -50% -62%;
+    border-radius: 50%;
+    background-image: radial-gradient(
+      circle at 50% 50%,
+      color-mix(in oklab, var(--color-brand-400) 16%, transparent) 0%,
+      color-mix(in oklab, var(--color-brand-500) 7%, transparent) 38%,
+      transparent 68%
+    );
+    animation: core-breathe 24s ease-in-out infinite;
+    will-change: opacity;
+  }
+  @keyframes core-breathe {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+  :root[data-theme="light"] .brand-core,
+  :root[data-theme="system"] .brand-core {
+    opacity: 0.4;
+    animation: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] .brand-core {
+      opacity: 1;
+      animation: core-breathe 24s ease-in-out infinite;
+    }
+  }
+
   /* Fine engineered grid, masked to fade out toward the edges. Reads as precision
      scaffolding rather than decoration. */
   .brand-grid {
