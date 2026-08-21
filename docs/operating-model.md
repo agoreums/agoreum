@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-21, after `d6ca8a0`.
+**Last updated:** 2026-08-22, after `9f79868`.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -163,6 +163,7 @@ this section.
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
 | A dispute has never been raised or settled in production | Open, next exercise | The contract half is proven; the operational half has never carried a real case. Design it before running it, as with the settlement exercise |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
+| ~~A divergence could be reported but never closed~~ | **Closed 2026-08-22** | `reconcile` named the first real divergence and nothing could act on it. Repair added, admin gated, copying only what the contract holds and refusing to paper over a structural one |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
