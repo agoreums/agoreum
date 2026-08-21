@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -100,3 +101,56 @@ class TestEveryEscrowEventIsRecordable:
         """
         event = FakeEvent("EscrowSettled", {})
         assert indexer._recipient(event, FakeOrder(escrow=None)) is None
+
+
+class TestASettledDisputeIsDescribedAsWellAsRecorded:
+    """The second landmine in the same never-run path, found an hour after the first.
+
+    The escrows table requires `(dispute_resolution IS NULL) = (dispute_resolved_at
+    IS NULL)`. The settlement handler set only the timestamp, so the first
+    settled dispute in production violated the constraint on every retry and
+    crash-looped the indexer a second time, after the address fix had cleared
+    the first crash.
+
+    The constraint was right. The handler was incomplete, and had been since it
+    was written, because no dispute had ever been settled.
+    """
+
+    def test_a_full_award_to_the_provider(self) -> None:
+        from app.db.enums import DisputeResolution
+
+        assert indexer.settlement_resolution(
+            provider_amount=Decimal("100"), buyer_amount=Decimal("0")
+        ) == DisputeResolution.RELEASED_TO_PROVIDER
+
+    def test_a_full_refund_to_the_buyer(self) -> None:
+        from app.db.enums import DisputeResolution
+
+        assert indexer.settlement_resolution(
+            provider_amount=Decimal("0"), buyer_amount=Decimal("100")
+        ) == DisputeResolution.REFUNDED_TO_BUYER
+
+    def test_a_split(self) -> None:
+        from app.db.enums import DisputeResolution
+
+        assert indexer.settlement_resolution(
+            provider_amount=Decimal("60"), buyer_amount=Decimal("40")
+        ) == DisputeResolution.SPLIT
+
+    def test_it_never_returns_none(self) -> None:
+        """The property the constraint actually cares about.
+
+        A None here pairs a resolved timestamp with no resolution, which is the
+        exact row the database refused. Checked across the boundaries rather
+        than at one convenient point.
+        """
+        for provider, buyer in (
+            (Decimal("0"), Decimal("0")),
+            (Decimal("0"), Decimal("100")),
+            (Decimal("100"), Decimal("0")),
+            (Decimal("0.000001"), Decimal("99.999999")),
+            (Decimal("99.999999"), Decimal("0.000001")),
+        ):
+            assert indexer.settlement_resolution(
+                provider_amount=provider, buyer_amount=buyer
+            ) is not None, f"no resolution for provider={provider} buyer={buyer}"
