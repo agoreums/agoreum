@@ -75,7 +75,7 @@ addopts = "-q --strict-markers"
 # `Logger.info` checks `isEnabledFor` before doing any work, so at WARNING the
 # call returns before its arguments are ever used. A malformed one is therefore
 # invisible to the entire suite: it executes nothing, raises nothing, and looks
-# tested. Exactly that shipped a TypeError to production on 2026-08-18, in a
+# tested. Exactly that shipped a TypeError to production on 2026-08-21, in a
 # handler covered by tests that all passed, and the mutation restoring the bug
 # survived until this line existed.
 #

@@ -183,7 +183,7 @@ includes a frank list of known gaps.
 
 This section used to say that MIT carries no patent grant, that Apache 2.0 is
 the usual step up, and that relicensing needs the agreement of every contributor
-so it is easier decided early than late. Taken on 2026-08-18, while the project
+so it is easier decided early than late. Taken on 2026-08-21, while the project
 still has one author and no outside contributors, which is exactly the window
 that paragraph described.
 

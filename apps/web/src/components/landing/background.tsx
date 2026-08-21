@@ -25,7 +25,7 @@
  * has no business shipping a renderer, blocking the main thread, or spending a
  * phone's battery. Inline SVG stays crisp at any density and costs one paint.
  *
- * **Depth, added 2026-08-18, without reversing that decision.** The field now
+ * **Depth, added 2026-08-21, without reversing that decision.** The field now
  * sits on a perspective stage with a small rotateX, so the loops read as a plane
  * receding rather than as flat circles printed on the page. That is genuine
  * dimensionality from one CSS transform: no renderer, no main-thread cost, and

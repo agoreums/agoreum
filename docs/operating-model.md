@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-18, after `d6ca8a0`.
+**Last updated:** 2026-08-21, after `d6ca8a0`.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -160,12 +160,52 @@ this section.
 | `NEXT_PUBLIC_BASE_RPC_URL` is a dead build arg | Open, cosmetic | Nothing in `apps/web/src` reads it; remove or wire it |
 | Chain health is not in `required_components` | Open, deliberate | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
+| Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
 
-### The Alchemy rotation, 2026-08-18
+### The droplet clock was three days behind, 2026-08-21
+
+Found because the running-record guard failed CI, which is the only reason it
+was found at all.
+
+Every date I wrote during this batch came from the droplet, which reported
+2026-08-18 while GitHub, this workstation and the real world were on 2026-08-21.
+NTP corrected it part way through the session. Nothing anywhere reported the
+skew; the guard simply refused a record dated before the commits it was meant to
+describe, and chasing that disagreement is what surfaced it.
+
+**Why this matters more here than on most servers.** Every deadline this product
+enforces is a timestamp comparison against that clock: the funding window that
+freezes a price, the delivery window, the auto-release deadline after which
+anybody may release an escrow, and the dispute window a buyer relies on. A clock
+that jumps forward expires all of them at once. A permissionless auto-release
+firing early pays a provider before the buyer has had their window to dispute,
+which is exactly the property `invariant_deadlinesNeverMove` exists to protect,
+defeated from outside the contract entirely.
+
+**Blast radius was nil, and only by luck.** Production holds one order, already
+completed and released by hand, with no live auto-release or funding deadline.
+Checked rather than assumed.
+
+**Now watched.** The monitor compares its own clock against the `Date` header of
+a response it already fetches, so the check costs no extra request and needs no
+time service of its own. Tolerance is half an hour, generous on purpose, because
+this is looking for a clock wrong by days rather than drifting by seconds and an
+alert that fires on ordinary NTP correction is one people learn to ignore. It
+returns "unknown" rather than "fine" when it cannot read the header, which is
+the difference between a check that abstains and one that lies. Verified against
+the real skew of about three seconds, against a simulated three-day skew which
+alerts, and against a network failure which abstains.
+
+**The general shape.** A wrong clock is not a wrong answer, it is every
+time-dependent answer being wrong at once, quietly, while every component
+reports healthy. Worth asking of anything else the system trusts without
+measuring: not "is it configured", but "when did anything last check it".
+
+### The Alchemy rotation, 2026-08-21
 
 A rotated key, updated in one of the three places it lived, took the production
 indexer down silently. Worth writing up in full because every layer that should
@@ -201,7 +241,7 @@ site 502ed until nginx was reloaded. `deploy.sh` documents exactly this and does
 the reload; working outside it meant not getting it. The lesson is narrow: use
 the deploy path, or repeat its steps deliberately.
 
-### The admin surface had never been reachable, 2026-08-18
+### The admin surface had never been reachable, 2026-08-21
 
 Production carried no `ESCROW_ADMIN_ADDRESS`, so `is_platform_admin` returned
 false for every account and every `_require_admin` endpoint answered 403 to
@@ -223,7 +263,7 @@ The tests around this surface asserted who *may* use it and that the routes
 exist in the schema. None called one, which is how both this and the logging
 defect below got through.
 
-### Every logger.info call was invisible to the test suite, 2026-08-18
+### Every logger.info call was invisible to the test suite, 2026-08-21
 
 The most useful finding of the batch, and it was found by a mutation surviving.
 
@@ -365,7 +405,7 @@ durable ones are in `## Standing constraints`; the archive of findings is in
 Terse, most recent first. One line per batch, enough to know what happened
 without reading the commits.
 
-- **2026-08-18.** An Alchemy key rotation took the production indexer down and
+- **2026-08-21.** An Alchemy key rotation took the production indexer down and
   nothing said so. Fixed, then closed the class with a check. Found the admin
   surface had never been reachable in production, corrected a claim I made about
   which endpoints that affected, and found that the entire test suite ran at

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A credential defined twice is a credential that will be rotated once.
 
-On 2026-08-18 the Alchemy key was rotated and `ALCHEMY_API_KEY` was updated.
+On 2026-08-21 the Alchemy key was rotated and `ALCHEMY_API_KEY` was updated.
 `ALCHEMY_BASE_URL_MAINNET` and `ALCHEMY_BASE_URL_SEPOLIA` embed the same key in
 a URL and were not, so they still carried the revoked one. Production kept
 serving, every health endpoint reported `status: ok`, and the indexer 401ed on
@@ -76,7 +76,7 @@ def main() -> int:
                 problems.append(
                     f"{url_var} embeds a different key than {standalone}. "
                     f"Rotating one and not the other is what took the indexer "
-                    f"down on 2026-08-18, silently, while every health check "
+                    f"down on 2026-08-21, silently, while every health check "
                     f"reported ok."
                 )
 
