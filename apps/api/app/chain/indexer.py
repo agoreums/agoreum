@@ -589,6 +589,71 @@ async def _record_order_event(
     await db.flush()
 
 
+async def repair_order_from_chain(
+    db: AsyncSession, client: ChainClient, order: Order
+) -> dict[str, object]:
+    """Move an order's recorded amounts to whatever the chain says they are.
+
+    **Why this is safe, and it is the only reason it is allowed to exist.** It
+    copies. Every figure it writes is read from the contract in the same call,
+    and there is no argument that could carry a number, so the worst an operator
+    can do is make the database agree with the chain. "Where they disagree the
+    chain wins" is already what `reconcile_order` says; this makes that
+    sentence actionable instead of merely true.
+
+    **Why it was needed.** `reconcile` could name a divergence and nothing could
+    close one. On 2026-08-22 the first settled dispute left the database holding
+    the provider's net where the chain holds the gross. The indexer fix stopped
+    it happening again and did nothing for the row already written, because
+    events are processed once. A detector with no repair leaves the operator
+    reading a true report they cannot act on.
+
+    Status is deliberately **not** rewritten here. Amounts are facts the contract
+    holds directly; status is a projection this application derives, with order
+    state, notifications and reputation hanging off it, and copying an enum
+    across that boundary would be a far larger claim than copying two numbers.
+    A status divergence stays reported and unrepaired, which is the honest
+    outcome rather than a convenient one.
+    """
+    before = await reconcile_order(db, client, order)
+    if before["in_sync"]:
+        return {**before, "repaired": [], "note": "already in sync, nothing written"}
+
+    escrow_id = contract.escrow_id_for_order(str(order.id))
+    on_chain = contract.decode_get_escrow(
+        await client.call(
+            to=contract.contract_address(), data=contract.encode_get_escrow(escrow_id)
+        )
+    )
+
+    local = order.escrow
+    repaired: list[str] = []
+    if local is None or not on_chain.exists:
+        # Nothing to copy into, or nothing to copy from. Either is a real
+        # divergence and neither is fixed by writing an amount.
+        return {**before, "repaired": [], "note": "structural divergence, not repairable by copying amounts"}
+
+    if local.released_amount != on_chain.released:
+        repaired.append(f"released: {local.released_amount} -> {on_chain.released}")
+        local.released_amount = on_chain.released
+    if local.refunded_amount != on_chain.refunded:
+        repaired.append(f"refunded: {local.refunded_amount} -> {on_chain.refunded}")
+        local.refunded_amount = on_chain.refunded
+    if local.amount != on_chain.amount:
+        repaired.append(f"amount: {local.amount} -> {on_chain.amount}")
+        local.amount = on_chain.amount
+
+    await db.flush()
+    after = await reconcile_order(db, client, order)
+
+    logger.info(
+        "order_chain_repaired",
+        extra={"order": str(order.id), "repaired": repaired,
+               "in_sync_after": after["in_sync"]},
+    )
+    return {**after, "repaired": repaired}
+
+
 async def reconcile_order(
     db: AsyncSession, client: ChainClient, order: Order
 ) -> dict[str, object]:

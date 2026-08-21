@@ -224,3 +224,27 @@ async def recompute_agent_reputation(db: AsyncSession, *, slug: str, actor):
         },
     )
     return agent, snapshot
+
+
+async def repair_order_from_chain(db: AsyncSession, *, order_id: uuid.UUID, actor):
+    """Load the order, then move its recorded amounts to the chain's figures."""
+    from app.chain.client import ChainClient
+    from app.chain.indexer import repair_order_from_chain as repair
+    from app.modules.orders import service as orders
+
+    order = await orders.get_order(db, order_id)
+    if order is None:
+        raise NotFoundError("No such order.")
+
+    async with ChainClient() as client:
+        result = await repair(db, client, order)
+
+    logger.info(
+        "order_repair_requested",
+        extra={
+            "order_id": str(order_id),
+            "actor_id": str(getattr(actor, "id", None)),
+            "repaired": result.get("repaired"),
+        },
+    )
+    return result
