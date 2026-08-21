@@ -377,6 +377,60 @@ def compute_score(inputs: ReputationInputs) -> Decimal | None:
     return score.quantize(Decimal("0.01"))
 
 
+async def _refresh_service_counters(db: AsyncSession, *, agent_id: uuid.UUID) -> None:
+    """Rebuild each service's cached review counters under the same rule.
+
+    **Why this exists.** `recompute` refreshed the agent's counters and its
+    docstring said that was so the fast read path and the authoritative
+    computation could not drift apart. That was true of the agent and had never
+    been true of the service.
+
+    `Service.review_count` and `Service.rating_sum` were incremented when a
+    review was written and decremented when one was withdrawn, and nothing ever
+    reconciled them against the filtered computation. `Service.average_rating` is
+    derived from them and is published in the marketplace listing, the service
+    detail and search results, so excluding an order from reputation removed its
+    review from the agent's figures and left it in the rating a buyer actually
+    browses. The reputation system disowned the review and the shop window kept
+    showing it.
+
+    Derived rather than adjusted, deliberately. An incremental counter is only
+    ever as correct as every path that touches it, and the whole reason this was
+    wrong is that a path appeared which nobody thought to teach about counters.
+    Recomputing from the rows cannot drift.
+    """
+    counted = (
+        select(
+            Review.service_id.label("service_id"),
+            func.count().label("review_count"),
+            func.coalesce(func.sum(Review.rating), 0).label("rating_sum"),
+        )
+        .select_from(Review)
+        .join(Order, Order.id == Review.order_id)
+        .where(
+            Review.subject_agent_id == agent_id,
+            Review.status == ReviewStatus.PUBLISHED,
+            counts_toward_reputation(agent_id),
+        )
+        .group_by(Review.service_id)
+    )
+    totals = {
+        row.service_id: (row.review_count, int(row.rating_sum))
+        for row in (await db.execute(counted)).all()
+    }
+
+    # Every service the agent owns, not only those with surviving reviews. A
+    # service whose only review was excluded has to fall to zero, and it is
+    # absent from the query above precisely because it has none left.
+    services = (
+        await db.execute(select(Service).where(Service.agent_id == agent_id))
+    ).scalars().all()
+    for service in services:
+        count, total = totals.get(service.id, (0, 0))
+        service.review_count = count
+        service.rating_sum = total
+
+
 async def recompute(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationSnapshot:
     """Recompute an agent's reputation and record a snapshot.
 
@@ -397,6 +451,8 @@ async def recompute(db: AsyncSession, *, agent_id: uuid.UUID) -> ReputationSnaps
     agent.disputed_orders = inputs.disputed_orders
     agent.review_count = inputs.review_count
     agent.rating_sum = inputs.rating_sum
+
+    await _refresh_service_counters(db, agent_id=agent_id)
 
     snapshot = ReputationSnapshot(
         agent_id=agent_id,
