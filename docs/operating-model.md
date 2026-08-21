@@ -161,11 +161,34 @@ this section.
 | Chain health is not in `required_components` | Deliberate, now asserted at deploy | `/health/ready` says `ok` while the chain is down. Making it required would drop the API out of service on any RPC blip. The monitor covers it, so the gap is that the top-level status word cannot answer "is the product working" |
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
-| Grant `UserRole.ADMIN` to an account | Owner decision | No production account holds it, so the admin dashboard and subscription plan management are reachable by nobody. The obvious candidate is the account whose key I hold, so granting it would escalate my own privileges |
+| Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### Sweep worklist, and what has been checked
+
+Kept here so the next session works the remaining candidates instead of
+re-checking these. 89 found, 5 worked. **Two were real, three were sound**, and
+the three are recorded because a sweep that only ever reports problems is not
+measuring anything.
+
+| Claim | Where | Verdict |
+| --- | --- | --- |
+| "the fast read path and the authoritative computation cannot drift apart" | `reputation/service.py` | **False.** True of the agent, never true of the service. Fixed |
+| "the only way an account becomes an admin" | `cli.py` | **True and insufficient.** Verified as the only assignment, and nobody had ever used it, so the surface was reachable by nobody |
+| "kept in sync with payout_wallet_id by the service layer" | `agents/models.py` | Sound, and stronger than stated. One write path, wallet addresses immutable, `RESTRICT` on the key, and a database constraint forces a payout wallet to be verified |
+| "it never raises, so a webhook problem cannot fail the action" | `notifications/service.py` | Sound. `dispatch` swallows everything, and the whole path sits inside `_safe_notify`, which wraps a savepoint around it. All seven event helpers route through it and the only direct call is inside the wrapper |
+| "a validator can nudge block.timestamp by seconds, which cannot move a decision" | `AgoreumEscrow.sol` | Sound, and the premise is enforced rather than assumed: `MIN_WINDOW = 1 hours`, checked at creation for both windows |
+| "it cannot reach the limiter: limiters are route-level dependencies" | `api/deps.py` | Sound. The guard enumerates limiters rather than hardcoding a count, so it survives new ones being added, and refuses to pass when it finds none |
+
+**The pattern in the two that failed** is worth stating separately from the
+claims themselves. Neither was a lie and neither was careless. One was true when
+written and decayed when a second path appeared. The other was true the whole
+time and described a door nobody had opened. **True and sufficient are different
+properties**, and only the first is what a reader checks when they write the
+sentence.
 
 ### A second admin authority nobody held, 2026-08-21
 
@@ -239,6 +262,11 @@ no path mutates a wallet address after creation, the foreign key is `RESTRICT`
 so a referenced wallet cannot be deleted, and a database constraint already
 forces any payout wallet to be verified. The comment credits the service layer
 for something the schema enforces.
+
+**Standing, not a pass.** The remaining candidates are worked the same way,
+a few at a time, and the sweep is re-run when the code has moved. Two of the
+first three produced real findings, which is a high enough yield that treating
+it as a one-time exercise would be leaving evidence on the table.
 
 **What the audit did not prove, which matters more than what it did.**
 `scripts/audit_invariant_claims.py` checks eight of these against a real
@@ -702,6 +730,7 @@ These are not defaults to be weighed against other factors. They are settled.
 | No manufactured activity | No giveaways, points programmes, airdrops, engagement campaigns or paid promotion, and no KOL or influencer arrangements. Reputation on the platform comes only from orders that settled on chain, and a community inflated by campaigns would contradict the one claim the product rests on |
 | Not hiring until after the audit | Applications and partnership pitches of that shape are declined directly, with the reason, and without checking first. Settled on 2026-08-15 rather than decided per message |
 | Reputation is escrow only, and arm's length | Reputation is computed only from orders that settled through escrow, and only where the buyer is not a member of the provider agent's organization. No other settlement rail may ever feed it, whatever gets built later. Escrow-only settled 2026-08-16; the arm's-length half added the same day, after finding a settled payment from yourself to yourself counted in full |
+| Admin access is granted deliberately, never by default | No account holds platform admin and none is to be granted until a real decision is made about who holds it, expected alongside the multisig conversation for the contract roles. Both authorities stay unreachable and the startup warning stays, so the gap is visible rather than silent. Settled 2026-08-21. The path existing, and one signer being available, is not a reason to walk it |
 | No unreleased work in public | Upcoming features, internal roadmap and research stay in this repository. Discord, the website and the documentation only ever show what has shipped |
 
 **Why reputation is escrow only, since it will look like an arbitrary
