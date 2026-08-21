@@ -406,6 +406,32 @@ async def _apply_to_escrow(
 
     await db.flush()
 
+    # A settlement that does not refresh the score leaves the score wrong.
+    #
+    # The public reputation endpoint serves a stored snapshot and only computes
+    # one when none exists, so before this the figures were fixed at whichever
+    # read happened first and then only ever refreshed by review activity. An
+    # agent could settle its second, third and tenth order and keep publishing
+    # the numbers from its first, which is the opposite of the one claim this
+    # platform makes: that reputation follows settled trade.
+    #
+    # Found on 2026-08-21 by excluding an order from reputation in production,
+    # watching the write succeed, and watching the published figure not move.
+    #
+    # Failures are swallowed for the same reason as the notifications below.
+    # Indexing must continue whatever happens here: a stale score is a wrong
+    # number, while a stalled indexer is orders that never leave pending.
+    if new_order_status in (OrderStatus.COMPLETED, OrderStatus.REFUNDED, OrderStatus.CANCELLED):
+        try:
+            from app.modules.reputation import service as reputation
+
+            await reputation.recompute(db, agent_id=order.provider_agent_id)
+        except Exception:  # noqa: BLE001 - never let a score stall the indexer
+            logger.warning(
+                "reputation_recompute_failed",
+                extra={"order_id": str(order.id), "event": event.name},
+            )
+
     # Tell the people affected that money moved. Deliberately after the flush, so
     # the state the chain reported is already durable before anyone is told about
     # it, and never before: a notification about a transition that then failed to

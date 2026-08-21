@@ -898,3 +898,140 @@ class TestReputationExclusionIsOneWay:
         )
         assert again.status_code == 409, again.text
         assert again.json()["error"]["code"] == "already_excluded"
+
+    async def test_the_published_reputation_reflects_the_exclusion(
+        self, client, db
+    ) -> None:
+        """What a visitor sees, which is not what the other tests checked.
+
+        Every other test here asserts `gather_inputs`, the internal computation.
+        The public endpoint does not call it. It serves a stored snapshot and
+        computes one only when none exists, so an exclusion changed what a fresh
+        computation would produce and changed nothing anybody could see.
+
+        That is not hypothetical. The first use of this endpoint against
+        production returned 200, wrote the timestamp, correctly refused a repeat,
+        and left the agent's public page showing the excluded order. Four tests
+        passed throughout, because all four asked the question the endpoint does
+        not ask.
+        """
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        agent_id, order_id = await self._settled_order(db, client)
+        slug = (
+            await db.execute(
+                sa.text("SELECT slug FROM agents WHERE id = :id"), {"id": agent_id}
+            )
+        ).scalar_one()
+
+        # Read it first, which is what creates the snapshot that then goes stale.
+        before = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert before["completed_orders"] == 1, before
+
+        admin = Account.create()
+        settings.ESCROW_ADMIN_ADDRESS = admin.address.lower()
+        challenge = (
+            await client.post(
+                "/api/v1/auth/nonce",
+                json={"address": admin.address.lower(), "chain_id": settings.CHAIN_ID},
+            )
+        ).json()
+        signed = admin.sign_message(encode_defunct(text=challenge["message"]))
+        token = (
+            await client.post(
+                "/api/v1/auth/signin",
+                json={
+                    "message": challenge["message"],
+                    "signature": signed.signature.hex(),
+                    "nonce": challenge["nonce"],
+                },
+            )
+        ).json()["tokens"]["access_token"]
+
+        excluded = await client.post(
+            f"/api/v1/admin/orders/{order_id}/exclude-from-reputation",
+            json={"reason": "one operator held both wallets, not arm's length"},
+            headers=auth(token),
+        )
+        assert excluded.status_code == 200, excluded.text
+
+        after = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert after["completed_orders"] == 0, (
+            "the exclusion was recorded and the published reputation still counts "
+            f"the order: {after}. The endpoint serves a snapshot, so excluding "
+            "without recomputing is a change nobody can see."
+        )
+        assert Decimal(after["total_volume"]) == 0, after
+
+    async def test_a_settled_order_refreshes_the_published_score(
+        self, client, db
+    ) -> None:
+        """Settlement must move the number, not only the underlying rows.
+
+        The broader half of the same defect. Nothing recomputed a snapshot when
+        an order settled; only review activity did. An agent could settle its
+        second and tenth order while publishing the figures from its first, which
+        inverts the single claim this platform makes.
+        """
+        agent_id, _ = await self._settled_order(db, client)
+        slug = (
+            await db.execute(
+                sa.text("SELECT slug FROM agents WHERE id = :id"), {"id": agent_id}
+            )
+        ).scalar_one()
+
+        first = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert first["completed_orders"] == 1
+
+        # A second settlement for the same agent, then the snapshot must follow.
+        service_id = (
+            await db.execute(
+                sa.text("SELECT id FROM services WHERE agent_id = :a LIMIT 1"),
+                {"a": agent_id},
+            )
+        ).scalar_one()
+        buyer_token, _ = await sign_in(client)
+        buyer = (await client.get("/api/v1/auth/me", headers=auth(buyer_token))).json()
+        order_id = uuid.uuid4()
+        await db.execute(
+            sa.text(
+                "INSERT INTO orders (id, reference, buyer_id, provider_agent_id,"
+                " service_id, status, quantity, unit_price, subtotal,"
+                " platform_fee, total_amount, currency, platform_fee_bps,"
+                " created_at, updated_at, funded_at, delivered_at, completed_at)"
+                " VALUES (:id, :ref, :buyer, :agent, :service, 'completed', 1,"
+                " 100, 100, 2.5, 102.5, 'USDC', 250, now(), now(), now(), now(), now())"
+            ),
+            {
+                "id": order_id,
+                "ref": f"SND-{uuid.uuid4().hex[:6]}",
+                "buyer": buyer["id"],
+                "agent": agent_id,
+                "service": service_id,
+            },
+        )
+        await db.execute(
+            sa.text(
+                "INSERT INTO escrows (id, order_id, status, chain_id,"
+                " token_address, token_symbol, token_decimals, amount,"
+                " released_amount, refunded_amount, fee_amount,"
+                " buyer_address, provider_address,"
+                " funded_at, released_at, created_at, updated_at)"
+                " VALUES (:id, :order_id, 'released', 84532,"
+                " '0x036cbd53842c5426634e7929541ec2318f3dcf7e', 'USDC', 6,"
+                " 100, 97.5, 0, 2.5,"
+                " '0x00000000000000000000000000000000000000b0',"
+                " '0x00000000000000000000000000000000000000a1',"
+                " now(), now(), now(), now())"
+            ),
+            {"id": uuid.uuid4(), "order_id": order_id},
+        )
+        await db.flush()
+        # Stands in for the indexer, which now recomputes on settlement.
+        await reputation.recompute(db, agent_id=agent_id)
+
+        second = (await client.get(f"/api/v1/agents/{slug}/reputation")).json()
+        assert second["completed_orders"] == 2, (
+            f"the published score did not follow a second settlement: {second}"
+        )
