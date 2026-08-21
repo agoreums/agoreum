@@ -31,6 +31,71 @@ from app.db.session import dispose_engine
 logger = get_logger(__name__)
 
 
+async def _warn_if_no_surface_can_be_reached() -> None:
+    """Say so at startup when an operational surface is reachable by nobody.
+
+    This platform has two separate administrative authorities and they are
+    granted in completely different ways, which is a reasonable design and a
+    quiet trap.
+
+    `is_platform_admin` compares an account's address to
+    `ESCROW_ADMIN_ADDRESS`, so it is granted by configuration. `require_admin`
+    reads `user.role`, which is granted only by an operator running the CLI on
+    the host. Both fail closed when unset, which is correct, and neither says
+    anything when it does.
+
+    Production ran with `ESCROW_ADMIN_ADDRESS` unset for the entire life of the
+    admin surface, so every endpoint behind it answered 403 to everybody
+    including the owner. It ran with no account holding `UserRole.ADMIN` for
+    just as long, so the admin dashboard and subscription plan management were
+    unreachable too. Both were found by trying to use them, months in.
+
+    A warning rather than a refusal. A deployment legitimately may not have
+    granted these yet, and refusing to start would turn a dormant surface into
+    an outage. The failure being fixed is silence, not permissiveness.
+    """
+    from sqlalchemy import func, select
+
+    from app.db.enums import UserRole
+    from app.db.session import SessionLocal
+    from app.modules.users.models import User
+
+    # Checked first and independently, because it needs no database. An earlier
+    # version did the query first and returned early when it failed, which meant
+    # a database hiccup silently suppressed a warning that has nothing to do
+    # with the database. Two independent conditions must fail independently.
+    if not settings.ESCROW_ADMIN_ADDRESS:
+        logger.warning(
+            "admin_surface_unreachable",
+            extra={
+                "surface": "/admin",
+                "reason": "ESCROW_ADMIN_ADDRESS is unset, so no account can pass "
+                "the platform admin gate",
+            },
+        )
+
+    try:
+        async with SessionLocal() as db:
+            admins = (
+                await db.execute(
+                    select(func.count()).select_from(User).where(User.role == UserRole.ADMIN)
+                )
+            ).scalar_one()
+    except Exception:  # noqa: BLE001 - a warning must never stop the app booting
+        logger.warning("admin_reachability_check_failed")
+        return
+
+    if admins == 0:
+        logger.warning(
+            "admin_surface_unreachable",
+            extra={
+                "surface": "/dashboard/admin and subscription plan management",
+                "reason": "no account holds UserRole.ADMIN; grant it with the CLI "
+                "on the host, which is deliberately the only path",
+            },
+        )
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_logging()
@@ -38,6 +103,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         "api_starting",
         extra={"environment": settings.APP_ENV, "chain_id": settings.CHAIN_ID},
     )
+    await _warn_if_no_surface_can_be_reached()
     yield
     await dispose_engine()
     logger.info("api_stopped")
