@@ -153,7 +153,7 @@ this section.
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| Apply the exclusion to `AGO-TMMR2TWH` | Recorded, awaiting one recompute call | The exclusion is written and irreversible. It predates recompute-on-exclusion, so the published figure needs the new admin recompute endpoint once it deploys |
+| ~~Apply the exclusion to `AGO-TMMR2TWH`~~ | **Closed 2026-08-21** | Excluded, recomputed through the new admin endpoint, and confirmed in production: the agent publishes zero settled orders and zero volume |
 | The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
 | Cross-language verifier conformance beyond the browser | Open | The API and the browser are now pinned to identical canonical bytes by tests on both sides. The three published SDKs do not verify receipts at all yet, and adding it would make the canonical form a contract with four implementations rather than two |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
@@ -165,6 +165,40 @@ this section.
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The marketplace rating disagreed with the reputation, 2026-08-21
+
+Found by asking, after the snapshot fix, what else caches a figure the filtered
+computation is supposed to govern.
+
+`recompute` refreshes the cached counters on the agent row, and its docstring
+says that is so the fast read path and the authoritative computation cannot
+drift apart. **That was true of the agent and had never been true of the
+service.** `Service.review_count` and `Service.rating_sum` were incremented when
+a review was written and decremented when one was withdrawn, and nothing ever
+reconciled them against the filtered computation.
+
+`Service.average_rating` derives from those counters and is published in the
+marketplace listing, the service detail and search results. So excluding an
+order from reputation dropped its review from the agent's figures and left it in
+the rating a buyer actually browses. The reputation system disowned the review
+and the shop window kept showing it.
+
+Demonstrated before it was fixed: with one settled, reviewed order excluded,
+`gather_inputs` reported zero reviews while the service still reported one at
+five stars.
+
+The counters are now derived from the rows under the same filter rather than
+adjusted in place. An incremental counter is only ever as correct as every path
+that touches it, and the reason this was wrong is that a path appeared which
+nobody thought to teach about counters. Three mutations, each caught: removing
+the refresh, dropping the filter so excluded reviews return, and zeroing every
+service, which is the control that would otherwise have deleted every real
+rating on the platform while passing the first test perfectly.
+
+**A docstring asserting an invariant is not the invariant.** This one said the
+two could not drift apart, was written by somebody who had checked the agent,
+and was half wrong for as long as it existed.
 
 ### The exclusion was recorded and invisible, 2026-08-21
 

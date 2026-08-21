@@ -1159,3 +1159,172 @@ class TestReputationExclusionIsOneWay:
         )
         assert refused.status_code == 403, refused.text
         assert refused.json()["error"]["code"] == "not_admin"
+
+
+class TestServiceCountersFollowTheSameRule:
+    """The marketplace rating and the reputation must not disagree.
+
+    `recompute` refreshes the cached counters on the agent row, and its docstring
+    says that is so the fast read path and the authoritative computation cannot
+    drift apart. That is true of the agent and was never true of the service.
+
+    `Service.review_count` and `Service.rating_sum` are incremented directly when
+    a review is written and decremented when one is withdrawn. Nothing ever
+    reconciles them against the filtered computation, and `Service.average_rating`
+    is derived from them and published in the marketplace listing, the service
+    detail and the search results.
+
+    So excluding an order from reputation removed its review from the agent's
+    figures and left it in the rating a buyer actually browses. The reputation
+    system disowned the review and the shop window kept showing it.
+    """
+
+    async def _reviewed_order(self, db, client):
+        """A settled order with a published review, and its ids."""
+        _, slug, service_id = await build_provider(client)
+        buyer_token, _ = await sign_in(client)
+        buyer = (await client.get("/api/v1/auth/me", headers=auth(buyer_token))).json()
+        agent = (
+            await db.execute(
+                sa.text("SELECT id FROM agents WHERE slug = :slug"), {"slug": slug}
+            )
+        ).one()
+
+        order_id = uuid.uuid4()
+        await db.execute(
+            sa.text(
+                "INSERT INTO orders (id, reference, buyer_id, provider_agent_id,"
+                " service_id, status, quantity, unit_price, subtotal,"
+                " platform_fee, total_amount, currency, platform_fee_bps,"
+                " created_at, updated_at, funded_at, delivered_at, completed_at)"
+                " VALUES (:id, :ref, :buyer, :agent, :service, 'completed', 1,"
+                " 100, 100, 2.5, 102.5, 'USDC', 250, now(), now(), now(), now(), now())"
+            ),
+            {
+                "id": order_id,
+                "ref": f"REV-{uuid.uuid4().hex[:6]}",
+                "buyer": buyer["id"],
+                "agent": agent.id,
+                "service": service_id,
+            },
+        )
+        await db.execute(
+            sa.text(
+                "INSERT INTO escrows (id, order_id, status, chain_id,"
+                " token_address, token_symbol, token_decimals, amount,"
+                " released_amount, refunded_amount, fee_amount,"
+                " buyer_address, provider_address,"
+                " funded_at, released_at, created_at, updated_at)"
+                " VALUES (:id, :order_id, 'released', 84532,"
+                " '0x036cbd53842c5426634e7929541ec2318f3dcf7e', 'USDC', 6,"
+                " 100, 97.5, 0, 2.5,"
+                " '0x00000000000000000000000000000000000000b0',"
+                " '0x00000000000000000000000000000000000000a1',"
+                " now(), now(), now(), now())"
+            ),
+            {"id": uuid.uuid4(), "order_id": order_id},
+        )
+        # completed_order_count carries the service's own constraint that a
+        # review cannot outnumber completed orders, so it has to move too.
+        await db.execute(
+            sa.text(
+                "UPDATE services SET order_count = order_count + 1,"
+                " completed_order_count = completed_order_count + 1"
+                " WHERE id = :id"
+            ),
+            {"id": service_id},
+        )
+        await db.flush()
+
+        await db.execute(
+            sa.text(
+                "INSERT INTO reviews (id, order_id, author_id, subject_agent_id,"
+                " service_id, rating, status, created_at, updated_at)"
+                " VALUES (:id, :order_id, :author, :agent, :service, 5,"
+                " 'published', now(), now())"
+            ),
+            {
+                "id": uuid.uuid4(),
+                "order_id": order_id,
+                "author": buyer["id"],
+                "agent": agent.id,
+                "service": service_id,
+            },
+        )
+        await db.execute(
+            sa.text(
+                "UPDATE services SET review_count = review_count + 1,"
+                " rating_sum = rating_sum + 5 WHERE id = :id"
+            ),
+            {"id": service_id},
+        )
+        await db.flush()
+        return agent.id, order_id, service_id, slug
+
+    async def test_excluding_an_order_also_drops_its_review_from_the_shop_window(
+        self, client, db
+    ) -> None:
+        agent_id, order_id, service_id, slug = await self._reviewed_order(db, client)
+        await reputation.recompute(db, agent_id=agent_id)
+
+        before = await reputation.gather_inputs(db, agent_id=agent_id)
+        assert before.review_count == 1, "the fixture produced no counted review"
+
+        counters = (
+            await db.execute(
+                sa.text(
+                    "SELECT review_count, rating_sum FROM services WHERE id = :id"
+                ),
+                {"id": service_id},
+            )
+        ).one()
+        assert counters.review_count == 1, "the fixture did not set the service counter"
+
+        await db.execute(
+            sa.text(
+                "UPDATE orders SET reputation_excluded_at = now(),"
+                " reputation_exclusion_reason = 'not an arm''s length trade'"
+                " WHERE id = :id"
+            ),
+            {"id": order_id},
+        )
+        await db.flush()
+        await reputation.recompute(db, agent_id=agent_id)
+
+        after = await reputation.gather_inputs(db, agent_id=agent_id)
+        assert after.review_count == 0, "reputation still counts the excluded review"
+
+        counters = (
+            await db.execute(
+                sa.text(
+                    "SELECT review_count, rating_sum FROM services WHERE id = :id"
+                ),
+                {"id": service_id},
+            )
+        ).one()
+        assert counters.review_count == 0, (
+            "reputation disowned the review and the marketplace still shows it. "
+            f"service.review_count={counters.review_count}, so the rating a buyer "
+            "browses disagrees with the reputation the same platform publishes."
+        )
+        assert counters.rating_sum == 0, counters.rating_sum
+
+    async def test_a_genuine_review_still_counts_in_both_places(
+        self, client, db
+    ) -> None:
+        """The control. Zeroing every service counter would pass the test above
+        perfectly while deleting every real rating on the platform."""
+        agent_id, _, service_id, _ = await self._reviewed_order(db, client)
+        await reputation.recompute(db, agent_id=agent_id)
+
+        inputs = await reputation.gather_inputs(db, agent_id=agent_id)
+        counters = (
+            await db.execute(
+                sa.text("SELECT review_count, rating_sum FROM services WHERE id = :id"),
+                {"id": service_id},
+            )
+        ).one()
+
+        assert inputs.review_count == 1
+        assert counters.review_count == 1, "a genuine review was dropped from the service"
+        assert counters.rating_sum == 5
