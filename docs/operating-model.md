@@ -153,7 +153,7 @@ this section.
 
 | Item | State | What it needs |
 | --- | --- | --- |
-| Apply the exclusion to `AGO-TMMR2TWH` | Recorded, awaiting a recompute | The exclusion is written and irreversible. The published figure still shows it until the recompute fix deploys, since the endpoint serves a snapshot |
+| Apply the exclusion to `AGO-TMMR2TWH` | Recorded, awaiting one recompute call | The exclusion is written and irreversible. It predates recompute-on-exclusion, so the published figure needs the new admin recompute endpoint once it deploys |
 | The arm's-length filter does nothing for personal organizations | Open, understood | It keys on membership, and a personal organization has one member and cannot gain another. Covered for team organizations and for orders created outside `create_order`; not covered otherwise |
 | Cross-language verifier conformance beyond the browser | Open | The API and the browser are now pinned to identical canonical bytes by tests on both sides. The three published SDKs do not verify receipts at all yet, and adding it would make the canonical form a contract with four implementations rather than two |
 | Reputation is not Sybil resistant across unrelated accounts | Accepted, documented | Nothing. No reasonable check catches it, and the honest claim is economic rather than absolute |
@@ -199,6 +199,22 @@ swallowing failures because a stale score is a wrong number while a stalled
 indexer is orders that never leave pending. The exclusion recomputes without
 swallowing, because an operator told the exclusion succeeded while the number
 stays wrong is worse than an error.
+
+**And the fix did not reach the case that prompted it**, which is worth its own
+line. The exclusion of `AGO-TMMR2TWH` was recorded *before* recompute-on-exclusion
+shipped. The write was durable, a repeat was correctly refused as
+`already_excluded`, and the published figure stayed wrong with nothing able to
+correct it: every future exclusion was covered and the one already made was not.
+Deploying a fix and watching the number not move is the only reason that was
+noticed.
+
+So `POST /admin/agents/{slug}/recompute-reputation` exists now. It is a repair
+tool for a published number that has stopped following the data, and it is safe
+by construction rather than by care: `recompute` derives every figure from
+orders and reviews and takes no argument that could carry a score, so the only
+reachable outcome is the published number matching the rows. A test asserts
+exactly that, by recomputing an agent with no settled trade and requiring it to
+produce none.
 
 Two tests now assert the published figure rather than the internal one, and the
 mutation that removes the recompute fails the exclusion test with the exact
