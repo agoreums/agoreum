@@ -34,6 +34,7 @@ from app.chain.models import IndexerCursor
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.enums import (
+    DisputeResolution,
     EscrowStatus,
     OrderStatus,
     TransactionStatus,
@@ -395,6 +396,23 @@ async def _apply_to_escrow(
             escrow.fee_amount = contract.from_base_units(event.args.get("feeAmount", 0))
             escrow.released_at = now
             escrow.dispute_resolved_at = now
+            # Both or neither. The escrows table carries
+            # `dispute_resolution_consistent`, which requires
+            # `(dispute_resolution IS NULL) = (dispute_resolved_at IS NULL)`, and
+            # this handler set only the timestamp. The first settled dispute in
+            # production therefore violated the constraint on every retry and
+            # crash-looped the indexer, which is the second latent defect found
+            # in this same never-run path within an hour of the first.
+            #
+            # Derived from the split rather than read from the event, because the
+            # contract does not emit a category and the same three cases are what
+            # `record_dispute_decision` records when an arbiter decides. A
+            # settlement reaching here without a recorded decision, which is
+            # exactly what an arbiter settling directly produces, still ends up
+            # described the same way.
+            escrow.dispute_resolution = settlement_resolution(
+                provider_amount=provider_amount, buyer_amount=buyer_amount
+            )
 
     new_order_status = _EVENT_TO_ORDER_STATUS.get(event.name)
     if new_order_status is not None:
@@ -450,6 +468,28 @@ async def _apply_to_escrow(
         await notification_events.order_disputed(
             db, order=order, raised_by_address=str(event.args.get("raisedBy", "")) or None
         )
+
+
+def settlement_resolution(*, provider_amount, buyer_amount) -> DisputeResolution:
+    """How a settled split should be described.
+
+    Extracted so it can be tested directly. The escrows table requires
+    `(dispute_resolution IS NULL) = (dispute_resolved_at IS NULL)`, and the
+    settlement handler set only the timestamp, so the first settled dispute in
+    production violated the constraint on every retry and crash-looped the
+    indexer.
+
+    Derived from the split rather than read from the event, because the contract
+    emits no category. The three cases match what `record_dispute_decision`
+    records when an arbiter decides through the API, so a settlement that
+    reaches here without a recorded decision, which is exactly what an arbiter
+    settling directly produces, still ends up described the same way.
+    """
+    if buyer_amount == 0:
+        return DisputeResolution.RELEASED_TO_PROVIDER
+    if provider_amount == 0:
+        return DisputeResolution.REFUNDED_TO_BUYER
+    return DisputeResolution.SPLIT
 
 
 def _recipient(event: contract.DecodedEvent, order: Order) -> str | None:
