@@ -76,6 +76,26 @@ async def indexer(
     return {"status": component.status, "indexer": component.as_dict()}
 
 
+@router.get("/stranded", summary="Escrows held against a listing that cannot deliver")
+async def stranded(
+    response: Response, db: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
+    """Buyer money held against an agent or service that has been withdrawn.
+
+    Separate from readiness on purpose, exactly like the indexer: nothing is
+    wrong with this process, and taking the site out of service would not help
+    the one buyer who is waiting.
+
+    Added after two real orders were funded against a paused rehearsal listing
+    on 2026-08-22 and nobody noticed until the chain was read for an unrelated
+    reason.
+    """
+    component = await service.check_stranded_escrows(db)
+    if component.status == "down":
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return {"status": component.status, "stranded_escrows": component.as_dict()}
+
+
 @router.get("/workers", summary="Background worker liveness")
 async def workers(
     response: Response, db: AsyncSession = Depends(get_db)
