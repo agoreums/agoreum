@@ -132,3 +132,75 @@ contract rather than against its docstring.
 * Concluding "auto-release works" from L1 alone. L1 is released by the provider,
   who is a party to the escrow; it says nothing about permissionlessness. Only
   L2 does.
+
+## What happened
+
+Run 2026-08-22 against production on Base Sepolia. **27 of 27 predictions
+agree.**
+
+| | Order | Released by | Result |
+|---|---|---|---|
+| L1 | `AGO-NA2GY4ET` | the provider, after the window | 0.999375 to the provider, 0.025625 fee |
+| L2 | `AGO-3CKAJX8U` | a stranger, after the window | 0.999375 to the provider, 0.025625 fee |
+
+### The claim is real
+
+`AGO-3CKAJX8U` was released by `0xBbBF34E2...`, a wallet that is not a party to
+the escrow. Checked rather than asserted: distinct from the buyer and the
+provider, not the admin, arbiter, fee recipient, treasury or payout address,
+holding no USDC, and with no transaction history at all. It could not be paid by
+the call it made. The provider was.
+
+**A provider on this platform does not depend on the buyer, or on us, in order
+to be paid.** That was true in Solidity and is now true in production.
+
+The honest caveat: I generated that wallet's key, so I control it. That is
+irrelevant to what the contract checks, which is that `msg.sender` is neither
+party, and irrelevant to who gains, which is only the provider.
+
+L1 proves the realistic path and nothing about permissionlessness. Only L2 does.
+
+### The fee, on the accumulator that can be wrong
+
+`feesCollected` went 453750 to 505000. Exactly 25625 twice, and the provider
+gained exactly 1998750, being 999375 twice.
+
+Read from the accumulator, not from balances. The fee recipient is the buyer's
+own address on this deployment, so a balance comparison could not distinguish a
+fee taken from a fee not taken. That check was thrown out during the refund
+rehearsal for the same reason and was not rebuilt here.
+
+### The obligation, discharged
+
+Before excluding anything, the platform published **two completed orders and
+2.05 USDC of volume**, exactly as the design warned. That is the fake activity
+every standing rule forbids, produced by the system working correctly rather
+than by any bug.
+
+Both were excluded immediately and the published figures read back rather than
+assumed: zero completed, zero volume.
+
+The dispute and the refunds left marks that could not be removed and were left
+alone. This one left a mark that had to be removed. Exclusion only ever
+subtracts, and that asymmetry is the whole design.
+
+### Everything else
+
+Receipts carry a non-zero `fee_amount` for the first time in any receipt ever
+issued. `reconcile` reports in sync for both. Both escrows recorded the gross,
+not the provider's share.
+
+The predicted defect could not be confirmed empirically, as the design said: the
+figures agree in production and it is invisible whenever they do. It was fixed
+and mutation tested separately.
+
+### Two failures of the runner, not the product
+
+The endpoint was asked before the window and correctly refused, naming the exact
+opening time. Then the two hour wait outlived the access token, and the script
+read the 401 as a missing payload and crashed. The escrows were untouched and it
+resumed cleanly. Sessions expiring is them working.
+
+Nothing was left stranded: the cleanup asserts zero funded escrows behind the
+paused agent, which is precisely the situation a stranger was found in earlier
+the same day.
