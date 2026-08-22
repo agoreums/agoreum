@@ -321,6 +321,7 @@ async def _record_transaction(
             amount = contract.from_base_units(event.args[key])
             break
 
+    payer, payee = _counterparties(event, order)
     db.add(
         ChainTransaction(
             order_id=order.id,
@@ -330,8 +331,8 @@ async def _record_transaction(
             tx_type=tx_type,
             # Only reached past the confirmation frontier, so this is settled.
             status=TransactionStatus.CONFIRMED,
-            from_address=str(event.args.get("buyer") or order.buyer.primary_address),
-            to_address=_recipient(event, order),
+            from_address=payer,
+            to_address=payee,
             amount=amount,
             token_address=str(event.args.get("token") or settings.usdc_address).lower(),
             block_number=event.block_number,
@@ -383,7 +384,7 @@ async def _apply_to_escrow(
             escrow.fee_amount = contract.from_base_units(event.args.get("feeAmount", 0))
             escrow.released_at = now
         elif event.name == "EscrowRefunded":
-            escrow.refunded_amount = escrow.amount
+            apply_refund(escrow, event, order_id=str(order.id))
             escrow.refunded_at = now
         elif event.name == "EscrowDisputed":
             escrow.disputed_at = now
@@ -527,6 +528,90 @@ def settlement_resolution(*, provider_amount, buyer_amount) -> DisputeResolution
     if provider_amount == 0:
         return DisputeResolution.REFUNDED_TO_BUYER
     return DisputeResolution.SPLIT
+
+
+def apply_refund(escrow, event: contract.DecodedEvent, *, order_id: str | None = None) -> None:
+    """Record a refund using the chain's figure rather than the database's.
+
+    `refund` returns the **whole** escrow and takes no fee, so the emitted
+    `amount` is the contract's own view of the total. The handler previously
+    wrote `escrow.refunded_amount = escrow.amount`, taking the figure from the
+    record it was supposed to be correcting.
+
+    Where the two agree that is invisible, which is why it survived. Where they
+    had drifted, a refund carried the drift forward and `reconcile` would have
+    gone on reporting a divergence that nothing ever closed. Same shape as the
+    settlement defect: the chain states a number and the code writes a different
+    one it happens to hold.
+
+    The amount is corrected alongside it rather than only the refunded figure,
+    because writing a larger refund against a smaller recorded amount breaches
+    `payouts_cannot_exceed_deposit`, and a constraint violation inside this
+    handler is what crash-looped the indexer on the first settled dispute. The
+    correction is logged so it is discoverable rather than a silent overwrite of
+    a real disagreement.
+
+    Extracted so it can be driven over a real event payload in a test, instead of
+    a test rewriting the same arithmetic and proving only that it agrees with
+    itself.
+    """
+    refunded = contract.from_base_units(event.args.get("amount", 0)) or escrow.amount
+    if refunded != escrow.amount:
+        logger.warning(
+            "escrow_amount_corrected_from_refund",
+            extra={
+                "order_id": order_id,
+                "recorded": str(escrow.amount),
+                "on_chain": str(refunded),
+            },
+        )
+        escrow.amount = refunded
+    escrow.refunded_amount = refunded
+
+
+def _counterparties(
+    event: contract.DecodedEvent, order: Order
+) -> tuple[str, str | None]:
+    """Who paid and who was paid, as this ledger means those words.
+
+    The convention across every row here is **economic counterparties**, not the
+    literal endpoints of the token transfer. Funding records buyer to provider
+    even though the tokens go to the contract, and a release records the same
+    pair even though the tokens come back out of it. Naming the contract at
+    either end would make every row say the same uninformative thing.
+
+    A refund reverses the direction: the provider returns the buyer's money.
+
+    **Before this, a refund recorded the buyer at both ends.** `from_address`
+    read `event.args.get("buyer")`, which `EscrowRefunded` does carry, and
+    `to_address` fell through to the same value because the event names no
+    provider. The row said the buyer paid themselves, for the one event where
+    the direction is the whole meaning.
+
+    It survived because no refund had ever been emitted in production and
+    neither column is exposed by any endpoint, so no test and no screen could
+    have shown it. Found by predicting it from the event signatures while
+    designing the refund rehearsal, then confirming it against the real shapes
+    rather than against a rewritten guess.
+    """
+    if event.name == "EscrowRefunded":
+        payer = _provider_address(event, order)
+        payee = str(event.args.get("buyer") or order.buyer.primary_address)
+        return payer or payee, payee
+    return (
+        str(event.args.get("buyer") or order.buyer.primary_address),
+        _recipient(event, order),
+    )
+
+
+def _provider_address(event: contract.DecodedEvent, order: Order) -> str | None:
+    """The provider's address from the event, or from the stored escrow."""
+    named = event.args.get("provider")
+    if named:
+        return str(named)
+    if order.escrow is not None and order.escrow.provider_address:
+        return str(order.escrow.provider_address)
+    return None
 
 
 def _recipient(event: contract.DecodedEvent, order: Order) -> str | None:
