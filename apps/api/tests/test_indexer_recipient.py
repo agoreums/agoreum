@@ -207,6 +207,67 @@ class TestARefundRecordsTheChainsFigure:
         assert amount == Decimal("2.050000")
 
 
+class TestAReleaseRecordsTheChainsFigure:
+    """The third occurrence of one pattern, written the same way as the others.
+
+    `release` pays the whole escrow out and the event carries both halves. Their
+    sum is the contract's own gross, which is what `escrow.released` holds on
+    chain. The handler wrote `escrow.released_amount = escrow.amount`, taking the
+    figure from the record it was meant to be corroborating.
+
+    Settlement wrote the emitted net where the chain held the gross. Refund read
+    the database instead of the event. Release did the same. Where record and
+    chain agree none of them is visibly wrong, which is why all three survived.
+    """
+
+    @staticmethod
+    def _apply(recorded: Decimal, provider_units: int, fee_units: int):
+        from types import SimpleNamespace
+
+        escrow = SimpleNamespace(
+            amount=recorded, released_amount=Decimal("0"), fee_amount=Decimal("0"))
+        indexer.apply_release(escrow, FakeEvent("EscrowReleased", {
+            "providerAmount": provider_units, "feeAmount": fee_units,
+            "provider": PROVIDER}))
+        return escrow.amount, escrow.released_amount, escrow.fee_amount
+
+    def test_the_released_figure_is_the_gross_not_the_providers_share(self) -> None:
+        """The distinction the settlement defect got wrong, on the release path."""
+        amount, released, fee = self._apply(Decimal("1.025000"), 999_375, 25_625)
+        assert released == Decimal("1.025000")
+        assert fee == Decimal("0.025625")
+        assert amount == Decimal("1.025000")
+
+    def test_the_parts_sum_to_the_whole(self) -> None:
+        """Released must equal what the provider got plus what the fee took, or
+        the record describes money appearing or vanishing."""
+        _amount, released, fee = self._apply(Decimal("1.025000"), 999_375, 25_625)
+        assert released - fee == Decimal("0.999375")
+
+    def test_a_drifted_amount_is_corrected_rather_than_perpetuated(self) -> None:
+        """Writing the chain's larger figure alone would breach
+        `payouts_cannot_exceed_deposit` and crash-loop the indexer, which is
+        exactly how the first settled dispute took chain projection down."""
+        amount, released, _fee = self._apply(Decimal("0.500000"), 999_375, 25_625)
+        assert released == Decimal("1.025000")
+        assert amount == Decimal("1.025000")
+        assert released <= amount, "the row would be refused by the check constraint"
+
+    def test_an_event_carrying_nothing_falls_back_to_the_record(self) -> None:
+        """Never zero. A release of nothing is a worse claim than a stale one."""
+        amount, released, fee = self._apply(Decimal("1.025000"), 0, 0)
+        assert released == Decimal("1.025000")
+        assert amount == Decimal("1.025000")
+        assert fee == Decimal("0")
+
+    def test_a_zero_fee_release_still_records_the_whole_escrow(self) -> None:
+        """A governor can set the fee to zero, and then the provider's share is
+        the gross. Nothing here may assume a fee exists."""
+        _amount, released, fee = self._apply(Decimal("1.025000"), 1_025_000, 0)
+        assert released == Decimal("1.025000")
+        assert fee == Decimal("0")
+
+
 class TestASettledDisputeIsDescribedAsWellAsRecorded:
     """The second landmine in the same never-run path, found an hour after the first.
 
