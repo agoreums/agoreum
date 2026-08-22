@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after the permissionless auto-release was proven.
+**Last updated:** 2026-08-22, after the build machine was audited for space.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -230,6 +230,52 @@ delivery; the contract fixes it at creation as `deliveryDeadline +
 autoReleaseWindow`. The chain's is reported, because the chain's is what
 decides. Nothing displays the platform's figure, so nobody was shown a wrong
 date.
+
+### The build machine ran out of disk, audited 2026-08-22
+
+It hit **zero bytes free** mid-session and a `next build` died partway through
+with `ENOSPC`. Reactive cache clearing had bought a few hundred megabytes twice
+already, so the whole drive was measured rather than swept again.
+
+**One volume, 57.3 GB, no second disk to move anything to.** Where it goes:
+
+| | Size | Verdict |
+| --- | --- | --- |
+| `C:\Windows` | 20.2 GB | 9.6 of it WinSxS, the component store |
+| `C:\Users` | 10.8 GB | Office, Edge, Dropbox, the project |
+| `Program Files`, both | 11.9 GB | Office 4.6, Edge and WebView 4.7 |
+| `pagefile.sys` | 7.1 GB | Leave. Shrinking it trades disk for stability |
+| `hiberfil.sys` | 1.6 GB | Removable, and this machine is never hibernated |
+| `C:\eSupport` | 1.4 GB | Vendor recovery data. Not mine to judge |
+
+**The project itself is not the problem.** 1.16 GB total: `node_modules` 721 MB,
+`.venv` 281 MB, `.git` 67 MB, contract libs 11 MB. No duplicate dependency
+trees, no stale build output, nothing dead. Every part of it is needed.
+
+**Reclaimed without elevation, 374 MB free to 1059 MB.** Edge caches across both
+profiles, 877 MB of purely derived data. VS Code cached extension installers,
+crash dumps and logs, 658 MB. 131 stale temp entries and one superseded session
+directory.
+
+Nothing holding state was touched. Extension `globalStorage`, `WebStorage`,
+Dropbox and Office caches were left alone deliberately, because they can hold
+unsynced work and the rule is to leave what is uncertain.
+
+**The rest needs an elevated shell and is worth roughly 4 to 6 GB.** Written
+down rather than attempted, because `Program Files` refused a write probe and
+`DISM` returned error 740:
+
+1. `powercfg /h off` frees 1.6 GB and is reversible with `/h on`
+2. Superseded Edge `151.0.4129.86` holds 1.55 GB across `Edge\Application` and
+   `EdgeCore` while `.93` is the running version. Best removed by Disk Cleanup
+   rather than by hand
+3. `DISM /Online /Cleanup-Image /StartComponentCleanup` on WinSxS, typically
+   1 to 3 GB
+4. Elevated Disk Cleanup for Windows Update leftovers and delivery optimisation
+
+Office at 4.6 GB and Dropbox at roughly 1 GB across three locations are the
+largest removable applications, and neither is a project dependency. That is an
+owner decision, not a cleanup.
 
 ### The release rehearsal, run and closed 2026-08-22
 
