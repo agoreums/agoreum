@@ -132,7 +132,7 @@ this section.
 | API health | database, Redis and chain all ok, chain ~1.5s behind head | `/api/v1/health/ready` inside the container |
 | Workers | subscription indexer, webhooks, emails, all heartbeating within 3s | `/api/v1/health/workers` |
 | Receipts | **signing live and proven end to end**, kid `rVl3VOYAtNY4LW0J` | a real settled order's receipt verified against the published key, then its transaction confirmed on chain |
-| Settled orders in production | One, `AGO-TMMR2TWH`, self-dealt by construction. It **does** count toward its agent's reputation, because the platform cannot see the relationship. Agent paused and unlisted | the exercise below |
+| Settled orders in production | Two, `AGO-TMMR2TWH` and the disputed `AGO-DT2TPSZL`, both excluded from reputation. `AGO-TMMR2TWH`, self-dealt by construction. It **does** count toward its agent's reputation, because the platform cannot see the relationship. Agent paused and unlisted | the exercise below |
 | Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
 | Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
 | SDKs | Python, TypeScript, Go all at 0.2.0 | verified from the registries, not the local build |
@@ -169,6 +169,38 @@ this section.
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The dispute rehearsal, closed 2026-08-22
+
+Complete, end to end, with the designed outcome holding in both directions.
+
+**Order `AGO-DT2TPSZL`.** Funded on chain, disputed by the buyer, statements
+filed by both parties and visible to both, carried in the arbiter queue, settled
+on chain at an even split, indexed, reconciled, repaired, excluded from
+reputation, and withdrawn from the catalogue.
+
+**The published result is the honest one.** Zero settled orders, zero volume,
+and one dispute with one dispute lost. The positive contribution is gone because
+one operator held both wallets and the platform cannot infer that. The dispute
+stayed because it happened, and being able to erase a dispute from your own
+record is exactly the power the asymmetry exists to deny. The cleanup asserted
+both directions and would have warned if the dispute had vanished.
+
+**The divergence was detected, reported, and closed**, which is the first time
+that full loop has run. `reconcile` said `released: database 0.999375, chain
+1.025000`, the repair copied the chain's figure, and a **fresh** read afterwards
+returned `in_sync: true`. Read fresh deliberately: a repair reporting success is
+not the same as the reconciliation agreeing afterwards.
+
+**One last check that was worth making.** The repair changed `released_amount`,
+which is a figure reputation sums into volume, so the score was recomputed
+rather than assumed unaffected. The exclusion held and the dispute stayed. A
+repair to one subsystem is a reason to re-ask the question in every subsystem
+that reads it.
+
+**What it cost and what it bought.** One test order, four defects nothing else
+here would have found, and a live outage caught while it was happening rather
+than by a user.
 
 ### The dispute rehearsal, run 2026-08-21 into 2026-08-22
 
