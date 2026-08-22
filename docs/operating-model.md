@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after the first real inbound orders were handled.
+**Last updated:** 2026-08-22, after the permissionless auto-release was proven.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -137,6 +137,7 @@ this section.
 | Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
 | Escrow solvency | The contract holds exactly what its open escrows account for, 22.05 USDC against 22.05 USDC, checked across every escrow ever created | `getEscrow` over all `EscrowCreated` logs, against `balanceOf` |
 | Real inbound | Two orders from a wallet that is not mine, funded on chain, refunded in full once found | the chain, then `/orders/received` |
+| Permissionless auto-release | Proven. `AGO-3CKAJX8U` released by a wallet that is not a party, holds no USDC and gains nothing; the provider was paid | the release rehearsal below |
 | Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
 | SDKs | Python, TypeScript, Go all at 0.2.0 | verified from the registries, not the local build |
 | Suites | API 744+ passing with 0 skipped, asserted; contracts 142 with 0 skipped; fork suite runs in CI | CI |
@@ -168,7 +169,7 @@ this section.
 | ~~A refund has never been run in production~~ | **Closed 2026-08-22** | Both branches run end to end. Two latent defects found and fixed, and the buyer's unilateral reclaim proven for the first time. See the rehearsal below |
 | ~~Neither refund nor release nor dispute is reachable from the product~~ | **Closed 2026-08-22** | `GET /orders/{id}/settlement-options` describes every exit with signable calldata, an order detail page carries the buttons, and a test over the ABI refuses to let a new state-changing function go unclassified. See below |
 | `cancelled_at` and `cancellation_reason` are written and read by nothing | Open, minor | The indexer sets `cancelled_at` on a refund; no endpoint exposes it and no code reads it |
-| Nothing watches for a funded order against a paused agent | **Open, and it cost a stranger 2.05 USDC of held funds** | Two real orders were funded against a rehearsal listing that had been paused, and sat in escrow against work that could never happen. Found by auditing the chain for an unrelated reason, not by any alert. Needs a check that flags a funded escrow whose provider agent is paused or archived |
+| ~~Nothing watches for a funded order against a paused agent~~ | **Closed 2026-08-22** | `/health/stranded` reports funded escrows held against an agent that is not active, degraded while inside the delivery window and down past it, and the monitor pages on it like any other outage |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | ~~A divergence could be reported but never closed~~ | **Closed 2026-08-22** | `reconcile` named the first real divergence and nothing could act on it. Repair added, admin gated, copying only what the contract holds and refusing to paper over a structural one |
 | Three Safe multisigs on Base | Blocked | Owner action |
@@ -229,6 +230,46 @@ delivery; the contract fixes it at creation as `deliveryDeadline +
 autoReleaseWindow`. The chain's is reported, because the chain's is what
 decides. Nothing displays the platform's figure, so nobody was shown a wrong
 date.
+
+### The release rehearsal, run and closed 2026-08-22
+
+**27 of 27 predictions agree, and the strongest untested claim in the product is
+now a fact.** Designed in `docs/release-rehearsal-design.md` first.
+
+**A correction the chain forced.** I had said release never ran in production.
+It had, five times, every one released by the buyer accepting the work. What had
+never run is the branch after `autoReleaseAt`, where **anyone at all** may
+release. Five buyer releases prove nothing about it.
+
+**`AGO-3CKAJX8U` was released by a wallet that is not a party to it.** Fresh
+account, no USDC, no transaction history, not the admin, arbiter, fee recipient,
+treasury or payout address, and it could not be paid by the call it made. The
+provider was. That is what permissionless means and it is the only leg that
+tests it. `AGO-NA2GY4ET` was claimed by the provider, which is the realistic
+path but proves nothing about permissionlessness on its own.
+
+The honest caveat: I generated the stranger's key, so I control it. Irrelevant
+to what the contract checks, which is that `msg.sender` is neither party, and
+irrelevant to who gains, which is only the provider.
+
+**The fee moved for the first time in any of these rehearsals.** `feesCollected`
+went 453750 to 505000, exactly 25625 twice, read from the independent
+accumulator rather than from balances. On this deployment the fee recipient is
+the buyer's own address, so a balance comparison could not have told a fee taken
+from a fee not taken. That lesson cost a real check in the refund rehearsal and
+was not relearned.
+
+**The obligation the design wrote down in advance was discharged.** A release is
+the first rehearsal that *produces* something: two completed orders and 2.05
+USDC of volume, out of my own money moving between my own wallets, generated by
+the system working correctly. Both were excluded immediately and the published
+figures read back rather than assumed: zero completed, zero volume.
+
+The dispute and the refunds left marks that could not be removed and were left
+alone. This one left a mark that had to be removed. Exclusion only ever
+subtracts, and that asymmetry is the whole design.
+
+Receipts carry a non-zero fee for the first time. `reconcile` agrees on both.
 
 ### The first orders from somebody else, 2026-08-22
 

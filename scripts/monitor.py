@@ -297,6 +297,29 @@ def check() -> tuple[bool, list[str]]:
                 f"emails worker: not delivering ({mail.get('heartbeat_age_seconds', '?')}s since last heartbeat)"
             )
 
+    # Buyer money held against a listing that was withdrawn.
+    #
+    # Two real orders were funded against a paused rehearsal agent on
+    # 2026-08-22 and sat there against work that could never happen. Nothing
+    # noticed, because from the platform's side nothing was broken: no process
+    # was unwell, no queue was backed up, one buyer was simply waiting for
+    # something that would not come.
+    #
+    # That is why it belongs here rather than in readiness. Every other failure
+    # watched here is loud. This one is silent by construction and is measured
+    # in somebody else's money.
+    code, body = _get(f"{API_BASE}/health/stranded")
+    if body is not None:
+        stranded = body.get("stranded_escrows", {})
+        if stranded.get("status") in ("degraded", "down"):
+            detail = stranded.get("detail") or {}
+            problems.append(
+                f"stranded escrows: {detail.get('stranded', '?')} funded against a "
+                f"paused or unpublished listing, {detail.get('overdue', '?')} past "
+                f"the delivery deadline, {detail.get('held', '?')} USDC held "
+                f"({detail.get('references', 'unknown')})"
+            )
+
     return (len(problems) == 0), problems
 
 

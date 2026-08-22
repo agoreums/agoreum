@@ -8,6 +8,8 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Literal
 
 from sqlalchemy import text
@@ -301,6 +303,116 @@ async def check_indexer(session: AsyncSession) -> ComponentHealth:
             "head_block": str(head),
             "last_scanned_block": str(cursor.last_scanned_block),
             "lag_blocks": str(lag),
+        },
+    )
+
+
+async def check_stranded_escrows(session: AsyncSession) -> ComponentHealth:
+    """Money held in escrow against a listing that can no longer deliver.
+
+    **Two real orders were funded against a paused agent on 2026-08-22.** A
+    wallet that is not ours found a rehearsal listing in the marketplace, funded
+    two escrows against it, and 2.05 USDC sat there against work that could
+    never happen. The listing had been paused after the rehearsal, and pausing
+    an agent does nothing to an escrow that is already funded.
+
+    Nothing noticed. It was found by reading the chain for an unrelated reason,
+    days of buyer money later. Every other failure this monitor watches is loud:
+    a stalled indexer stops every order, a down worker stops every email. This
+    one is silent by construction, because from the platform's side nothing is
+    broken at all. One buyer is simply waiting for something that will not come.
+
+    So it is judged by money and time rather than by any process being unwell:
+
+    * `degraded` when any escrow is funded against an agent that is not active
+    * `down` when such an escrow is also past its delivery window, because at
+      that point the buyer has been waiting longer than they agreed to and
+      nobody has told them they can now reclaim it themselves
+
+    Judged on the **agent**, not the service. `ServiceStatus.ARCHIVED` is
+    documented as withdrawn from the marketplace while existing orders continue
+    to settlement, so an archived service under an active agent is an orderly
+    wind-down and not a stranding. Including it would page on the normal case,
+    and an alert that fires on normal operation is one people learn to close.
+
+    The buyer can always recover, and that is not a reason to stay quiet. The
+    guarantee is that their money is safe, not that they should have to notice
+    on their own.
+    """
+    from sqlalchemy import select
+
+    from app.db.enums import AgentStatus, EscrowStatus
+    from app.modules.agents.models import Agent
+    from app.modules.orders.models import Escrow, Order
+
+    now = datetime.now(UTC)
+    try:
+        rows = (
+            await session.execute(
+                select(
+                    Order.reference,
+                    Order.delivery_time_hours,
+                    Escrow.amount,
+                    Escrow.funded_at,
+                    Agent.status,
+                )
+                .join(Escrow, Escrow.order_id == Order.id)
+                .join(Agent, Agent.id == Order.provider_agent_id)
+                .where(
+                    Escrow.status == EscrowStatus.FUNDED,
+                    Agent.status != AgentStatus.ACTIVE,
+                )
+            )
+        ).all()
+    except Exception as exc:
+        logger.warning(
+            "health_stranded_failed", extra={"error_type": type(exc).__name__}
+        )
+        return ComponentHealth(
+            name="stranded_escrows", status="down", error=type(exc).__name__
+        )
+
+    return stranded_verdict(rows, now=now)
+
+
+def stranded_verdict(rows, *, now: datetime) -> ComponentHealth:
+    """Turn the funded-against-an-inactive-agent rows into a verdict.
+
+    Separated from the query so it can be driven over real row shapes in a test
+    rather than through a fake session that would agree with itself.
+
+    The delivery window is derived from `funded_at` plus the order's own
+    `delivery_time_hours`, because the database stores no deadline: the contract
+    holds it and nothing copies it back. That makes this approximate by the
+    indexer's lag, which is seconds against a window of hours. Approximate is
+    enough to decide whether to page somebody, and the contract remains the
+    authority on whether a refund is actually available.
+    """
+    if not rows:
+        return ComponentHealth(
+            name="stranded_escrows", status="ok",
+            detail={"stranded": "0", "overdue": "0", "held": "0"},
+        )
+
+    def overdue(row) -> bool:
+        if not row.funded_at or not row.delivery_time_hours:
+            return False
+        return now >= row.funded_at + timedelta(hours=row.delivery_time_hours)
+
+    late = [r for r in rows if overdue(r)]
+    held = sum((r.amount for r in rows), Decimal("0"))
+    return ComponentHealth(
+        name="stranded_escrows",
+        status="down" if late else "degraded",
+        error=(
+            f"{len(rows)} funded escrow(s) held against an agent that is not "
+            f"active, {len(late)} past the delivery window"
+        ),
+        detail={
+            "stranded": str(len(rows)),
+            "overdue": str(len(late)),
+            "held": str(held),
+            "references": ",".join(sorted(r.reference for r in rows)[:10]),
         },
     )
 
