@@ -784,7 +784,18 @@
       "amount": "Importe",
       "placed": "Fecha"
     },
-    "quantity": "{count, plural, one {# unidad} other {# unidades}}"
+    "quantity": "{count, plural, one {# unidad} other {# unidades}}",
+    "detail": {
+      "title": "Pedido",
+      "summary": "Este pedido",
+      "placed": "Realizado",
+      "escrowStatus": "Depósito",
+      "released": "Pagado",
+      "refunded": "Reembolsado",
+      "fee": "Comisión de la plataforma",
+      "loadFailed": "No se pudo cargar este pedido.",
+      "notFound": "No existe ese pedido."
+    }
   },
   "notifications": {
     "title": "Notificaciones",
@@ -1004,5 +1015,33 @@
     "toProvider": "Para el proveedor",
     "toBuyer": "Para el comprador",
     "settlementNote": "Los fondos se mueven cuando la liquidacion se envia en la cadena."
+  },
+  "settlement": {
+    "title": "Mover este depósito",
+    "actions": {
+      "release": "Pagar al proveedor",
+      "refund": "Devolver al comprador",
+      "dispute": "Abrir una disputa"
+    },
+    "do": {
+      "release": "Pagar",
+      "refund": "Reembolsar",
+      "dispute": "Disputar"
+    },
+    "opensAt": "Disponible a partir del {when}",
+    "sending": "Confirma en tu monedero",
+    "manual": "Envíalo tú mismo, sin nosotros",
+    "contract": "Contrato",
+    "calldata": "Datos de la llamada",
+    "reasonLabel": "¿Por qué lo disputas?",
+    "reasonIsPublic": "Esto se escribe en la cadena y no se puede editar después.",
+    "paused": "El contrato está pausado. Recuperar tu dinero sigue siendo posible; abrir una disputa no.",
+    "wrongNetwork": "Cambia tu monedero a {network} para continuar.",
+    "viewOnExplorer": "Ver transacción",
+    "errors": {
+      "loadFailed": "No se pudo cargar lo que puedes hacer con este depósito.",
+      "reverted": "La cadena rechazó la transacción. No se movió nada.",
+      "failed": "No se pudo enviar la transacción."
+    }
   }
 }

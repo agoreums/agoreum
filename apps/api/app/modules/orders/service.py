@@ -32,7 +32,13 @@ from app.db.enums import (
 )
 from app.modules.agents.models import Agent
 from app.modules.orders.models import Escrow, Order, OrderEvent
-from app.modules.orders.schemas import OrderCreate, PaymentInstructions
+from app.modules.orders.schemas import (
+    OrderCreate,
+    PaymentInstructions,
+    SettlementAction,
+    SettlementArgument,
+    SettlementOptions,
+)
 from app.modules.organizations.authz import is_member
 from app.modules.organizations.models import OrganizationMembership
 from app.modules.services.models import Service
@@ -360,6 +366,274 @@ async def payment_instructions(
         create_escrow_selector=contract.function_selector("createEscrow"),
         funding_deadline=order.funding_deadline,
         explorer_url=settings.explorer_url,
+    )
+
+
+# --- Getting money back out -------------------------------------------------
+
+
+async def settlement_options(
+    db: AsyncSession, *, order: Order, user: User, client
+) -> SettlementOptions:
+    """Every on-chain exit from this escrow, for the party asking.
+
+    **This exists because it did not, and that was the most serious defect this
+    project has found.** `payment_instructions` told a buyer precisely how to put
+    money into an escrow: contract, selector, calldata, amounts, deadline. There
+    was no counterpart for taking it out. The web application makes exactly two
+    on-chain writes, `createEscrow` and `subscribe`, and no endpoint described
+    `release`, `refund` or `dispute` at all.
+
+    So a buyer whose provider vanished held a right the contract genuinely
+    enforces and could not reach it. Recovering their own money meant finding the
+    contract address, reading the ABI, and building the transaction themselves.
+    The contract was correct throughout, which is why no test, no review and no
+    audit-readiness document would ever have shown it. Found by trying to use the
+    refund path as a real user would, during the rehearsal of 2026-08-22.
+
+    Everything decisive is read from the chain, because the database does not
+    store the deadlines at all and because the contract is what will accept or
+    refuse the call. `orders.auto_release_at` is a **different quantity**: the
+    platform counts that window from actual delivery, while the contract fixes it
+    at creation as `deliveryDeadline + autoReleaseWindow`. Reporting the
+    platform's figure here would tell a provider they can claim at a moment the
+    chain will refuse.
+
+    Availability mirrors the contract's own conditions rather than restating them
+    loosely. Where an action is unavailable the reason is returned, because a
+    disabled control with no explanation is how somebody concludes that a right
+    they hold is not real.
+    """
+    if not contract.is_configured():
+        raise contract.EscrowNotConfiguredError()
+
+    escrow_id = contract.escrow_id_for_order(str(order.id))
+    on_chain = contract.decode_get_escrow(
+        await client.call(
+            to=contract.contract_address(),
+            data=contract.encode_get_escrow(escrow_id),
+        )
+    )
+    paused = await _contract_is_paused(client)
+
+    roles = await _roles_of(db, order=order, user=user)
+    now = datetime.now(UTC)
+    deadline = _as_moment(on_chain.delivery_deadline)
+    auto_release = _as_moment(on_chain.auto_release_at)
+
+    actions = [
+        _release_action(on_chain, roles, now=now, auto_release=auto_release,
+                        escrow_id=escrow_id),
+        _refund_action(on_chain, roles, now=now, deadline=deadline,
+                       escrow_id=escrow_id),
+        _dispute_action(on_chain, roles, paused=paused, escrow_id=escrow_id),
+    ]
+
+    return SettlementOptions(
+        order_id=order.id,
+        order_reference=order.reference,
+        chain_id=settings.CHAIN_ID,
+        network_name=settings.network_name,
+        escrow_contract=contract.contract_address(),
+        escrow_id=escrow_id,
+        onchain_status=on_chain.status.name.lower(),
+        contract_paused=paused,
+        delivery_deadline=deadline,
+        auto_release_at=auto_release,
+        your_roles=sorted(roles),
+        actions=actions,
+        explorer_url=settings.explorer_url,
+        note=(
+            "The platform holds no funds and signs nothing. Each action below is "
+            "a transaction for your own wallet to build, sign and broadcast, and "
+            "the calldata is published so you can do that without this interface. "
+            "The contract decides whether a call succeeds; these deadlines are "
+            "read from it, not from our records."
+        ),
+    )
+
+
+async def _contract_is_paused(client) -> bool:
+    """Whether the escrow contract is paused.
+
+    Read rather than assumed because `dispute` is gated on `whenNotPaused` and
+    `refund` deliberately is not. Offering a dispute that would revert, while
+    hiding a refund that would succeed, would be exactly backwards during the one
+    situation a pause exists for.
+    """
+    try:
+        result = await client.call(
+            to=contract.contract_address(), data=contract.function_selector("paused")
+        )
+    except Exception:  # noqa: BLE001 - an unreadable pause flag must not hide the exits
+        logger.warning("escrow_paused_unreadable")
+        return False
+    return bool(int(result, 16)) if result and result != "0x" else False
+
+
+async def _roles_of(db: AsyncSession, *, order: Order, user: User) -> set[str]:
+    """Which parties this caller is. Plural, because one person can be both.
+
+    The settlement exercise held the buyer and provider wallets at once, and the
+    dispute rehearsal held the buyer and arbiter. Collapsing this to one role
+    would hide half of what the caller can actually do.
+    """
+    roles: set[str] = set()
+    if user.id == order.buyer_id:
+        roles.add("buyer")
+    agent = order.provider_agent
+    if agent is not None and agent.org_id is not None and await is_member(
+        db, org_id=agent.org_id, user_id=user.id
+    ):
+        roles.add("provider")
+    if is_arbiter(user):
+        roles.add("arbiter")
+    return roles
+
+
+def _as_moment(timestamp: int) -> datetime | None:
+    return datetime.fromtimestamp(timestamp, UTC) if timestamp else None
+
+
+def _terminal_reason(status: contract.OnChainStatus) -> str | None:
+    """Why no exit is open, when none is. None means the escrow is still live."""
+    if status == contract.OnChainStatus.NONE:
+        return "This escrow does not exist on chain yet. Fund the order first."
+    if status == contract.OnChainStatus.DISPUTED:
+        return (
+            "This escrow is frozen pending arbitration. Only an arbiter can move "
+            "it now, by splitting it between the two parties."
+        )
+    if status != contract.OnChainStatus.FUNDED:
+        return "This escrow has already settled. Nothing further can move it."
+    return None
+
+
+def _action(
+    *, name: str, who: str, available: bool, reason: str | None,
+    available_at: datetime | None, escrow_id: str,
+    arguments: list[SettlementArgument], calldata: str | None,
+) -> SettlementAction:
+    return SettlementAction(
+        action=name,
+        available=available,
+        who=who,
+        reason=reason,
+        available_at=available_at,
+        function=name,
+        selector=contract.function_selector(name),
+        arguments=arguments,
+        calldata=calldata,
+    )
+
+
+def _escrow_id_argument(escrow_id: str) -> list[SettlementArgument]:
+    return [SettlementArgument(name="escrowId", type="bytes32", value=escrow_id)]
+
+
+def _release_action(
+    on_chain, roles: set[str], *, now: datetime, auto_release: datetime | None,
+    escrow_id: str,
+) -> SettlementAction:
+    """Pay the provider. The buyer may at any time; anyone once auto-release is due.
+
+    The permissionless path after the deadline is deliberate in the contract: a
+    provider must not depend on the buyer, or on the platform, in order to be
+    paid. Reported to everyone for that reason, not only to the two parties.
+    """
+    who = (
+        "The buyer, at any time, accepting the work. Anyone at all once the "
+        "auto-release time has passed, so payment never depends on the buyer "
+        "staying reachable."
+    )
+    terminal = _terminal_reason(on_chain.status)
+    due = auto_release is not None and now >= auto_release
+    available = terminal is None and ("buyer" in roles or due)
+    reason = terminal
+    if reason is None and not available:
+        reason = (
+            "Only the buyer can release before the auto-release time. After it, "
+            "anyone can."
+        )
+    return _action(
+        name="release", who=who, available=available, reason=reason,
+        available_at=None if "buyer" in roles else auto_release,
+        escrow_id=escrow_id, arguments=_escrow_id_argument(escrow_id),
+        calldata=contract.encode_escrow_id_call("release", escrow_id),
+    )
+
+
+def _refund_action(
+    on_chain, roles: set[str], *, now: datetime, deadline: datetime | None,
+    escrow_id: str,
+) -> SettlementAction:
+    """Return the whole amount to the buyer. No fee is taken.
+
+    The buyer's branch is the guarantee that makes escrow worth using: a provider
+    who disappears cannot keep the money. It was proven for real on 2026-08-22
+    and was unreachable from the product on the same day.
+    """
+    who = (
+        "The provider, at any time, declining the work. The buyer, once the "
+        "delivery deadline has passed with nothing delivered. The full amount "
+        "goes back and no platform fee is taken."
+    )
+    terminal = _terminal_reason(on_chain.status)
+    overdue = deadline is not None and now >= deadline
+    available = terminal is None and ("provider" in roles or ("buyer" in roles and overdue))
+    reason = terminal
+    if reason is None and not available:
+        if "buyer" in roles:
+            reason = (
+                "The delivery deadline has not passed yet. Until it does, only "
+                "the provider can return the money."
+            )
+        else:
+            reason = "Only the provider, or the buyer after the delivery deadline, can refund."
+    return _action(
+        name="refund", who=who, available=available, reason=reason,
+        available_at=None if "provider" in roles else deadline,
+        escrow_id=escrow_id, arguments=_escrow_id_argument(escrow_id),
+        calldata=contract.encode_escrow_id_call("refund", escrow_id),
+    )
+
+
+def _dispute_action(
+    on_chain, roles: set[str], *, paused: bool, escrow_id: str
+) -> SettlementAction:
+    """Freeze the escrow for arbitration.
+
+    No calldata is published, and that is not an omission. `dispute` takes a
+    free-text reason, so complete calldata cannot exist before the caller has
+    written one. Publishing calldata with an empty or invented reason would put
+    words in their mouth in a document they are about to sign.
+    """
+    who = (
+        "Either party, while the escrow still holds funds. Raising a dispute "
+        "closes the automatic release, so a disagreement cannot resolve itself "
+        "in one side's favour purely by time passing."
+    )
+    terminal = _terminal_reason(on_chain.status)
+    is_party = bool(roles & {"buyer", "provider"})
+    available = terminal is None and is_party and not paused
+    reason = terminal
+    if reason is None and not available:
+        if paused:
+            reason = (
+                "The contract is paused, so a dispute cannot be raised right now. "
+                "A refund is still possible: taking your own money out is "
+                "deliberately never blocked by a pause."
+            )
+        else:
+            reason = "Only the buyer or the provider can raise a dispute."
+    return _action(
+        name="dispute", who=who, available=available, reason=reason,
+        available_at=None, escrow_id=escrow_id,
+        arguments=[
+            SettlementArgument(name="escrowId", type="bytes32", value=escrow_id),
+            SettlementArgument(name="reason", type="string", value=None),
+        ],
+        calldata=None,
     )
 
 

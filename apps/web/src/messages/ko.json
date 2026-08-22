@@ -784,7 +784,18 @@
       "amount": "금액",
       "placed": "주문일"
     },
-    "quantity": "{count, plural, other {# 개}}"
+    "quantity": "{count, plural, other {# 개}}",
+    "detail": {
+      "title": "주문",
+      "summary": "이 주문",
+      "placed": "주문일",
+      "escrowStatus": "에스크로",
+      "released": "지급됨",
+      "refunded": "환불됨",
+      "fee": "플랫폼 수수료",
+      "loadFailed": "이 주문을 불러오지 못했습니다.",
+      "notFound": "해당 주문이 없습니다."
+    }
   },
   "notifications": {
     "title": "알림",
@@ -1004,5 +1015,33 @@
     "toProvider": "제공자에게",
     "toBuyer": "구매자에게",
     "settlementNote": "자금은 체인에서 정산이 제출될 때 이동합니다."
+  },
+  "settlement": {
+    "title": "이 에스크로 이동하기",
+    "actions": {
+      "release": "제공자에게 지급",
+      "refund": "구매자에게 반환",
+      "dispute": "분쟁 제기"
+    },
+    "do": {
+      "release": "지급",
+      "refund": "환불",
+      "dispute": "분쟁"
+    },
+    "opensAt": "{when} 부터 가능합니다",
+    "sending": "지갑에서 확인하세요",
+    "manual": "우리를 거치지 않고 직접 보내기",
+    "contract": "컨트랙트",
+    "calldata": "호출 데이터",
+    "reasonLabel": "왜 분쟁을 제기하나요?",
+    "reasonIsPublic": "이 내용은 체인에 기록되며 나중에 수정할 수 없습니다.",
+    "paused": "컨트랙트가 일시 중지되었습니다. 본인 자금을 되찾는 것은 여전히 가능하지만 분쟁 제기는 불가능합니다.",
+    "wrongNetwork": "계속하려면 지갑을 {network} 로 전환하세요.",
+    "viewOnExplorer": "거래 보기",
+    "errors": {
+      "loadFailed": "이 에스크로로 무엇을 할 수 있는지 불러오지 못했습니다.",
+      "reverted": "체인이 거래를 거부했습니다. 아무것도 이동하지 않았습니다.",
+      "failed": "거래를 보낼 수 없습니다."
+    }
   }
 }

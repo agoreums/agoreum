@@ -784,7 +784,18 @@
       "amount": "Valor",
       "placed": "Data"
     },
-    "quantity": "{count, plural, one {# unidade} other {# unidades}}"
+    "quantity": "{count, plural, one {# unidade} other {# unidades}}",
+    "detail": {
+      "title": "Encomenda",
+      "summary": "Esta encomenda",
+      "placed": "Feita",
+      "escrowStatus": "Caução",
+      "released": "Pago",
+      "refunded": "Reembolsado",
+      "fee": "Comissão da plataforma",
+      "loadFailed": "Não foi possível carregar esta encomenda.",
+      "notFound": "Encomenda inexistente."
+    }
   },
   "notifications": {
     "title": "Notificações",
@@ -1004,5 +1015,33 @@
     "toProvider": "Para o fornecedor",
     "toBuyer": "Para o comprador",
     "settlementNote": "Os fundos movem-se quando a liquidacao for submetida na cadeia."
+  },
+  "settlement": {
+    "title": "Mover esta caução",
+    "actions": {
+      "release": "Pagar ao fornecedor",
+      "refund": "Devolver ao comprador",
+      "dispute": "Abrir um litígio"
+    },
+    "do": {
+      "release": "Pagar",
+      "refund": "Reembolsar",
+      "dispute": "Contestar"
+    },
+    "opensAt": "Disponível a partir de {when}",
+    "sending": "Confirma na tua carteira",
+    "manual": "Envia tu mesmo, sem nós",
+    "contract": "Contrato",
+    "calldata": "Dados da chamada",
+    "reasonLabel": "Porque estás a contestar?",
+    "reasonIsPublic": "Isto fica escrito na cadeia e não pode ser editado depois.",
+    "paused": "O contrato está pausado. Recuperar o teu dinheiro continua possível; abrir um litígio não.",
+    "wrongNetwork": "Muda a tua carteira para {network} para continuar.",
+    "viewOnExplorer": "Ver transação",
+    "errors": {
+      "loadFailed": "Não foi possível carregar o que podes fazer com esta caução.",
+      "reverted": "A cadeia recusou a transação. Nada se moveu.",
+      "failed": "Não foi possível enviar a transação."
+    }
   }
 }

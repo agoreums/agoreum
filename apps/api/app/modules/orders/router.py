@@ -36,6 +36,7 @@ from app.modules.orders.schemas import (
     PaymentInstructions,
     ReconciliationReport,
     SettlementInstructions,
+    SettlementOptions,
 )
 from app.modules.organizations.authz import OrgAction, require_permission
 
@@ -182,6 +183,32 @@ async def payment_instructions(
     if order.buyer_id != user.id:
         raise NotFoundError("No such order.")
     return await service.payment_instructions(db, order=order)
+
+
+@router.get(
+    "/orders/{order_id}/settlement-options",
+    response_model=SettlementOptions,
+    summary="How to release, refund or dispute this escrow from your own wallet",
+)
+async def settlement_options(
+    order_id: uuid.UUID, principal: OrdersRead, db: DbSession
+) -> SettlementOptions:
+    """The counterpart of `payment-instructions`, which had none.
+
+    The platform described exactly how to put money into an escrow and nothing
+    at all about taking it out, so a buyer whose provider vanished held a right
+    the contract genuinely enforces and could not reach it without reading the
+    ABI and building the transaction by hand.
+
+    Visible to both parties rather than only the buyer, because both of them have
+    exits and neither should have to ask us for them. Deadlines and the pause
+    flag are read from the contract, which is what actually decides whether a
+    call succeeds.
+    """
+    user = principal.user
+    order = await service.require_visible_order(db, order_id, user=user)
+    async with ChainClient() as client:
+        return await service.settlement_options(db, order=order, user=user, client=client)
 
 
 @router.post(

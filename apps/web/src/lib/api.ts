@@ -477,6 +477,51 @@ export type PaymentInstructions = {
   explorer_url: string;
 };
 
+/** One argument of an on-chain call, with its value when it is known. */
+export interface SettlementArgument {
+  name: string;
+  type: string;
+  value: string | null;
+}
+
+/** One way a party can move the escrow, and whether they can do it now. */
+export interface SettlementAction {
+  action: "release" | "refund" | "dispute";
+  available: boolean;
+  who: string;
+  reason: string | null;
+  available_at: string | null;
+  function: string;
+  selector: string;
+  arguments: SettlementArgument[];
+  calldata: string | null;
+}
+
+/**
+ * Every on-chain exit from an escrow, for the party asking.
+ *
+ * The counterpart of PaymentInstructions, which had none. The product described
+ * exactly how to put money into an escrow and nothing about taking it out, so a
+ * buyer whose provider vanished held a right the contract enforces and could not
+ * reach it.
+ */
+export interface SettlementOptions {
+  order_id: string;
+  order_reference: string;
+  chain_id: number;
+  network_name: string;
+  escrow_contract: string;
+  escrow_id: string;
+  onchain_status: string;
+  contract_paused: boolean;
+  delivery_deadline: string | null;
+  auto_release_at: string | null;
+  your_roles: string[];
+  actions: SettlementAction[];
+  explorer_url: string;
+  note: string;
+}
+
 export const ordersApi = {
   chainStatus: () => apiFetch<ChainStatus>("/api/v1/chain/status"),
 
@@ -502,6 +547,13 @@ export const ordersApi = {
   paymentInstructions: (accessToken: string, orderId: string) =>
     apiFetch<PaymentInstructions>(
       `/api/v1/orders/${orderId}/payment-instructions`,
+      { accessToken },
+    ),
+
+  /** How to release, refund or dispute this escrow from your own wallet. */
+  settlementOptions: (accessToken: string, orderId: string) =>
+    apiFetch<SettlementOptions>(
+      `/api/v1/orders/${orderId}/settlement-options`,
       { accessToken },
     ),
 

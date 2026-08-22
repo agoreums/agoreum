@@ -246,11 +246,31 @@ def decode_log(log: dict[str, Any]) -> DecodedEvent | None:
 # --- Read calls -------------------------------------------------------------
 
 
+def encode_escrow_id_call(function: str, escrow_id: str) -> str:
+    """Calldata for any escrow function whose only argument is the escrow id.
+
+    The ABI is consulted rather than trusted from the name. Encoding a lone
+    bytes32 for a function that takes anything else produces calldata that is
+    well formed, wrong, and accepted by a wallet, so a caller would sign a
+    transaction that does something other than what they were shown. The check
+    turns that into an error here instead.
+    """
+    fn = _functions_by_name().get(function)
+    if fn is None:
+        raise KeyError(f"No such function in the ABI: {function}")
+    types = [i["type"] for i in fn.get("inputs", [])]
+    if types != ["bytes32"]:
+        raise ValueError(
+            f"{function} takes {types or 'no arguments'}, not a single bytes32, "
+            "so this encoding would describe a different call than the one made."
+        )
+    raw = escrow_id[2:] if escrow_id.startswith("0x") else escrow_id
+    return function_selector(function) + raw.rjust(64, "0")
+
+
 def encode_get_escrow(escrow_id: str) -> str:
     """Calldata for `getEscrow(bytes32)`."""
-    selector = function_selector("getEscrow")
-    raw = escrow_id[2:] if escrow_id.startswith("0x") else escrow_id
-    return selector + raw.rjust(64, "0")
+    return encode_escrow_id_call("getEscrow", escrow_id)
 
 
 @dataclass(frozen=True)

@@ -152,6 +152,74 @@ class ChainStatus(BaseModel):
     note: str | None = None
 
 
+class SettlementArgument(BaseModel):
+    """One argument of an on-chain call, with its value when it is known."""
+
+    name: str
+    type: str
+    # None means the caller supplies it. `dispute` takes a free-text reason, so
+    # no complete calldata can be published for it in advance.
+    value: str | None = None
+
+
+class SettlementAction(BaseModel):
+    """One way this party can move the escrow, and whether they can do it now."""
+
+    action: str
+    available: bool
+    # Who may do this and when, in a sentence, because a disabled button with no
+    # explanation is what makes people believe a right they hold is not real.
+    who: str
+    reason: str | None = None
+    available_at: datetime | None = None
+
+    function: str
+    selector: str
+    arguments: list[SettlementArgument]
+    # Complete, signable calldata where every argument is known. Published so the
+    # action can be taken from any wallet, including without this interface.
+    calldata: str | None = None
+
+
+class SettlementOptions(BaseModel):
+    """Every on-chain exit from this escrow, for the party asking.
+
+    The counterpart of `PaymentInstructions`, and it exists because that had no
+    counterpart at all. The platform described exactly how to put money into an
+    escrow and nothing whatsoever about taking it out, so a buyer whose provider
+    vanished held a contract right they could not reach without reading the ABI
+    and building the transaction by hand.
+
+    Deadlines are read from the contract, not from the database, which does not
+    store them. `orders.auto_release_at` is a different quantity: the platform
+    counts that window from actual delivery, while the chain fixes it at escrow
+    creation as `deliveryDeadline + autoReleaseWindow`. The chain's is the one
+    that decides whether a call succeeds, so the chain's is what is reported.
+    """
+
+    order_id: uuid.UUID
+    order_reference: str
+
+    chain_id: int
+    network_name: str
+    escrow_contract: str
+    escrow_id: str
+
+    onchain_status: str
+    contract_paused: bool
+    delivery_deadline: datetime | None
+    auto_release_at: datetime | None
+
+    # A list, not one value. One person can hold both sides, which is exactly
+    # what the settlement exercise did, and reporting a single role would hide
+    # half of what they can do.
+    your_roles: list[str]
+    actions: list[SettlementAction]
+
+    explorer_url: str
+    note: str
+
+
 class ReconciliationReport(BaseModel):
     """Comparison of the database against the chain's own view of an escrow."""
 
