@@ -380,8 +380,7 @@ async def _apply_to_escrow(
             escrow.status = new_status
 
         if event.name == "EscrowReleased":
-            escrow.released_amount = escrow.amount
-            escrow.fee_amount = contract.from_base_units(event.args.get("feeAmount", 0))
+            apply_release(escrow, event, order_id=str(order.id))
             escrow.released_at = now
         elif event.name == "EscrowRefunded":
             apply_refund(escrow, event, order_id=str(order.id))
@@ -528,6 +527,50 @@ def settlement_resolution(*, provider_amount, buyer_amount) -> DisputeResolution
     if provider_amount == 0:
         return DisputeResolution.REFUNDED_TO_BUYER
     return DisputeResolution.SPLIT
+
+
+def apply_release(escrow, event: contract.DecodedEvent, *, order_id: str | None = None) -> None:
+    """Record a release using the chain's figures rather than the database's.
+
+    `release` pays the whole escrow out, splitting it into the provider's share
+    and the fee, and the event carries both. Their **sum** is the contract's own
+    gross, which is what `escrow.released` holds on chain. The handler
+    previously wrote `escrow.released_amount = escrow.amount`, taking the figure
+    from the record it was meant to be corroborating.
+
+    Third occurrence of one pattern, and the reason all three are now written
+    the same way:
+
+    * settlement wrote the emitted net where the chain held the gross, and made
+      the database disagree with the contract on the first dispute ever settled
+    * refund read `escrow.amount` instead of the event
+    * release did the same
+
+    Where the record and the chain agree, none of them is visibly wrong, which
+    is exactly why all three survived. Where they had drifted, each carried the
+    drift forward and `reconcile` went on reporting a divergence that nothing
+    closed.
+
+    The amount is corrected alongside it rather than the released figure alone,
+    because writing a larger release against a smaller recorded amount breaches
+    `payouts_cannot_exceed_deposit`, and a constraint violation inside this
+    handler is what crash-looped the indexer on the first settled dispute.
+    """
+    fee = contract.from_base_units(event.args.get("feeAmount", 0))
+    provider_share = contract.from_base_units(event.args.get("providerAmount", 0))
+    gross = (provider_share + fee) or escrow.amount
+    if gross != escrow.amount:
+        logger.warning(
+            "escrow_amount_corrected_from_release",
+            extra={
+                "order_id": order_id,
+                "recorded": str(escrow.amount),
+                "on_chain": str(gross),
+            },
+        )
+        escrow.amount = gross
+    escrow.released_amount = gross
+    escrow.fee_amount = fee
 
 
 def apply_refund(escrow, event: contract.DecodedEvent, *, order_id: str | None = None) -> None:
