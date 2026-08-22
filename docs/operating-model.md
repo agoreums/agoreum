@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after the escrow exits were made reachable.
+**Last updated:** 2026-08-22, after the exits were proven in production.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -226,6 +226,52 @@ delivery; the contract fixes it at creation as `deliveryDeadline +
 autoReleaseWindow`. The chain's is reported, because the chain's is what
 decides. Nothing displays the platform's figure, so nobody was shown a wrong
 date.
+
+### Proving the exits, and two failures on the way
+
+The endpoint shipped and **returned 500 on every request.** It read
+`settings.network_name`, which does not exist. Every helper was covered and
+mutation tested, the route existed, CI was green, and nothing had executed the
+assembly. What stood in its place was `assert callable(service.settlement_options)`,
+which is true of any function that has been defined and cannot fail for one that
+crashes on every call. That is the false-check shape, committed on the same day
+it was written down as a lesson.
+
+Before that, **the route was not deployed at all** and I said it was. The check
+took the newest workflow run on `main` and matched a scheduled uptime job. A
+check that matches the wrong thing reports confidence it never earned.
+
+**Both are now one instrument.** `scripts/check_deployed_surface.py` compares the
+published surface against production, then actually calls the read-only order
+routes and refuses a 5xx. Existing is not working, and only the second question
+catches that. It took three attempts, two of them confidently wrong, and the
+reasoning is written into the file: walking `app.routes` found one route because
+the routers are nested; `app.openapi()` found 95 against production's 65 and
+declared 30 live endpoints missing, because production serves the narrower
+`public_openapi(app)`. On its first correct run it found the live 500.
+
+**Then it was proven properly, on a live escrow.** Order `AGO-DLCLQL8W`: funded
+in production, the endpoint asked as both parties, and refunded by sending the
+**published calldata verbatim** rather than rebuilding the call from the ABI. A
+settled escrow answering 200 proves only the terminal path; this proves the one
+that matters.
+
+What the buyer saw while it was live, which is the whole point of showing
+unavailable actions rather than hiding them:
+
+    release  available=True
+    refund   available=False  opensAt=2026-08-22T09:43:20Z
+             The delivery deadline has not passed yet. Until it does, only
+             the provider can return the money.
+    dispute  available=True
+
+`reconcile` agrees with the chain afterwards. One more cancellation stands on
+the record, unremovable, as designed.
+
+**One correction to the mutation harness, not the product.** Its first run
+reported the production bug as MISSED, because the anchor appeared twice and it
+silently mutated `payment_instructions` instead. A harness that edits the wrong
+code returns a verdict it did not earn, so a non-unique anchor is now an error.
 
 ### The refund rehearsal, run and closed 2026-08-22
 
