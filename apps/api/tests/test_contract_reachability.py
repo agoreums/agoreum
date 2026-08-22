@@ -19,13 +19,44 @@ failure mode being prevented is silence, not any particular function.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from app.chain import escrow as contract
 from app.modules.orders import service
-from tests.test_settlement_options import dispute_for, refund_for, release_for
+
+# Built here rather than imported from the sibling test module. `tests` is not an
+# importable package in CI, so a cross-test import passes locally and fails there,
+# which is exactly what it did the first time this was pushed.
+ESCROW_ID = "0x" + "ab" * 32
+NOW = datetime(2026, 8, 22, 12, 0, tzinfo=UTC)
+
+
+def _funded():
+    return SimpleNamespace(status=contract.OnChainStatus.FUNDED)
+
+
+def release_for(roles):
+    return service._release_action(
+        _funded(), set(roles), now=NOW, auto_release=NOW + timedelta(hours=1),
+        escrow_id=ESCROW_ID,
+    )
+
+
+def refund_for(roles):
+    return service._refund_action(
+        _funded(), set(roles), now=NOW, deadline=NOW + timedelta(hours=1),
+        escrow_id=ESCROW_ID,
+    )
+
+
+def dispute_for(roles):
+    return service._dispute_action(
+        _funded(), set(roles), paused=False, escrow_id=ESCROW_ID,
+    )
 
 ABI = json.loads(
     (Path(__file__).resolve().parents[3] / "packages" / "contracts" /
