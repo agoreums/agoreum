@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after the refund rehearsal.
+**Last updated:** 2026-08-22, after the escrow exits were made reachable.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -164,7 +164,7 @@ this section.
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
 | ~~A dispute has never been raised or settled~~ | **Closed 2026-08-22** | Run end to end. Three latent defects found and fixed, one of them a live outage |
 | ~~A refund has never been run in production~~ | **Closed 2026-08-22** | Both branches run end to end. Two latent defects found and fixed, and the buyer's unilateral reclaim proven for the first time. See the rehearsal below |
-| Neither refund nor release nor dispute is reachable from the product | **Open, and the most serious open item** | The web app makes exactly two on-chain writes, `createEscrow` and `subscribe`. There is no endpoint and no button for release, refund or dispute. A buyer whose provider vanished is protected by the contract and cannot reach the protection. Found while designing the refund rehearsal |
+| ~~Neither refund nor release nor dispute is reachable from the product~~ | **Closed 2026-08-22** | `GET /orders/{id}/settlement-options` describes every exit with signable calldata, an order detail page carries the buttons, and a test over the ABI refuses to let a new state-changing function go unclassified. See below |
 | `cancelled_at` and `cancellation_reason` are written and read by nothing | Open, minor | The indexer sets `cancelled_at` on a refund; no endpoint exposes it and no code reads it |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | ~~A divergence could be reported but never closed~~ | **Closed 2026-08-22** | `reconcile` named the first real divergence and nothing could act on it. Repair added, admin gated, copying only what the contract holds and refusing to paper over a structural one |
@@ -172,6 +172,60 @@ this section.
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The escrow exits, made reachable 2026-08-22
+
+**The most serious defect this project has found, and it was never a bug.** The
+contract enforced a buyer's right to reclaim their money after the delivery
+deadline, correctly, for the whole life of the product. No buyer could invoke
+it. The interface made exactly two on-chain writes, `approve` and
+`createEscrow`, and the API described how to put money into an escrow and
+nothing at all about taking it out.
+
+Every test passed. The Solidity was right. The audit-readiness document was
+accurate. The gap was between a guarantee existing and a person being able to
+use it, and no test asked that question because the question had never been
+phrased.
+
+**What was built.**
+
+`GET /orders/{id}/settlement-options`, the counterpart `payment-instructions`
+never had. For the party asking, it returns every exit the contract allows,
+whether each is open right now, why not when it is not, the moment it opens,
+and complete signable calldata. Deadlines and the pause flag are read from the
+contract, because the database does not store them and because the contract is
+what accepts or refuses the call.
+
+An order detail page, which did not exist. The orders list was a flat table with
+nothing behind it, which is also why `DisputePanel` had been written and
+translated into nine languages and was rendered by no page at all.
+
+**Three decisions worth keeping.**
+
+*Unavailable actions are shown, not hidden.* A refund that silently disappears
+until some unstated condition is met is indistinguishable from one that does not
+exist, which is the belief being corrected.
+
+*The calldata is published so the action works without us.* A guarantee that
+only functions through our website is a guarantee that depends on us staying
+online.
+
+*No calldata is published for `dispute`.* It takes a free-text reason, so
+complete calldata cannot exist before the caller has written one, and inventing
+one would put words in their mouth in a document they are about to sign.
+
+**The finding is now a standing check.** `test_contract_reachability.py` is
+written over the ABI: every state-changing function must be classified as
+reachable, naming the endpoint, or withheld, naming the reason. A function added
+to the contract later fails until somebody decides. Mutation tested against the
+exact state the product shipped in, and it catches it.
+
+`orders.auto_release_at` is a different quantity from the chain's and is not
+what any exit is judged against. The platform counts that window from actual
+delivery; the contract fixes it at creation as `deliveryDeadline +
+autoReleaseWindow`. The chain's is reported, because the chain's is what
+decides. Nothing displays the platform's figure, so nobody was shown a wrong
+date.
 
 ### The refund rehearsal, run and closed 2026-08-22
 

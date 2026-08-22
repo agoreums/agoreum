@@ -784,7 +784,18 @@
       "amount": "金額",
       "placed": "注文日"
     },
-    "quantity": "{count, plural, other {# 個}}"
+    "quantity": "{count, plural, other {# 個}}",
+    "detail": {
+      "title": "注文",
+      "summary": "この注文",
+      "placed": "注文日",
+      "escrowStatus": "エスクロー",
+      "released": "支払済み",
+      "refunded": "返金済み",
+      "fee": "プラットフォーム手数料",
+      "loadFailed": "この注文を読み込めませんでした。",
+      "notFound": "その注文はありません。"
+    }
   },
   "notifications": {
     "title": "通知",
@@ -1004,5 +1015,33 @@
     "toProvider": "提供者へ",
     "toBuyer": "購入者へ",
     "settlementNote": "資金はチェーン上で清算が送信された時点で移動します。"
+  },
+  "settlement": {
+    "title": "このエスクローを動かす",
+    "actions": {
+      "release": "提供者に支払う",
+      "refund": "購入者に返す",
+      "dispute": "異議を申し立てる"
+    },
+    "do": {
+      "release": "支払う",
+      "refund": "返金する",
+      "dispute": "異議"
+    },
+    "opensAt": "{when} から利用できます",
+    "sending": "ウォレットで承認してください",
+    "manual": "私たちを介さず自分で送る",
+    "contract": "コントラクト",
+    "calldata": "呼び出しデータ",
+    "reasonLabel": "異議の理由は何ですか",
+    "reasonIsPublic": "これはチェーン上に記録され、後から編集できません。",
+    "paused": "コントラクトは停止中です。自分の資金を取り戻すことは引き続き可能ですが、異議の申し立てはできません。",
+    "wrongNetwork": "続けるにはウォレットを {network} に切り替えてください。",
+    "viewOnExplorer": "取引を表示",
+    "errors": {
+      "loadFailed": "このエスクローで何ができるかを読み込めませんでした。",
+      "reverted": "チェーンが取引を拒否しました。何も動いていません。",
+      "failed": "取引を送信できませんでした。"
+    }
   }
 }

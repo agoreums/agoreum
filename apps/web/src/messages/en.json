@@ -784,7 +784,18 @@
       "amount": "Amount",
       "placed": "Placed"
     },
-    "quantity": "{count, plural, one {# unit} other {# units}}"
+    "quantity": "{count, plural, one {# unit} other {# units}}",
+    "detail": {
+      "title": "Order",
+      "summary": "This order",
+      "placed": "Placed",
+      "escrowStatus": "Escrow",
+      "released": "Released",
+      "refunded": "Refunded",
+      "fee": "Platform fee",
+      "loadFailed": "Could not load this order.",
+      "notFound": "No such order."
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -1004,5 +1015,33 @@
     "toProvider": "To the provider",
     "toBuyer": "To the buyer",
     "settlementNote": "Funds move when the settlement is submitted on chain."
+  },
+  "settlement": {
+    "title": "Moving this escrow",
+    "actions": {
+      "release": "Release to the provider",
+      "refund": "Return to the buyer",
+      "dispute": "Raise a dispute"
+    },
+    "do": {
+      "release": "Release",
+      "refund": "Refund",
+      "dispute": "Dispute"
+    },
+    "opensAt": "Available from {when}",
+    "sending": "Confirm in your wallet",
+    "manual": "Send this yourself, without us",
+    "contract": "Contract",
+    "calldata": "Call data",
+    "reasonLabel": "Why are you disputing this?",
+    "reasonIsPublic": "This is written on chain and cannot be edited afterwards.",
+    "paused": "The contract is paused. Returning your own money is still possible; raising a dispute is not.",
+    "wrongNetwork": "Switch your wallet to {network} to continue.",
+    "viewOnExplorer": "View transaction",
+    "errors": {
+      "loadFailed": "Could not load what you can do with this escrow.",
+      "reverted": "The chain refused the transaction. Nothing moved.",
+      "failed": "The transaction could not be sent."
+    }
   }
 }

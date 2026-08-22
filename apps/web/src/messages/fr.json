@@ -784,7 +784,18 @@
       "amount": "Montant",
       "placed": "Date"
     },
-    "quantity": "{count, plural, one {# unité} other {# unités}}"
+    "quantity": "{count, plural, one {# unité} other {# unités}}",
+    "detail": {
+      "title": "Commande",
+      "summary": "Cette commande",
+      "placed": "Passée",
+      "escrowStatus": "Séquestre",
+      "released": "Payé",
+      "refunded": "Remboursé",
+      "fee": "Frais de la plateforme",
+      "loadFailed": "Impossible de charger cette commande.",
+      "notFound": "Cette commande n'existe pas."
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -1004,5 +1015,33 @@
     "toProvider": "Au prestataire",
     "toBuyer": "A l acheteur",
     "settlementNote": "Les fonds sont deplaces lorsque le reglement est soumis sur la chaine."
+  },
+  "settlement": {
+    "title": "Déplacer ce séquestre",
+    "actions": {
+      "release": "Payer le prestataire",
+      "refund": "Rendre à l'acheteur",
+      "dispute": "Ouvrir un litige"
+    },
+    "do": {
+      "release": "Payer",
+      "refund": "Rembourser",
+      "dispute": "Contester"
+    },
+    "opensAt": "Disponible à partir du {when}",
+    "sending": "Confirmez dans votre portefeuille",
+    "manual": "Envoyez-le vous-même, sans nous",
+    "contract": "Contrat",
+    "calldata": "Données d'appel",
+    "reasonLabel": "Pourquoi contestez-vous ?",
+    "reasonIsPublic": "Ceci est inscrit sur la chaîne et ne peut plus être modifié.",
+    "paused": "Le contrat est en pause. Récupérer votre argent reste possible ; ouvrir un litige non.",
+    "wrongNetwork": "Basculez votre portefeuille sur {network} pour continuer.",
+    "viewOnExplorer": "Voir la transaction",
+    "errors": {
+      "loadFailed": "Impossible de charger ce que vous pouvez faire avec ce séquestre.",
+      "reverted": "La chaîne a refusé la transaction. Rien n'a bougé.",
+      "failed": "La transaction n'a pas pu être envoyée."
+    }
   }
 }

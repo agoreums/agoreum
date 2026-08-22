@@ -1,6 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 
 import { Skeleton } from "@/components/app/ui";
@@ -133,9 +135,15 @@ function OrderTable({ orders }: { orders: OrderSummary[] }) {
           {orders.map((order) => (
             <tr key={order.id} className="transition-colors hover:bg-[var(--surface-raised)]">
               <td className="px-4 py-3">
-                <span className="font-mono text-[var(--text-primary)]">
+                {/* The row is the way into everything a party can do about an
+                    order: dispute it, release it, get their money back. Without
+                    it none of that was reachable at all. */}
+                <Link
+                  href={`/orders/${order.id}`}
+                  className="font-mono text-[var(--text-primary)] underline-offset-4 hover:underline"
+                >
                   {order.reference}
-                </span>
+                </Link>
                 <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
                   {t("quantity", { count: order.quantity })}
                 </span>

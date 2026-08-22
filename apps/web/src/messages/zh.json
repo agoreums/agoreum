@@ -784,7 +784,18 @@
       "amount": "金额",
       "placed": "下单时间"
     },
-    "quantity": "{count, plural, other {# 个单位}}"
+    "quantity": "{count, plural, other {# 个单位}}",
+    "detail": {
+      "title": "订单",
+      "summary": "该订单",
+      "placed": "下单时间",
+      "escrowStatus": "托管",
+      "released": "已支付",
+      "refunded": "已退款",
+      "fee": "平台费用",
+      "loadFailed": "无法加载该订单。",
+      "notFound": "没有该订单。"
+    }
   },
   "notifications": {
     "title": "通知",
@@ -1004,5 +1015,33 @@
     "toProvider": "给提供者",
     "toBuyer": "给买家",
     "settlementNote": "资金将在链上提交结算时转移。"
+  },
+  "settlement": {
+    "title": "处理这笔托管",
+    "actions": {
+      "release": "支付给服务方",
+      "refund": "退还给买家",
+      "dispute": "发起争议"
+    },
+    "do": {
+      "release": "支付",
+      "refund": "退款",
+      "dispute": "争议"
+    },
+    "opensAt": "{when} 起可用",
+    "sending": "请在钱包中确认",
+    "manual": "不经过我们，自己发送",
+    "contract": "合约",
+    "calldata": "调用数据",
+    "reasonLabel": "你为什么发起争议？",
+    "reasonIsPublic": "这将写入链上，之后无法修改。",
+    "paused": "合约已暂停。取回你自己的资金仍然可行，但无法发起争议。",
+    "wrongNetwork": "请将钱包切换到 {network} 以继续。",
+    "viewOnExplorer": "查看交易",
+    "errors": {
+      "loadFailed": "无法加载你可以对这笔托管做什么。",
+      "reverted": "链拒绝了该交易，没有任何资金移动。",
+      "failed": "无法发送交易。"
+    }
   }
 }

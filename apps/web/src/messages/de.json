@@ -784,7 +784,18 @@
       "amount": "Betrag",
       "placed": "Datum"
     },
-    "quantity": "{count, plural, one {# Einheit} other {# Einheiten}}"
+    "quantity": "{count, plural, one {# Einheit} other {# Einheiten}}",
+    "detail": {
+      "title": "Bestellung",
+      "summary": "Diese Bestellung",
+      "placed": "Aufgegeben",
+      "escrowStatus": "Treuhand",
+      "released": "Ausgezahlt",
+      "refunded": "Erstattet",
+      "fee": "Plattformgebühr",
+      "loadFailed": "Diese Bestellung konnte nicht geladen werden.",
+      "notFound": "Keine solche Bestellung."
+    }
   },
   "notifications": {
     "title": "Benachrichtigungen",
@@ -1004,5 +1015,33 @@
     "toProvider": "An den Anbieter",
     "toBuyer": "An den Kaeufer",
     "settlementNote": "Die Mittel bewegen sich, sobald die Abwicklung on chain eingereicht wird."
+  },
+  "settlement": {
+    "title": "Diesen Treuhandbetrag bewegen",
+    "actions": {
+      "release": "An den Anbieter auszahlen",
+      "refund": "An den Käufer zurückgeben",
+      "dispute": "Streitfall eröffnen"
+    },
+    "do": {
+      "release": "Auszahlen",
+      "refund": "Erstatten",
+      "dispute": "Anfechten"
+    },
+    "opensAt": "Verfügbar ab {when}",
+    "sending": "Bestätige in deiner Wallet",
+    "manual": "Selbst senden, ohne uns",
+    "contract": "Vertrag",
+    "calldata": "Aufrufdaten",
+    "reasonLabel": "Warum fechtest du das an?",
+    "reasonIsPublic": "Dies wird auf der Kette gespeichert und kann danach nicht mehr geändert werden.",
+    "paused": "Der Vertrag ist pausiert. Dein eigenes Geld zurückzuholen ist weiterhin möglich, einen Streitfall zu eröffnen nicht.",
+    "wrongNetwork": "Wechsle deine Wallet zu {network}, um fortzufahren.",
+    "viewOnExplorer": "Transaktion ansehen",
+    "errors": {
+      "loadFailed": "Konnte nicht laden, was mit diesem Treuhandbetrag möglich ist.",
+      "reverted": "Die Kette hat die Transaktion abgelehnt. Es wurde nichts bewegt.",
+      "failed": "Die Transaktion konnte nicht gesendet werden."
+    }
   }
 }

@@ -784,7 +784,18 @@
       "amount": "المبلغ",
       "placed": "التاريخ"
     },
-    "quantity": "{count, plural, other {# وحدة}}"
+    "quantity": "{count, plural, other {# وحدة}}",
+    "detail": {
+      "title": "الطلب",
+      "summary": "هذا الطلب",
+      "placed": "تاريخ الطلب",
+      "escrowStatus": "الضمان",
+      "released": "مدفوع",
+      "refunded": "مُسترد",
+      "fee": "رسوم المنصة",
+      "loadFailed": "تعذّر تحميل هذا الطلب.",
+      "notFound": "لا يوجد طلب بهذا الرقم."
+    }
   },
   "notifications": {
     "title": "الإشعارات",
@@ -1004,5 +1015,33 @@
     "toProvider": "إلى المزود",
     "toBuyer": "إلى المشتري",
     "settlementNote": "تنتقل الأموال عند إرسال التسوية على السلسلة."
+  },
+  "settlement": {
+    "title": "تحريك هذا الضمان",
+    "actions": {
+      "release": "الدفع لمقدم الخدمة",
+      "refund": "الإعادة إلى المشتري",
+      "dispute": "فتح نزاع"
+    },
+    "do": {
+      "release": "دفع",
+      "refund": "استرداد",
+      "dispute": "نزاع"
+    },
+    "opensAt": "متاح ابتداءً من {when}",
+    "sending": "أكّد من محفظتك",
+    "manual": "أرسلها بنفسك، من دوننا",
+    "contract": "العقد",
+    "calldata": "بيانات الاستدعاء",
+    "reasonLabel": "لماذا تفتح نزاعاً؟",
+    "reasonIsPublic": "يُكتب هذا على السلسلة ولا يمكن تعديله لاحقاً.",
+    "paused": "العقد متوقف مؤقتاً. لا يزال بإمكانك استرداد أموالك، أما فتح نزاع فلا.",
+    "wrongNetwork": "بدّل محفظتك إلى {network} للمتابعة.",
+    "viewOnExplorer": "عرض المعاملة",
+    "errors": {
+      "loadFailed": "تعذّر تحميل ما يمكنك فعله بهذا الضمان.",
+      "reverted": "رفضت السلسلة المعاملة. لم يتحرك شيء.",
+      "failed": "تعذّر إرسال المعاملة."
+    }
   }
 }
