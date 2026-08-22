@@ -57,23 +57,33 @@ def fetch(url: str, token: str | None = None) -> tuple[int, str]:
 
 
 def local_paths() -> set[str]:
-    """The paths this repository would serve, from the app's own OpenAPI.
+    """The paths this repository would serve, generated the way production is.
 
-    Walking `app.routes` was the first attempt and it found exactly one route,
-    because the routers are nested rather than flat, and it then announced with
-    complete confidence that the deploy had not landed. Asking the application
-    to describe itself the same way production does compares like with like, and
-    cannot silently enumerate a fraction of the surface.
+    Two wrong answers before this one, both confidently reported.
+
+    Walking `app.routes` found exactly one route, because the routers are nested
+    rather than flat, and announced that the deploy had not landed.
+
+    Then `app.openapi()` found 95 against production's 65 and announced the same
+    thing, because production does not serve `app.openapi()`. It serves
+    `public_openapi(app)`, a deliberately narrower document that omits admin,
+    dashboard, health, notifications and organisation routes. Every one of those
+    30 "missing" paths was live and answering at the time.
+
+    Generating the document with the same function production uses is the only
+    comparison that means anything. Comparing against a different document
+    reports a deploy failure that is really a bug in this file.
     """
     sys.path.insert(0, str(REPO / "apps" / "api"))
-    from app.main import app  # noqa: PLC0415 - imported late, after sys.path
+    from app.api.public_schema import public_openapi  # noqa: PLC0415
+    from app.main import app  # noqa: PLC0415
 
-    paths = set(app.openapi().get("paths", {}))
+    paths = set(public_openapi(app).get("paths", {}))
     if len(paths) < 40:
         raise SystemExit(
             f"only {len(paths)} local paths were found, which is too few to be "
-            "the whole API. Refusing to compare, because a comparison against a "
-            "fraction of the surface reports a deploy failure that is really a "
+            "the published surface. Refusing to compare, because a comparison "
+            "against a fraction of it reports a deploy failure that is really a "
             "bug in this script."
         )
     return paths
