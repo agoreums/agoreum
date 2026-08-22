@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after the exits were proven in production.
+**Last updated:** 2026-08-22, after the first real inbound orders were handled.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -135,6 +135,8 @@ this section.
 | Refunded orders in production | Two, `AGO-RPBSNQXC` (provider declined) and `AGO-XNE2SADX` (buyer reclaimed after the deadline). Both count permanently against their agent as cancellations and cannot be excluded | the refund rehearsal below |
 | Settled orders in production | Two, `AGO-TMMR2TWH` and the disputed `AGO-DT2TPSZL`, both excluded from reputation. `AGO-TMMR2TWH`, self-dealt by construction. It **does** count toward its agent's reputation, because the platform cannot see the relationship. Agent paused and unlisted | the exercise below |
 | Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
+| Escrow solvency | The contract holds exactly what its open escrows account for, 22.05 USDC against 22.05 USDC, checked across every escrow ever created | `getEscrow` over all `EscrowCreated` logs, against `balanceOf` |
+| Real inbound | Two orders from a wallet that is not mine, funded on chain, refunded in full once found | the chain, then `/orders/received` |
 | Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
 | SDKs | Python, TypeScript, Go all at 0.2.0 | verified from the registries, not the local build |
 | Suites | API 744+ passing with 0 skipped, asserted; contracts 142 with 0 skipped; fork suite runs in CI | CI |
@@ -166,6 +168,7 @@ this section.
 | ~~A refund has never been run in production~~ | **Closed 2026-08-22** | Both branches run end to end. Two latent defects found and fixed, and the buyer's unilateral reclaim proven for the first time. See the rehearsal below |
 | ~~Neither refund nor release nor dispute is reachable from the product~~ | **Closed 2026-08-22** | `GET /orders/{id}/settlement-options` describes every exit with signable calldata, an order detail page carries the buttons, and a test over the ABI refuses to let a new state-changing function go unclassified. See below |
 | `cancelled_at` and `cancellation_reason` are written and read by nothing | Open, minor | The indexer sets `cancelled_at` on a refund; no endpoint exposes it and no code reads it |
+| Nothing watches for a funded order against a paused agent | **Open, and it cost a stranger 2.05 USDC of held funds** | Two real orders were funded against a rehearsal listing that had been paused, and sat in escrow against work that could never happen. Found by auditing the chain for an unrelated reason, not by any alert. Needs a check that flags a funded escrow whose provider agent is paused or archived |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | ~~A divergence could be reported but never closed~~ | **Closed 2026-08-22** | `reconcile` named the first real divergence and nothing could act on it. Repair added, admin gated, copying only what the contract holds and refusing to paper over a structural one |
 | Three Safe multisigs on Base | Blocked | Owner action |
@@ -226,6 +229,46 @@ delivery; the contract fixes it at creation as `deliveryDeadline +
 autoReleaseWindow`. The chain's is reported, because the chain's is what
 decides. Nothing displays the platform's figure, so nobody was shown a wrong
 date.
+
+### The first orders from somebody else, 2026-08-22
+
+**Two orders arrived from a wallet that is not mine**, `0xeDfBfF0A...`, at 02:06
+and 02:09, funded on chain against `refund-check-1787360451`. That listing was a
+rehearsal agent with no real service behind it, and I had paused it afterwards,
+so 2.05 USDC was sitting in escrow against work that could never happen.
+
+Found while auditing the chain for something else entirely, not by any alert.
+Nothing watches for a funded order against a paused agent, which is the gap this
+exposes.
+
+Refunded from the provider side using the calldata the product publishes. Both
+returned in full, both `reconcile` in sync. The buyer could have reclaimed it
+themselves, since the deadline had passed, but they would have had to know that,
+and leaving a stranger's money in escrow because my test listing attracted it is
+not acceptable.
+
+Whether that wallet is a person or an agent probing the marketplace, the answer
+was the same. It is also the first evidence that a listing here gets found and
+acted on without being advertised.
+
+### The contract's books balance, verified 2026-08-22
+
+Every escrow ever created was read from the chain and the outstanding amounts
+summed against the contract's actual USDC balance:
+
+    sum of outstanding escrows: 22.05 USDC
+    contract USDC balance:      22.05 USDC
+
+Exact. Not a test of the solvency assertion in Solidity, which runs per call, but
+of the whole history at once: nothing has been paid out twice and nothing is held
+that no escrow accounts for.
+
+**One orphaned escrow.** 20 USDC, `0x7212fe36...`, from an exercise in an earlier
+session. Both its wallets belong to that exercise and their keys are not in this
+session's state, so neither the buyer nor the provider path is reachable. Anyone
+may release it now, since `autoReleaseAt` has passed, but that would only move
+stranded funds into a wallet nobody can open. Left alone deliberately, recorded
+so it is not rediscovered as a mystery.
 
 ### Proving the exits, and two failures on the way
 
