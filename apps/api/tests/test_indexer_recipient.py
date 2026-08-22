@@ -50,8 +50,14 @@ class FakeEvent:
 
 
 @dataclass
+class FakeUser:
+    primary_address: str = BUYER
+
+
+@dataclass
 class FakeOrder:
     escrow: FakeEscrow | None = field(default_factory=FakeEscrow)
+    buyer: FakeUser = field(default_factory=FakeUser)
 
 
 def _args_for(name: str) -> dict[str, Any]:
@@ -101,6 +107,104 @@ class TestEveryEscrowEventIsRecordable:
         """
         event = FakeEvent("EscrowSettled", {})
         assert indexer._recipient(event, FakeOrder(escrow=None)) is None
+
+
+class TestALedgerRowNamesBothEndsOfTheTransfer:
+    """A refund recorded the buyer paying themselves.
+
+    `from_address` read the event's `buyer`, which `EscrowRefunded` does carry,
+    and `to_address` fell through to the same value because the event names no
+    provider. Both ends were the buyer, on the one event where the direction is
+    the entire meaning of the row.
+
+    It survived because no refund had ever been emitted in production and
+    neither column is exposed by any endpoint, so nothing anybody could look at
+    would have shown it. Predicted from the event signatures while designing the
+    refund rehearsal of 2026-08-22, then checked here against the ABI's real
+    shapes rather than against a guess rewritten in the test.
+    """
+
+    @pytest.mark.parametrize("name", ESCROW_EVENTS)
+    def test_the_two_ends_are_never_the_same_party(self, name: str) -> None:
+        payer, payee = indexer._counterparties(FakeEvent(name, _args_for(name)), FakeOrder())
+        assert payer, f"{name} produced no payer, and the column is not nullable"
+        if payee is not None:
+            assert payer != payee, (
+                f"{name} recorded the same address at both ends, which describes "
+                "somebody paying themselves rather than a transfer between two "
+                "parties."
+            )
+
+    def test_a_refund_runs_from_the_provider_back_to_the_buyer(self) -> None:
+        """The direction is the point, and it is the reverse of every other event."""
+        payer, payee = indexer._counterparties(
+            FakeEvent("EscrowRefunded", _args_for("EscrowRefunded")), FakeOrder()
+        )
+        assert payer == PROVIDER
+        assert payee == BUYER
+
+    def test_funding_and_release_still_run_from_the_buyer_to_the_provider(self) -> None:
+        """The convention the refund reverses, so the reversal cannot spread."""
+        for name in ("EscrowCreated", "EscrowReleased"):
+            payer, payee = indexer._counterparties(FakeEvent(name, _args_for(name)), FakeOrder())
+            assert (payer, payee) == (BUYER, PROVIDER), name
+
+    def test_a_refund_with_no_provider_anywhere_still_names_the_buyer(self) -> None:
+        """Degraded rather than broken. The column refuses null and empty alike."""
+        event = FakeEvent("EscrowRefunded", _args_for("EscrowRefunded"))
+        payer, payee = indexer._counterparties(event, FakeOrder(escrow=None))
+        assert payer == BUYER
+        assert payee == BUYER
+
+
+class TestARefundRecordsTheChainsFigure:
+    """A refund wrote whatever the database already believed the escrow was.
+
+    `refund` returns the whole escrow, so the emitted `amount` is the chain's own
+    view of the total. Taking the figure from `escrow.amount` instead meant that
+    where the two had drifted, the refund carried the drift forward and reconcile
+    would keep reporting a divergence that nothing corrected.
+
+    Same shape as the settlement defect: the chain states a number and the code
+    writes a different one it happens to hold.
+    """
+
+    @staticmethod
+    def _apply(recorded: Decimal, emitted_units: int) -> tuple[Decimal, Decimal]:
+        """Drive the real handler over a real event payload.
+
+        Returns the escrow's amount and refunded amount afterwards. Deliberately
+        not arithmetic rewritten in the test.
+        """
+        from types import SimpleNamespace
+
+        escrow = SimpleNamespace(amount=recorded, refunded_amount=Decimal("0"))
+        event = FakeEvent("EscrowRefunded", {"amount": emitted_units, "buyer": BUYER})
+        indexer.apply_refund(escrow, event)
+        return escrow.amount, escrow.refunded_amount
+
+    def test_the_refunded_figure_comes_from_the_event(self) -> None:
+        amount, refunded = self._apply(Decimal("2.050000"), 2_050_000)
+        assert refunded == Decimal("2.050000")
+        assert amount == Decimal("2.050000")
+
+    def test_a_drifted_amount_is_corrected_rather_than_perpetuated(self) -> None:
+        """The case the old code got wrong, and the reason it must correct both.
+
+        Writing the chain's larger figure into `refunded_amount` alone would
+        breach `payouts_cannot_exceed_deposit` and crash-loop the indexer, which
+        is exactly how the first settled dispute took chain projection down.
+        """
+        amount, refunded = self._apply(Decimal("0.999375"), 1_025_000)
+        assert refunded == Decimal("1.025000")
+        assert amount == Decimal("1.025000")
+        assert refunded <= amount, "the row would be refused by the check constraint"
+
+    def test_an_event_carrying_no_amount_falls_back_to_the_record(self) -> None:
+        """Never zero. A refund of nothing is a worse claim than a stale one."""
+        amount, refunded = self._apply(Decimal("2.050000"), 0)
+        assert refunded == Decimal("2.050000")
+        assert amount == Decimal("2.050000")
 
 
 class TestASettledDisputeIsDescribedAsWellAsRecorded:

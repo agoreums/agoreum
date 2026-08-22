@@ -99,7 +99,7 @@ cause, and the root cause is never "should have tried harder".
 
 ## Running record
 
-**Last updated:** 2026-08-22, after `9f79868`.
+**Last updated:** 2026-08-22, after the refund rehearsal.
 
 Written so that a session starting cold, whether that is a fresh instance or the
 same one resuming, can act from this section rather than reconstruct it.
@@ -132,6 +132,7 @@ this section.
 | API health | database, Redis and chain all ok, chain ~1.5s behind head | `/api/v1/health/ready` inside the container |
 | Workers | subscription indexer, webhooks, emails, all heartbeating within 3s | `/api/v1/health/workers` |
 | Receipts | **signing live and proven end to end**, kid `rVl3VOYAtNY4LW0J` | a real settled order's receipt verified against the published key, then its transaction confirmed on chain |
+| Refunded orders in production | Two, `AGO-RPBSNQXC` (provider declined) and `AGO-XNE2SADX` (buyer reclaimed after the deadline). Both count permanently against their agent as cancellations and cannot be excluded | the refund rehearsal below |
 | Settled orders in production | Two, `AGO-TMMR2TWH` and the disputed `AGO-DT2TPSZL`, both excluded from reputation. `AGO-TMMR2TWH`, self-dealt by construction. It **does** count toward its agent's reputation, because the platform cannot see the relationship. Agent paused and unlisted | the exercise below |
 | Escrow contract | `0x13c90ba1441bD02d55801Cb2F8bDA3515020A16D` on Base Sepolia, 8,741 bytes | `eth_getCode` |
 | Chain funds | admin/arbiter address holds ~0.287 ETH and ~496 USDC on Base Sepolia | `eth_getBalance`, `balanceOf` |
@@ -162,13 +163,63 @@ this section.
 | Monitor logs do not survive a recreate | Open | Recreating the container during an incident destroyed the evidence of whether it had paged |
 | Nothing watched the clock until 2026-08-21 | Closed | The monitor now compares against a `Date` header. Worth asking what else is trusted without ever being measured |
 | ~~A dispute has never been raised or settled~~ | **Closed 2026-08-22** | Run end to end. Three latent defects found and fixed, one of them a live outage |
-| A refund has never been run in production | Open, next exercise | The same never-exercised path family. The empty-address defect that crash-looped settlement would have hit refunds identically, and is now fixed, but nothing has ever exercised the path |
+| ~~A refund has never been run in production~~ | **Closed 2026-08-22** | Both branches run end to end. Two latent defects found and fixed, and the buyer's unilateral reclaim proven for the first time. See the rehearsal below |
+| Neither refund nor release nor dispute is reachable from the product | **Open, and the most serious open item** | The web app makes exactly two on-chain writes, `createEscrow` and `subscribe`. There is no endpoint and no button for release, refund or dispute. A buyer whose provider vanished is protected by the contract and cannot reach the protection. Found while designing the refund rehearsal |
+| `cancelled_at` and `cancellation_reason` are written and read by nothing | Open, minor | The indexer sets `cancelled_at` on a refund; no endpoint exposes it and no code reads it |
 | Who holds platform admin | Blocked, deliberately | Owner decision, expected alongside the multisig conversation. Not to be granted before then. See the standing constraint |
 | ~~A divergence could be reported but never closed~~ | **Closed 2026-08-22** | `reconcile` named the first real divergence and nothing could act on it. Repair added, admin gated, copying only what the contract holds and refusing to paper over a structural one |
 | Three Safe multisigs on Base | Blocked | Owner action |
 | Security audit engagement | Blocked | Owner action |
 | Mainnet deployment | Blocked | Both rows above, plus an explicit written instruction naming mainnet |
 | PyPI 0.1.0 yank | Blocked | Account-level action the publish token cannot perform |
+
+### The refund rehearsal, run and closed 2026-08-22
+
+**36 of 36 predictions agree, both predicted defects were real, and the most
+serious finding needed no transaction at all.** Designed first in
+`docs/refund-rehearsal-design.md`, which is left exactly as written so the
+predictions can be read against what happened.
+
+Two orders, one per authorisation branch. `AGO-RPBSNQXC`, the provider
+declining. `AGO-XNE2SADX`, the buyer reclaiming after the delivery deadline.
+
+**The guarantee the product rests on is now true of something other than a
+test.** A buyer funded an escrow, nothing was delivered, the deadline passed,
+and the buyer took the whole amount back without the provider's cooperation and
+without the platform's. No fee. `reconcile` agrees with the chain.
+
+**The most serious finding came out of the design, before any money moved.**
+Neither refund branch is reachable from the product. The web app makes exactly
+two on-chain writes, `createEscrow` and `subscribe`, and the API describes only
+how to put money in. A real buyer in that position would have to find the
+contract, read the ABI and build the transaction themselves. Reading the
+Solidity tells you the buyer is protected; only trying to use the protection
+tells you they cannot reach it.
+
+**Two latent defects, both fixed and mutation tested.** A refund recorded the
+buyer at both ends of the transfer, on the one event where direction is the
+whole meaning, invisible because neither column is exposed anywhere. And the
+refunded figure was taken from the database rather than from the event, the same
+shape as the settlement defect: the chain states a number and the code writes a
+different one it happens to hold.
+
+**A check that would have proved nothing.** The obvious test of "no fee is taken
+on a refund" is whether the fee recipient's balance moved. On this deployment
+the fee recipient is the buyer's own address, so that comparison passes whatever
+the contract does. `feesCollected` is an independent accumulator and is what
+actually settles it. A check that cannot fail is not a weak check, it is a false
+one, and it is most tempting where the configuration happens to make two things
+equal.
+
+**Two of my own checks were wrong**, recorded because an instrument that is
+wrong is worse than none. One compared two fields the schema does not expose,
+found them equal because both were absent, and printed CONFIRMED. One called an
+authenticated endpoint with no credentials and read the 401 as a missing
+receipt.
+
+**The contract's deadline guard was exercised by accident and held.** A stale
+RPC read returned a deadline of zero, the script believed it, and `refund` was
+called early. The contract refused with `DeadlineNotReached`.
 
 ### The dispute rehearsal, closed 2026-08-22
 
