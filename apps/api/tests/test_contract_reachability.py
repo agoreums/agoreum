@@ -166,7 +166,7 @@ class TestTheReachablePathsReallyAreReachable:
         assert "create_escrow_selector" in PaymentInstructions.model_fields
 
     @pytest.mark.asyncio
-    async def test_the_whole_endpoint_actually_assembles(self) -> None:
+    async def test_the_whole_endpoint_actually_assembles(self, monkeypatch) -> None:
         """Drive `settlement_options` itself, not only the pieces it is built from.
 
         **This is the test that was missing, and its absence shipped a broken
@@ -181,6 +181,7 @@ class TestTheReachablePathsReallyAreReachable:
         weak check, it is a false one, and this project had written that sentence
         down the same day it committed this.
         """
+        _configure_escrow(monkeypatch)
         escrow_id = contract.escrow_id_for_order("2f1b6d5a-0000-4000-8000-000000000001")
         order = SimpleNamespace(
             id="2f1b6d5a-0000-4000-8000-000000000001",
@@ -207,7 +208,9 @@ class TestTheReachablePathsReallyAreReachable:
         assert next(a for a in options.actions if a.action == "release").available
 
     @pytest.mark.asyncio
-    async def test_a_paused_contract_closes_the_dispute_and_not_the_refund(self) -> None:
+    async def test_a_paused_contract_closes_the_dispute_and_not_the_refund(
+        self, monkeypatch
+    ) -> None:
         """The pause flag is read, not assumed, and the assembly proves it.
 
         Without this, hardcoding `paused = False` passes every test, because the
@@ -215,6 +218,7 @@ class TestTheReachablePathsReallyAreReachable:
         would block somebody from taking their own money out during the exact
         situation a pause exists for.
         """
+        _configure_escrow(monkeypatch)
         escrow_id = contract.escrow_id_for_order("2f1b6d5a-0000-4000-8000-000000000002")
         order = SimpleNamespace(
             id="2f1b6d5a-0000-4000-8000-000000000002",
@@ -235,6 +239,20 @@ class TestTheReachablePathsReallyAreReachable:
         # Releasing is the buyer accepting the work, and the contract does not
         # gate it on the pause either.
         assert by_action["release"].available is True
+
+
+def _configure_escrow(monkeypatch) -> None:
+    """Give the settings an escrow address for the duration of one test.
+
+    CI runs with `ESCROW_CONTRACT_ADDRESS` unset, so `settlement_options` raises
+    `EscrowNotConfiguredError` before it does anything. A developer machine
+    reads the address from `.env` and the same test passes, which is how the
+    first version of this went green locally and red in CI. The local pass was
+    not evidence.
+    """
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "ESCROW_CONTRACT_ADDRESS", "0x" + "ab" * 20)
 
 
 class _FakeChain:
