@@ -433,7 +433,7 @@ async def settlement_options(
         order_id=order.id,
         order_reference=order.reference,
         chain_id=settings.CHAIN_ID,
-        network_name=settings.network_name,
+        network_name=settings.chain_name,
         escrow_contract=contract.contract_address(),
         escrow_id=escrow_id,
         onchain_status=on_chain.status.name.lower(),

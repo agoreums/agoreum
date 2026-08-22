@@ -165,5 +165,119 @@ class TestTheReachablePathsReallyAreReachable:
 
         assert "create_escrow_selector" in PaymentInstructions.model_fields
 
-    def test_the_settlement_options_builder_exists_and_is_wired(self) -> None:
-        assert callable(service.settlement_options)
+    @pytest.mark.asyncio
+    async def test_the_whole_endpoint_actually_assembles(self, monkeypatch) -> None:
+        """Drive `settlement_options` itself, not only the pieces it is built from.
+
+        **This is the test that was missing, and its absence shipped a broken
+        endpoint to production.** Every helper was covered and mutation tested,
+        the route existed, CI was green, and the first real request returned 500:
+        the assembly read `settings.network_name`, which does not exist, and
+        nothing had ever executed the line.
+
+        What stood in its place was `assert callable(service.settlement_options)`,
+        which is true of any function that has been defined and cannot fail for a
+        function that crashes on every call. A check that cannot fail is not a
+        weak check, it is a false one, and this project had written that sentence
+        down the same day it committed this.
+        """
+        _configure_escrow(monkeypatch)
+        escrow_id = contract.escrow_id_for_order("2f1b6d5a-0000-4000-8000-000000000001")
+        order = SimpleNamespace(
+            id="2f1b6d5a-0000-4000-8000-000000000001",
+            reference="AGO-ASSEMBLY",
+            buyer_id="user-1",
+            # No organization, so membership is never consulted and no database
+            # is needed to prove the assembly runs.
+            provider_agent=SimpleNamespace(org_id=None),
+        )
+        user = SimpleNamespace(id="user-1", primary_address="0x" + "11" * 20)
+
+        options = await service.settlement_options(
+            None, order=order, user=user, client=_FakeChain(escrow_id)
+        )
+
+        assert options.order_reference == "AGO-ASSEMBLY"
+        assert options.network_name, "the network has no name, which is how this broke"
+        assert options.escrow_contract.startswith("0x")
+        assert {a.action for a in options.actions} == {"release", "refund", "dispute"}
+        assert options.your_roles == ["buyer"]
+        assert options.note
+        # The buyer can always release, which is the cheapest proof that real
+        # availability logic ran rather than a default being returned.
+        assert next(a for a in options.actions if a.action == "release").available
+
+    @pytest.mark.asyncio
+    async def test_a_paused_contract_closes_the_dispute_and_not_the_refund(
+        self, monkeypatch
+    ) -> None:
+        """The pause flag is read, not assumed, and the assembly proves it.
+
+        Without this, hardcoding `paused = False` passes every test, because the
+        only fixture in play was an unpaused contract. Getting this backwards
+        would block somebody from taking their own money out during the exact
+        situation a pause exists for.
+        """
+        _configure_escrow(monkeypatch)
+        escrow_id = contract.escrow_id_for_order("2f1b6d5a-0000-4000-8000-000000000002")
+        order = SimpleNamespace(
+            id="2f1b6d5a-0000-4000-8000-000000000002",
+            reference="AGO-PAUSED",
+            buyer_id="user-1",
+            provider_agent=SimpleNamespace(org_id=None),
+        )
+        user = SimpleNamespace(id="user-1", primary_address="0x" + "11" * 20)
+
+        options = await service.settlement_options(
+            None, order=order, user=user, client=_FakeChain(escrow_id, paused=True)
+        )
+
+        assert options.contract_paused is True
+        by_action = {a.action: a for a in options.actions}
+        assert by_action["dispute"].available is False
+        assert "paused" in (by_action["dispute"].reason or "").lower()
+        # Releasing is the buyer accepting the work, and the contract does not
+        # gate it on the pause either.
+        assert by_action["release"].available is True
+
+
+def _configure_escrow(monkeypatch) -> None:
+    """Give the settings an escrow address for the duration of one test.
+
+    CI runs with `ESCROW_CONTRACT_ADDRESS` unset, so `settlement_options` raises
+    `EscrowNotConfiguredError` before it does anything. A developer machine
+    reads the address from `.env` and the same test passes, which is how the
+    first version of this went green locally and red in CI. The local pass was
+    not evidence.
+    """
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "ESCROW_CONTRACT_ADDRESS", "0x" + "ab" * 20)
+
+
+class _FakeChain:
+    """Answers the two calls `settlement_options` makes, with real ABI encoding.
+
+    Encoded rather than stubbed at the decode boundary, so the ABI shape is part
+    of what is being tested instead of being assumed.
+    """
+
+    def __init__(self, escrow_id: str, *, paused: bool = False) -> None:
+        self.escrow_id = escrow_id
+        self.paused = paused
+
+    async def call(self, *, to: str, data: str) -> str:
+        if data.startswith(contract.function_selector("paused")):
+            return "0x" + ("0" * 63) + ("1" if self.paused else "0")
+        from eth_abi.abi import encode
+
+        funded = encode(
+            ["(address,address,address,uint256,uint256,uint256,uint256,uint64,uint64,uint8)"],
+            [(
+                "0x" + "11" * 20, "0x" + "22" * 20, "0x" + "33" * 20,
+                2_050_000, 0, 0, 250,
+                2_000_000_000, 2_000_003_600,
+                int(contract.OnChainStatus.FUNDED),
+            )],
+        )
+        return "0x" + funded.hex()
